@@ -33,7 +33,7 @@ export default function ChatScreen() {
     },
   })
 
-  const messages: Message[] = data?.messages ?? (Array.isArray(data) ? data : [])
+  const messages: Message[] = Array.isArray(data) ? data : (data ?? [])
 
   useEffect(() => {
     if (messages.length > 0) {

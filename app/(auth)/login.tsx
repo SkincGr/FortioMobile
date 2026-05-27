@@ -24,9 +24,17 @@ export default function LoginScreen() {
     setError('')
     try {
       await login(email.trim(), password)
-      router.replace('/(tabs)/')
+      router.replace('/(tabs)' as any)
     } catch (e: any) {
-      setError(e?.response?.data?.error || 'Σφάλμα σύνδεσης')
+      if (e?.response) {
+        // Server απάντησε με error
+        setError(e.response.data?.error || `Server error ${e.response.status}`)
+      } else if (e?.request) {
+        // Δεν υπήρξε απάντηση — λάθος URL ή server δεν τρέχει
+        setError('Δεν βρέθηκε server. Έλεγξε ότι τρέχει το npm run dev στον υπολογιστή.')
+      } else {
+        setError(e?.message || 'Άγνωστο σφάλμα')
+      }
     } finally {
       setLoading(false)
     }

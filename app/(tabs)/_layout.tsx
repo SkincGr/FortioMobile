@@ -52,13 +52,6 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="shipments"
-        options={{
-          title: 'Αποστολές',
-          tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'cube' : 'cube-outline'} focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
         name="messages"
         options={{
           title: 'Μηνύματα',
@@ -66,19 +59,16 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="notifications"
+        name="announcements"
         options={{
-          title: 'Ειδοποιήσεις',
-          tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'notifications' : 'notifications-outline'} focused={focused} />,
+          title: 'Ανακοινώσεις',
+          tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'megaphone' : 'megaphone-outline'} focused={focused} />,
         }}
       />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Προφίλ',
-          tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'person' : 'person-outline'} focused={focused} />,
-        }}
-      />
+      {/* Hidden from tab bar — accessible via router.push */}
+      <Tabs.Screen name="shipments" options={{ href: null }} />
+      <Tabs.Screen name="notifications" options={{ href: null }} />
+      <Tabs.Screen name="profile" options={{ href: null }} />
     </Tabs>
   )
 }

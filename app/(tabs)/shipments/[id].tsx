@@ -1,16 +1,83 @@
-import React from 'react'
-import { View, Text, ScrollView, TouchableOpacity, Alert, RefreshControl } from 'react-native'
-import { useLocalSearchParams, router } from 'expo-router'
+import React, { useState } from 'react'
+import {
+  View, Text, ScrollView, TouchableOpacity, Alert,
+  RefreshControl, Modal, StyleSheet, ActivityIndicator,
+} from 'react-native'
+import { useLocalSearchParams, router, Stack } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
 import { shipmentsApi, offersApi, Offer } from '@/lib/api'
-import { Card } from '@/components/ui/Card'
-import { ShipmentStatusBadge } from '@/components/ShipmentStatusBadge'
-import { Button } from '@/components/ui/Button'
 import { LoadingScreen } from '@/components/ui/LoadingScreen'
 import { Colors } from '@/constants/colors'
 
-function OfferCard({ offer, shipmentId }: { offer: Offer; shipmentId: string }) {
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const VEHICLE_ICON: Record<string, string> = {
+  VAN: '🚐', TRUCK: '🚛', SHIP: '🚢', AIRPLANE: '✈️', TRAIN: '🚂',
+}
+
+const STATUS_LABEL: Record<string, string> = {
+  REQUEST:          'Αίτηση',
+  PENDING:          'Σε αναμονή',
+  AWAITING_SENDER:  'Αναμ. Αποστολέα',
+  AWAITING_CARRIER: 'Αναμ. Μεταφορέα',
+  ACCEPTED:         'Αποδεκτή',
+  REJECTED:         'Απορρίφθηκε',
+  WITHDRAWN:        'Ανακλήθηκε',
+  COMPLETED:        'Ολοκληρώθηκε',
+}
+
+const STATUS_COLOR: Record<string, string> = {
+  REQUEST:          Colors.textMuted,
+  PENDING:          '#D97706',
+  AWAITING_SENDER:  Colors.primary,
+  AWAITING_CARRIER: Colors.primary,
+  ACCEPTED:         Colors.success,
+  REJECTED:         '#EF4444',
+  WITHDRAWN:        Colors.textMuted,
+  COMPLETED:        Colors.primary,
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function fDate(v?: string | null) {
+  if (!v) return null
+  return new Date(v).toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+function fCity(raw?: string | null) {
+  if (!raw) return '—'
+  return raw.split(' / ')[0]
+}
+
+function fRouteNum(routeNumber?: string | null, routeId?: string | null) {
+  if (routeNumber) return `#${String(routeNumber).padStart(6, '0')}`
+  if (routeId) return `#${routeId.slice(-8).toUpperCase()}`
+  return '—'
+}
+
+// ─── Section header ───────────────────────────────────────────────────────────
+
+function SectionHeader({ title, count }: { title: string; count: number }) {
+  return (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      <View style={styles.sectionBadge}>
+        <Text style={styles.sectionBadgeText}>{count}</Text>
+      </View>
+    </View>
+  )
+}
+
+// ─── Offer card ───────────────────────────────────────────────────────────────
+
+function OfferCard({
+  offer, shipmentId, onView,
+}: {
+  offer: Offer
+  shipmentId: string
+  onView: (o: Offer) => void
+}) {
   const qc = useQueryClient()
 
   const acceptMut = useMutation({
@@ -28,15 +95,29 @@ function OfferCard({ offer, shipmentId }: { offer: Offer; shipmentId: string }) 
     onError: () => Alert.alert('Σφάλμα', 'Δεν ήταν δυνατή η απόρριψη'),
   })
 
-  const statusColors: Record<string, string> = {
-    PENDING: 'text-amber-600', ACCEPTED: 'text-green-600',
-    REJECTED: 'text-red-500', WITHDRAWN: 'text-slate-400',
-  }
+  const vehicleType = offer.carrier?.carrierProfile?.vehicleType
+  const icon        = VEHICLE_ICON[vehicleType ?? ''] ?? '🚛'
+  const companyName = offer.carrier?.carrierProfile?.companyName ?? offer.carrier?.name ?? offer.carrier?.email ?? '—'
+  const email       = offer.carrier?.email ?? '—'
+  const phone       = offer.carrier?.phone ?? ''
+  const msgCount    = offer.unreadCount ?? offer._count?.messages ?? 0
+  const depDate     = fDate(offer.route?.departureDate)
+  const arrDate     = fDate(offer.deliveryDate ?? offer.route?.estimatedArrival)
+  const origCity    = fCity(offer.route?.originCity)
+  const destCity    = fCity(offer.route?.destCity)
+  const midStops    = (offer.route?.stops ?? []).slice(1, -1)
+
+  const isRequest  = offer.status === 'REQUEST'
+  const isPending  = offer.status === 'PENDING'
+  const isAccepted = offer.status === 'ACCEPTED'
+  const isRejected = ['REJECTED', 'WITHDRAWN'].includes(offer.status)
+
+  const statusColor = STATUS_COLOR[offer.status] ?? Colors.textMuted
 
   function confirmAccept() {
     Alert.alert(
       'Αποδοχή Προσφοράς',
-      `Αποδέχεσαι την προσφορά από ${offer.carrier?.carrierProfile?.companyName ?? offer.carrier?.email}?`,
+      `Αποδέχεσαι την προσφορά από ${companyName};`,
       [
         { text: 'Ακύρωση', style: 'cancel' },
         { text: 'Αποδοχή', onPress: () => acceptMut.mutate() },
@@ -45,156 +126,335 @@ function OfferCard({ offer, shipmentId }: { offer: Offer; shipmentId: string }) 
   }
 
   return (
-    <Card className="mb-3">
-      <View className="flex-row justify-between items-start mb-2">
-        <View className="flex-1">
-          <Text className="font-bold text-slate-800">
-            {offer.carrier?.carrierProfile?.companyName ?? offer.carrier?.email}
+    <View style={[styles.card, isAccepted && styles.cardAccepted, isRejected && styles.cardRejected]}>
+
+      {/* Row 1: vehicle + route# | status + price */}
+      <View style={[styles.row, { justifyContent: 'space-between', marginBottom: 8 }]}>
+        <View style={styles.row}>
+          <Text style={{ fontSize: 18, marginRight: 6 }}>{icon}</Text>
+          <Text style={styles.routeNum}>
+            {fRouteNum(offer.route?.routeNumber, offer.routeId)}
           </Text>
-          {offer.carrier?.phone && (
-            <Text className="text-xs text-slate-500 mt-0.5">{offer.carrier.phone}</Text>
+        </View>
+        <View style={{ alignItems: 'flex-end', gap: 2 }}>
+          <View style={[styles.statusBadge, { backgroundColor: statusColor + '22' }]}>
+            <Text style={[styles.statusText, { color: statusColor }]}>
+              {STATUS_LABEL[offer.status] ?? offer.status}
+            </Text>
+          </View>
+          {isRequest && (
+            <Text style={styles.awaitingText}>Αναμένεται απάντηση</Text>
+          )}
+          {!isRequest && offer.price != null && offer.price > 0 && (
+            <Text style={styles.priceText}>€{offer.price}</Text>
           )}
         </View>
-        <Text className={`text-sm font-semibold ${statusColors[offer.status] ?? 'text-slate-500'}`}>
-          {offer.status}
-        </Text>
       </View>
 
-      {offer.price && (
-        <Text className="text-green-600 font-bold text-lg mb-1">€{offer.price}</Text>
-      )}
-      {offer.deliveryDate && (
-        <Text className="text-xs text-slate-500 mb-3">
-          Παράδοση: {new Date(offer.deliveryDate).toLocaleDateString('el-GR')}
+      {/* Row 2: Μεταφορέας */}
+      <Text style={styles.carrierRow} numberOfLines={2}>
+        <Text style={styles.muted}>Μεταφορέας: </Text>
+        <Text style={styles.bold}>{companyName}</Text>
+        <Text style={styles.muted}>{` (${email}${phone ? ` - ${phone}` : ''})`}</Text>
+      </Text>
+
+      {/* Row 3: origin → dest */}
+      <View style={[styles.row, { marginTop: 5, flexWrap: 'wrap', gap: 4 }]}>
+        <Text style={styles.cityText}>{origCity}</Text>
+        {depDate && <Text style={styles.dateText}>({depDate})</Text>}
+        <Text style={styles.arrow}>→</Text>
+        <Text style={styles.cityText}>{destCity}</Text>
+        {arrDate && <Text style={styles.dateText}>({arrDate})</Text>}
+      </View>
+
+      {/* Mid stops */}
+      {midStops.length > 0 && (
+        <Text style={styles.stopsText} numberOfLines={1}>
+          Στάσεις: {midStops.map(s => s.city ?? '—').join(' · ')}
         </Text>
       )}
 
-      {offer.status === 'PENDING' && (
-        <View className="flex-row gap-2 mt-2">
-          <TouchableOpacity
-            className="flex-1 bg-slate-100 rounded-xl py-2.5 items-center flex-row justify-center gap-1"
-            onPress={() => router.push(`/(tabs)/messages/${offer.id}`)}
-          >
-            <Ionicons name="chatbubble-outline" size={16} color={Colors.primary} />
-            <Text className="text-primary text-sm font-semibold">Μήνυμα</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            className="flex-1 bg-red-50 rounded-xl py-2.5 items-center"
-            onPress={() => rejectMut.mutate()}
-            disabled={rejectMut.isPending}
-          >
-            <Text className="text-red-600 text-sm font-semibold">Απόρριψη</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            className="flex-1 bg-primary rounded-xl py-2.5 items-center"
-            onPress={confirmAccept}
-            disabled={acceptMut.isPending}
-          >
-            <Text className="text-white text-sm font-semibold">Αποδοχή</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      <View style={styles.divider} />
 
-      {offer.status === 'ACCEPTED' && (
-        <TouchableOpacity
-          className="mt-2 bg-primary/10 rounded-xl py-2.5 items-center flex-row justify-center gap-2"
-          onPress={() => router.push(`/(tabs)/messages/${offer.id}`)}
-        >
-          <Ionicons name="chatbubbles-outline" size={16} color={Colors.primary} />
-          <Text className="text-primary text-sm font-semibold">Άνοιγμα Συνομιλίας</Text>
+      {/* Buttons */}
+      <View style={[styles.row, { flexWrap: 'wrap', gap: 6 }]}>
+        <TouchableOpacity style={styles.btnView} onPress={() => onView(offer)}>
+          <Text style={styles.btnViewText}>Προβολή</Text>
         </TouchableOpacity>
-      )}
-    </Card>
+
+        {isPending && (
+          <>
+            <TouchableOpacity
+              style={styles.btnAccept}
+              onPress={confirmAccept}
+              disabled={acceptMut.isPending}
+            >
+              {acceptMut.isPending
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <Text style={styles.btnAcceptText}>Αποδοχή</Text>}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.btnReject}
+              onPress={() => rejectMut.mutate()}
+              disabled={rejectMut.isPending}
+            >
+              <Text style={styles.btnRejectText}>Απόρριψη</Text>
+            </TouchableOpacity>
+          </>
+        )}
+
+        {isAccepted && (
+          <View style={styles.acceptedBadge}>
+            <Ionicons name="checkmark-circle" size={13} color={Colors.success} />
+            <Text style={styles.acceptedText}>Αποδεκτή</Text>
+          </View>
+        )}
+
+        <TouchableOpacity
+          style={styles.btnMessage}
+          onPress={() => router.push(`/(tabs)/messages/${offer.id}` as any)}
+        >
+          <Ionicons name="chatbubble-outline" size={13} color="#D97706" />
+          <Text style={styles.btnMessageText}>Μήνυμα</Text>
+          {msgCount > 0 && (
+            <View style={styles.msgBadge}>
+              <Text style={styles.msgBadgeText}>{msgCount}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
+    </View>
   )
 }
 
+// ─── View offer modal ─────────────────────────────────────────────────────────
+
+function ViewOfferModal({
+  offer, shipmentTitle, onClose,
+}: {
+  offer: Offer | null
+  shipmentTitle?: string
+  onClose: () => void
+}) {
+  if (!offer) return null
+  const companyName = offer.carrier?.carrierProfile?.companyName ?? offer.carrier?.name ?? offer.carrier?.email ?? '—'
+  const statusColor = STATUS_COLOR[offer.status] ?? Colors.textMuted
+
+  return (
+    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalCard}>
+          <View style={[styles.row, { justifyContent: 'space-between', marginBottom: 16 }]}>
+            <View style={[styles.statusBadge, { backgroundColor: statusColor + '22' }]}>
+              <Text style={[styles.statusText, { color: statusColor }]}>
+                {STATUS_LABEL[offer.status] ?? offer.status}
+              </Text>
+            </View>
+            <TouchableOpacity onPress={onClose} hitSlop={12}>
+              <Ionicons name="close" size={22} color={Colors.textMuted} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.divider} />
+
+          {shipmentTitle && (
+            <View style={styles.modalRow}>
+              <Text style={styles.modalLabel}>ΑΠΟΣΤΟΛΗ</Text>
+              <Text style={styles.modalValue}>{shipmentTitle}</Text>
+            </View>
+          )}
+
+          <View style={styles.modalRow}>
+            <Text style={styles.modalLabel}>ΤΙΜΗ</Text>
+            {offer.price != null && offer.price > 0
+              ? <Text style={styles.modalPrice}>€{offer.price}</Text>
+              : <Text style={styles.muted}>Δεν έχει οριστεί ακόμα</Text>}
+          </View>
+
+          <View style={styles.modalRow}>
+            <Text style={styles.modalLabel}>ΜΕΤΑΦΟΡΕΑΣ</Text>
+            <Text style={styles.modalValue}>{companyName}</Text>
+          </View>
+
+          {offer.deliveryDate && (
+            <View style={styles.modalRow}>
+              <Text style={styles.modalLabel}>ΠΑΡΑΔΟΣΗ</Text>
+              <Text style={styles.modalValue}>
+                {new Date(offer.deliveryDate).toLocaleDateString('el-GR', { day: 'numeric', month: 'long', year: 'numeric' })}
+              </Text>
+            </View>
+          )}
+
+          <TouchableOpacity style={styles.btnClose} onPress={onClose}>
+            <Text style={styles.btnCloseText}>Κλείσιμο</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  )
+}
+
+// ─── Main screen ──────────────────────────────────────────────────────────────
+
 export default function ShipmentDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
+  const [viewOffer, setViewOffer] = useState<Offer | null>(null)
+
   const { data, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['shipment', id],
-    queryFn: () => shipmentsApi.get(id).then(r => r.data),
+    queryFn: () => shipmentsApi.get(id!).then(r => r.data),
     enabled: !!id,
   })
 
-  if (isLoading) return <LoadingScreen message="Φόρτωση αποστολής..." />
+  if (isLoading) return <LoadingScreen message="Φόρτωση..." />
   if (!data) return (
-    <View className="flex-1 items-center justify-center">
-      <Text className="text-slate-400">Η αποστολή δεν βρέθηκε</Text>
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.surface }}>
+      <Ionicons name="alert-circle-outline" size={40} color={Colors.textMuted} />
+      <Text style={{ color: Colors.textMuted, marginTop: 12 }}>Η αποστολή δεν βρέθηκε</Text>
     </View>
   )
 
-  const fields = [
-    { icon: 'location-outline', label: 'Από', value: data.originAddress ? `${data.originCity} — ${data.originAddress}` : data.originCity },
-    { icon: 'navigate-outline', label: 'Προς', value: data.destAddress ? `${data.destCity} — ${data.destAddress}` : data.destCity },
-    data.weight && { icon: 'barbell-outline', label: 'Βάρος', value: `${data.weight} kg` },
-    data.maxBudget && { icon: 'cash-outline', label: 'Προϋπολογισμός', value: `€${data.maxBudget}` },
-    data.desiredDelivery && { icon: 'calendar-outline', label: 'Παράδοση έως', value: new Date(data.desiredDelivery).toLocaleDateString('el-GR') },
-    data.roadDistanceKm && { icon: 'map-outline', label: 'Απόσταση', value: `${data.roadDistanceKm} km` },
-  ].filter(Boolean) as { icon: string; label: string; value: string }[]
-
-  const flags = [
-    data.isFragile && 'Εύθραυστο',
-    data.requiresCooling && 'Απαιτεί Ψύξη',
-    data.isHazardous && 'Επικίνδυνο',
-  ].filter(Boolean) as string[]
+  const allOffers     = data.offers ?? []
+  const requestOffers = allOffers.filter(o => o.status === 'REQUEST')
+  const carrierOffers = allOffers.filter(o => !['REQUEST', 'WITHDRAWN'].includes(o.status))
+  const totalActive   = requestOffers.length + carrierOffers.length
 
   return (
-    <View className="flex-1 bg-surface">
+    <View style={{ flex: 1, backgroundColor: Colors.surface }}>
+      <Stack.Screen options={{ headerShown: false }} />
+
       {/* Header */}
-      <View className="bg-primary pt-14 pb-4 px-5">
-        <View className="flex-row items-center gap-3 mb-3">
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={24} color="#fff" />
-          </TouchableOpacity>
-          <Text className="text-white text-xl font-bold flex-1" numberOfLines={1}>{data.title}</Text>
-        </View>
-        <View className="flex-row items-center gap-2">
-          <ShipmentStatusBadge status={data.status} />
-          <Text className="text-blue-200 text-xs">{data.category}</Text>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
+          <Ionicons name="arrow-back" size={22} color="#fff" />
+        </TouchableOpacity>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.headerTitle}>Αιτήσεις και Προσφορές Μεταφορέων</Text>
+          <Text style={styles.headerSub} numberOfLines={1}>{data.title}</Text>
         </View>
       </View>
 
       <ScrollView
-        className="flex-1 px-4 pt-4"
+        style={{ flex: 1 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={Colors.primary} />}
-        contentContainerStyle={{ paddingBottom: 40 }}
       >
-        {/* Details */}
-        <Card className="mb-4">
-          <Text className="font-bold text-slate-700 mb-3">Λεπτομέρειες</Text>
-          {fields.map(({ icon, label, value }) => (
-            <View key={label} className="flex-row items-start gap-2 mb-2">
-              <Ionicons name={icon as any} size={16} color={Colors.textMuted} style={{ marginTop: 2 }} />
-              <View className="flex-1">
-                <Text className="text-xs text-slate-400">{label}</Text>
-                <Text className="text-sm text-slate-700">{value}</Text>
-              </View>
-            </View>
-          ))}
-          {flags.length > 0 && (
-            <View className="flex-row flex-wrap gap-2 mt-2">
-              {flags.map(f => (
-                <View key={f} className="bg-amber-100 rounded-full px-3 py-1">
-                  <Text className="text-amber-700 text-xs font-semibold">{f}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-        </Card>
-
-        {/* Offers */}
-        <Text className="text-lg font-bold text-slate-800 mb-3">
-          Προσφορές ({(data as any)._count?.offers ?? data.offers?.length ?? 0})
-        </Text>
-        {(data.offers ?? []).length === 0 ? (
-          <Card className="items-center py-8">
-            <Ionicons name="pricetag-outline" size={36} color={Colors.textMuted} />
-            <Text className="text-slate-400 mt-3 text-sm">Δεν υπάρχουν προσφορές ακόμα</Text>
-          </Card>
+        {totalActive === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={{ fontSize: 48, marginBottom: 12 }}>📭</Text>
+            <Text style={styles.emptyTitle}>Δεν υπάρχουν αιτήματα</Text>
+            <Text style={styles.emptySubtitle}>Βρες διαθέσιμα δρομολόγια και στείλε αίτημα.</Text>
+            <TouchableOpacity
+              style={styles.routesBtn}
+              onPress={() => router.push(`/(tabs)/shipments/matches/${id}` as any)}
+            >
+              <Text style={styles.routesBtnText}>Εμφάν. Δρομολογίων</Text>
+            </TouchableOpacity>
+          </View>
         ) : (
-          (data.offers ?? []).map(o => <OfferCard key={o.id} offer={o} shipmentId={id} />)
+          <>
+            {requestOffers.length > 0 && (
+              <View style={{ marginBottom: 24 }}>
+                <SectionHeader title="Αιτήσεις μου Για Προσφορά" count={requestOffers.length} />
+                {requestOffers.map(o => (
+                  <OfferCard key={o.id} offer={o} shipmentId={id!} onView={setViewOffer} />
+                ))}
+              </View>
+            )}
+
+            {carrierOffers.length > 0 && (
+              <View>
+                <SectionHeader title="Προσφορές Μεταφορέων" count={carrierOffers.length} />
+                {carrierOffers.map(o => (
+                  <OfferCard key={o.id} offer={o} shipmentId={id!} onView={setViewOffer} />
+                ))}
+              </View>
+            )}
+          </>
         )}
       </ScrollView>
+
+      <ViewOfferModal
+        offer={viewOffer}
+        shipmentTitle={data.title}
+        onClose={() => setViewOffer(null)}
+      />
     </View>
   )
 }
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
+const styles = StyleSheet.create({
+  header: {
+    backgroundColor: Colors.primary,
+    paddingTop: 56, paddingBottom: 16, paddingHorizontal: 20,
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+  },
+  backBtn:     { padding: 4 },
+  headerTitle: { color: '#fff', fontSize: 14, fontWeight: '800', lineHeight: 18 },
+  headerSub:   { color: '#93C5FD', fontSize: 12, marginTop: 4 },
+
+  sectionHeader: {
+    flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10,
+  },
+  sectionTitle:     { fontSize: 14, fontWeight: '700', color: Colors.textSecondary },
+  sectionBadge:     { backgroundColor: '#F1F5F9', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 2 },
+  sectionBadgeText: { fontSize: 12, fontWeight: '600', color: Colors.textMuted },
+
+  card: {
+    backgroundColor: '#fff', borderRadius: 16,
+    borderWidth: 1, borderColor: Colors.border,
+    padding: 14, marginBottom: 10,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05, shadowRadius: 3, elevation: 1,
+  },
+  cardAccepted: { borderColor: '#86EFAC', backgroundColor: '#F0FDF4' },
+  cardRejected: { opacity: 0.55 },
+
+  row:        { flexDirection: 'row', alignItems: 'center' },
+  routeNum:   { fontSize: 13, fontWeight: '800', color: Colors.accent, fontVariant: ['tabular-nums'] },
+  statusBadge:{ borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 },
+  statusText: { fontSize: 11, fontWeight: '700' },
+  awaitingText:{ fontSize: 10, color: Colors.textMuted, marginTop: 2 },
+  priceText:  { fontSize: 20, fontWeight: '900', color: Colors.accent, marginTop: 2 },
+
+  carrierRow: { fontSize: 12, marginTop: 6, lineHeight: 18 },
+  bold:       { fontWeight: '600', color: Colors.textPrimary },
+  muted:      { color: Colors.textMuted },
+
+  cityText:  { fontSize: 13, fontWeight: '700', color: Colors.textPrimary },
+  dateText:  { fontSize: 11, color: Colors.textMuted },
+  arrow:     { fontSize: 12, color: Colors.textMuted, marginHorizontal: 4 },
+  stopsText: { fontSize: 11, color: Colors.textMuted, marginTop: 4 },
+
+  divider: { height: 1, backgroundColor: Colors.border, marginVertical: 10 },
+
+  btnView:      { backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7 },
+  btnViewText:  { fontSize: 12, fontWeight: '700', color: Colors.textSecondary },
+  btnAccept:    { backgroundColor: Colors.success, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7 },
+  btnAcceptText:{ fontSize: 12, fontWeight: '700', color: '#fff' },
+  btnReject:    { backgroundColor: '#FEF2F2', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7 },
+  btnRejectText:{ fontSize: 12, fontWeight: '700', color: '#EF4444' },
+  acceptedBadge:{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#F0FDF4', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7 },
+  acceptedText: { fontSize: 12, fontWeight: '700', color: Colors.success },
+  btnMessage:   { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#FFFBEB', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7 },
+  btnMessageText:{ fontSize: 12, fontWeight: '700', color: '#D97706' },
+  msgBadge:     { backgroundColor: Colors.accent, borderRadius: 9, minWidth: 17, height: 17, paddingHorizontal: 3, alignItems: 'center', justifyContent: 'center' },
+  msgBadgeText: { fontSize: 10, fontWeight: '800', color: '#000' },
+
+  emptyState:    { alignItems: 'center', paddingTop: 60 },
+  emptyTitle:    { fontSize: 16, fontWeight: '700', color: Colors.textPrimary, marginBottom: 8 },
+  emptySubtitle: { fontSize: 13, color: Colors.textMuted, marginBottom: 20, textAlign: 'center' },
+  routesBtn:     { backgroundColor: Colors.accent, borderRadius: 12, paddingHorizontal: 20, paddingVertical: 11 },
+  routesBtnText: { fontSize: 14, fontWeight: '700', color: '#000' },
+
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalCard:    { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 36 },
+  modalRow:     { marginBottom: 14 },
+  modalLabel:   { fontSize: 10, fontWeight: '800', letterSpacing: 1.5, color: Colors.textMuted, marginBottom: 4 },
+  modalValue:   { fontSize: 15, fontWeight: '600', color: Colors.textPrimary },
+  modalPrice:   { fontSize: 28, fontWeight: '900', color: Colors.accent },
+  btnClose:     { marginTop: 16, borderWidth: 1, borderColor: Colors.border, borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
+  btnCloseText: { fontSize: 14, color: Colors.textSecondary, fontWeight: '600' },
+})

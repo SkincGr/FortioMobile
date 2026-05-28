@@ -569,11 +569,6 @@ function Step3({ form, update, onBack, onSubmit, isSubmitting, error, isEditing 
             value={form.desiredDelivery.toLocaleDateString('el-GR')}
           />
         ) : null}
-        {!form.originCityPlaceId || !form.destCityPlaceId ? (
-          <Text style={{ fontSize: 11, color: Colors.warning, marginTop: 8 }}>
-            ⚠️ Χρησιμοποίησε την αναζήτηση στο Βήμα 2 για καλύτερο matching με μεταφορείς
-          </Text>
-        ) : null}
       </View>
 
       {error ? (
@@ -719,22 +714,16 @@ export default function NewShipmentScreen() {
       className="flex-1 bg-surface"
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <Stack.Screen options={{ headerShown: false }} />
-
       {/* Header */}
       {isEditing ? (
         <View style={{ backgroundColor: Colors.primary, paddingTop: 56, paddingBottom: 14, paddingHorizontal: 20 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <TouchableOpacity onPress={() => (step > 1 ? setStep(s => s - 1) : router.back())}>
-              <Ionicons name="arrow-back" size={24} color="#fff" />
-            </TouchableOpacity>
-            <Text style={{ color: '#fff', fontSize: 19, fontWeight: '800', flex: 1 }}>Επεξεργασία Αποστολής</Text>
-          </View>
-          {existingShipment?.title ? (
-            <Text style={{ color: '#93C5FD', fontSize: 13, marginTop: 5, marginLeft: 36 }} numberOfLines={1}>
-              {existingShipment.title}
-            </Text>
-          ) : null}
+          <Text style={{ color: '#fff', fontSize: 19, fontWeight: '800' }}>Επεξεργασία Αποστολής</Text>
+          <TouchableOpacity
+            onPress={() => router.replace('/(tabs)' as any)}
+            style={{ marginTop: 8, alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 5 }}
+          >
+            <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>✕ Ακύρωση</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <View className="bg-primary pt-14 pb-3 px-5 flex-row items-center gap-3">

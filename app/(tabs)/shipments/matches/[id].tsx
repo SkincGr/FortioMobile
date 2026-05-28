@@ -187,8 +187,6 @@ export default function MatchesScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors.surface }}>
-      <Stack.Screen options={{ headerShown: false }} />
-
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.push('/(tabs)/' as any)} style={styles.backBtn} hitSlop={12}>

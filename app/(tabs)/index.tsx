@@ -168,7 +168,7 @@ function ShipmentCard({
               <TouchableOpacity
                 style={[styles.actionBtn, styles.actionBtnAmber]}
                 activeOpacity={0.8}
-                onPress={e => { e.stopPropagation?.(); router.push(`/(tabs)/shipments/matches/${item.id}` as any) }}
+                onPress={e => { e.stopPropagation?.(); router.push(`/(tabs)/shipments/matches/${item.id}?title=${encodeURIComponent(item.title)}` as any) }}
               >
                 <Text style={styles.actionBtnAmberText}>Εμφάν. Δρομολογίων</Text>
                 <View style={styles.btnBadge}><Text style={styles.btnBadgeText}>{matchCount}</Text></View>

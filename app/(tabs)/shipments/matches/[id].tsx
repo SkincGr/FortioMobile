@@ -119,7 +119,7 @@ function RouteCard({ route, isSent, onRequest }: RouteCardProps) {
 // ─── Matches screen ───────────────────────────────────────────────────────────
 
 export default function MatchesScreen() {
-  const { id: shipmentId } = useLocalSearchParams<{ id: string }>()
+  const { id: shipmentId, title: titleParam } = useLocalSearchParams<{ id: string; title?: string }>()
   const queryClient = useQueryClient()
 
   const [modalRoute, setModalRoute] = useState<RouteMatch | null>(null)
@@ -178,9 +178,22 @@ export default function MatchesScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Αναζήτηση δρομολογίων…</Text>
+      <View style={{ flex: 1, backgroundColor: Colors.surface }}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.push('/(tabs)/' as any)} style={styles.backBtn} hitSlop={12}>
+            <Ionicons name="arrow-back" size={22} color="#fff" />
+          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.headerTitle}>Διαθέσιμα Δρομολόγια</Text>
+            {titleParam ? (
+              <Text style={styles.headerSub} numberOfLines={1}>{decodeURIComponent(titleParam)}</Text>
+            ) : null}
+          </View>
+        </View>
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>Αναζήτηση δρομολογίων…</Text>
+        </View>
       </View>
     )
   }
@@ -194,9 +207,11 @@ export default function MatchesScreen() {
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>Διαθέσιμα Δρομολόγια</Text>
-          {shipmentData && (
-            <Text style={styles.headerSub} numberOfLines={1}>{shipmentData.title}</Text>
-          )}
+          {(shipmentData?.title || titleParam) ? (
+            <Text style={styles.headerSub} numberOfLines={1}>
+              {shipmentData?.title ?? decodeURIComponent(titleParam ?? '')}
+            </Text>
+          ) : null}
         </View>
         <View style={styles.countBadge}>
           <Text style={styles.countText}>{routes.length}</Text>

@@ -16,6 +16,19 @@ type AuthContextType = AuthState & {
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
+function decodeJwtPayload(token: string): Partial<AuthUser> | null {
+  try {
+    const payload = token.split('.')[1]
+    if (!payload) return null
+
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/')
+    const padded = normalized.padEnd(normalized.length + ((4 - normalized.length % 4) % 4), '=')
+    return JSON.parse(atob(padded))
+  } catch {
+    return null
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>({
     user: null,
@@ -27,7 +40,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     ;(async () => {
       const [token, user] = await Promise.all([getToken(), getUser<AuthUser>()])
-      setState({ user, token, isLoading: false, isAuthenticated: !!token && !!user })
+      let nextUser = user
+
+      if (token && user && !user.role) {
+        const payload = decodeJwtPayload(token)
+        if (payload?.role) {
+          nextUser = { ...user, role: payload.role }
+          await saveUser(nextUser)
+        }
+      }
+
+      setState({ user: nextUser, token, isLoading: false, isAuthenticated: !!token && !!nextUser })
     })()
   }, [])
 

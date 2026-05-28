@@ -34,6 +34,11 @@ type Filter = 'active' | 'transit' | 'completed'
 const ACTIVE_STATUSES: ShipmentStatus[]  = ['PENDING', 'OFFERED']
 const TRANSIT_STATUSES: ShipmentStatus[] = ['ACCEPTED', 'LOADED', 'IN_TRANSIT', 'DELIVERED']
 
+function isCarrierUser(role?: string | null) {
+  const normalized = String(role ?? '').toUpperCase()
+  return normalized === 'CARRIER' || normalized.includes('TRANSPORT')
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatRoad(distKm?: number | null, durMin?: number | null) {
@@ -291,9 +296,24 @@ export default function DashboardScreen() {
     )
   }
 
-  const { data, isLoading, refetch, isRefetching } = useQuery({
-    queryKey: ['dashboard-sender', sortBy],
-    queryFn: () => dashboardApi.getSender(sortBy).then(r => r.data),
+  const isCarrier = isCarrierUser(user?.role)
+
+  const { data, isLoading, error, refetch, isRefetching } = useQuery({
+    queryKey: ['dashboard', user?.role, sortBy],
+    queryFn: async () => {
+      if (isCarrier) {
+        const { data } = await dashboardApi.getCarrier()
+        return {
+          shipments: data.shipments,
+          completedShipments: [],
+          announcementCount: 0,
+          inboxMessageCount: 0,
+        }
+      }
+
+      return dashboardApi.getSender(sortBy).then(r => r.data)
+    },
+    enabled: !!user,
   })
 
   const allActive    = useMemo(() => (data?.shipments ?? []).filter(s => ACTIVE_STATUSES.includes(s.status)),  [data])
@@ -323,6 +343,21 @@ export default function DashboardScreen() {
   })
 
   if (isLoading) return <LoadingScreen message="Φόρτωση..." />
+
+  if (error) {
+    return (
+      <View style={[styles.errorScreen, { backgroundColor: colors.surface }]}>
+        <Ionicons name="warning-outline" size={42} color={Colors.danger} />
+        <Text style={styles.errorTitle}>Δεν φορτώθηκαν τα records</Text>
+        <Text style={styles.errorText}>
+          {(error as any)?.response?.data?.error || (error as any)?.message || 'Άγνωστο σφάλμα'}
+        </Text>
+        <TouchableOpacity style={styles.emptyBtn} onPress={() => refetch()}>
+          <Text style={styles.emptyBtnText}>Δοκίμασε ξανά</Text>
+        </TouchableOpacity>
+      </View>
+    )
+  }
 
   const TABS: { key: Filter; label: string; count: number }[] = [
     { key: 'active',    label: 'Ενεργές',    count: allActive.length },
@@ -632,6 +667,9 @@ const styles = StyleSheet.create({
   emptyText:   { fontSize: 15, color: '#94A3B8', marginBottom: 12 },
   emptyBtn:    { paddingHorizontal: 20, paddingVertical: 10, backgroundColor: '#1B3A6B', borderRadius: 12 },
   emptyBtnText:{ color: '#fff', fontWeight: '700', fontSize: 14 },
+  errorScreen: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  errorTitle: { color: Colors.textPrimary, fontSize: 18, fontWeight: '800', marginTop: 12 },
+  errorText: { color: Colors.textMuted, fontSize: 13, textAlign: 'center', marginTop: 8, marginBottom: 16 },
 
   // FAB
   fab: {

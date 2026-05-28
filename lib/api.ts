@@ -126,6 +126,9 @@ export const authApi = {
 export const dashboardApi = {
   getSender: (sortBy = 'date_desc') =>
     api.get<DashboardData>(`/api/dashboard/sender?sortBy=${sortBy}`),
+
+  getCarrier: () =>
+    api.get<{ shipments: Shipment[]; total: number; page: number; pageSize: number }>('/api/shipments'),
 }
 
 // ─── Shipments ────────────────────────────────────────────────────────────────

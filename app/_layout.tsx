@@ -4,6 +4,8 @@ import { Stack } from 'expo-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { StatusBar } from 'expo-status-bar'
 import { AuthProvider } from '@/lib/auth'
+import { ThemeProvider, useTheme } from '@/lib/theme'
+import { I18nProvider } from '@/lib/i18n'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -11,13 +13,26 @@ const queryClient = new QueryClient({
   },
 })
 
+function AppShell() {
+  const { isDark } = useTheme()
+  return (
+    <>
+      <StatusBar style={isDark ? 'light' : 'light'} />
+      <Stack screenOptions={{ headerShown: false }} />
+    </>
+  )
+}
+
 export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <StatusBar style="light" />
-        <Stack screenOptions={{ headerShown: false }} />
-      </AuthProvider>
+      <ThemeProvider>
+        <I18nProvider>
+          <AuthProvider>
+            <AppShell />
+          </AuthProvider>
+        </I18nProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   )
 }

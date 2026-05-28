@@ -1,13 +1,13 @@
 import React, { useState, useMemo } from 'react'
 import {
   View, Text, ScrollView, TouchableOpacity, RefreshControl,
-  FlatList, StyleSheet, Modal, Pressable,
+  FlatList, StyleSheet, Modal, Pressable, Alert,
 } from 'react-native'
 import { router } from 'expo-router'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '@/lib/auth'
-import { dashboardApi, matchCountsApi, Shipment, ShipmentStatus } from '@/lib/api'
+import { dashboardApi, matchCountsApi, shipmentsApi, Shipment, ShipmentStatus } from '@/lib/api'
 import { ShipmentStatusBadge } from '@/components/ShipmentStatusBadge'
 import { LoadingScreen } from '@/components/ui/LoadingScreen'
 import { Colors } from '@/constants/colors'
@@ -52,12 +52,13 @@ function fCity(raw?: string | null) {
 // ─── Shipment card ────────────────────────────────────────────────────────────
 
 function ShipmentCard({
-  item, filter, matchCount, matchCountsLoading,
+  item, filter, matchCount, matchCountsLoading, onDelete,
 }: {
   item: Shipment
   filter: Filter
   matchCount?: number
   matchCountsLoading?: boolean
+  onDelete?: (id: string, offerCount: number) => void
 }) {
   const icon       = CATEGORY_ICON[item.category] ?? '📦'
   const roadInfo   = formatRoad(item.roadDistanceKm, item.roadDurationMinutes)
@@ -119,7 +120,7 @@ function ShipmentCard({
       {/* Active: action buttons */}
       {filter === 'active' && (
         <View style={styles.actionsCol}>
-          {/* Σειρά Α: Διόρθωση + Μηνύματα */}
+          {/* Σειρά Α: Διόρθωση + Διαγραφή + Μηνύματα */}
           <View style={styles.actionsRow}>
             <TouchableOpacity
               style={[styles.actionBtn, styles.actionBtnEdit]}
@@ -127,6 +128,15 @@ function ShipmentCard({
               onPress={e => { e.stopPropagation?.(); router.push(`/(tabs)/shipments/new?editId=${item.id}` as any) }}
             >
               <Text style={styles.actionBtnEditText}>Διόρθωση</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.actionBtnDanger]}
+              activeOpacity={0.7}
+              onPress={e => { e.stopPropagation?.(); onDelete?.(item.id, offerCount) }}
+            >
+              <Ionicons name="trash-outline" size={11} color="#EF4444" />
+              <Text style={styles.actionBtnDangerText}>Διαγραφή</Text>
             </TouchableOpacity>
 
             {msgCount > 0 ? (
@@ -139,25 +149,25 @@ function ShipmentCard({
                 <View style={styles.btnBadge}><Text style={styles.btnBadgeText}>{msgCount}</Text></View>
               </TouchableOpacity>
             ) : (
-              <View style={[styles.actionBtn, styles.actionBtnOff]}>
+              <TouchableOpacity style={[styles.actionBtn, styles.actionBtnOff]} activeOpacity={1} onPress={e => e.stopPropagation?.()}>
                 <Text style={styles.actionBtnOffText}>✉️ Μηνύματα</Text>
                 <View style={styles.btnBadgeOff}><Text style={styles.btnBadgeOffText}>0</Text></View>
-              </View>
+              </TouchableOpacity>
             )}
           </View>
 
           {/* Σειρά Β: Εμφάν. Δρομολογίων + #Αιτημ/Προσφορών */}
           <View style={styles.actionsRow}>
             {matchCountsLoading || matchCount === undefined ? (
-              <View style={[styles.actionBtn, styles.actionBtnOff]}>
+              <TouchableOpacity style={[styles.actionBtn, styles.actionBtnOff]} activeOpacity={1} onPress={e => e.stopPropagation?.()}>
                 <Text style={styles.actionBtnOffText}>Εμφάν. Δρομολογίων</Text>
                 <View style={styles.btnBadgeOff}><Text style={styles.btnBadgeOffText}>…</Text></View>
-              </View>
+              </TouchableOpacity>
             ) : matchCount === 0 ? (
-              <View style={[styles.actionBtn, styles.actionBtnOff]}>
+              <TouchableOpacity style={[styles.actionBtn, styles.actionBtnOff]} activeOpacity={1} onPress={e => e.stopPropagation?.()}>
                 <Text style={styles.actionBtnOffText}>Εμφάν. Δρομολογίων</Text>
                 <View style={styles.btnBadgeOff}><Text style={styles.btnBadgeOffText}>0</Text></View>
-              </View>
+              </TouchableOpacity>
             ) : (
               <TouchableOpacity
                 style={[styles.actionBtn, styles.actionBtnAmber]}
@@ -179,10 +189,10 @@ function ShipmentCard({
                 <View style={styles.btnBadge}><Text style={styles.btnBadgeText}>{offerCount}</Text></View>
               </TouchableOpacity>
             ) : (
-              <View style={[styles.actionBtn, styles.actionBtnOff]}>
+              <TouchableOpacity style={[styles.actionBtn, styles.actionBtnOff]} activeOpacity={1} onPress={e => e.stopPropagation?.()}>
                 <Text style={styles.actionBtnOffText}>#Αιτημ/Προσφορών</Text>
                 <View style={styles.btnBadgeOff}><Text style={styles.btnBadgeOffText}>0</Text></View>
-              </View>
+              </TouchableOpacity>
             )}
           </View>
         </View>
@@ -241,9 +251,34 @@ function SortPicker({ value, onChange }: { value: SortKey; onChange: (v: SortKey
 
 export default function DashboardScreen() {
   const { user, logout } = useAuth()
+  const qc = useQueryClient()
   const [filter, setFilter] = useState<Filter>('active')
   const [sortBy, setSortBy] = useState<SortKey>('date_desc')
   const [burgerOpen, setBurgerOpen] = useState(false)
+
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => shipmentsApi.delete(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['dashboard-sender'] })
+    },
+    onError: (e: any) => {
+      Alert.alert('Σφάλμα', e?.response?.data?.error || 'Αποτυχία διαγραφής.')
+    },
+  })
+
+  function handleDelete(id: string, offerCount: number) {
+    const hasOffers = offerCount > 0
+    Alert.alert(
+      'Διαγραφή αποστολής',
+      hasOffers
+        ? `Υπάρχουν ${offerCount} εκκρεμείς προσφορές/αιτήματα. Θα σταλεί μήνυμα ακύρωσης σε κάθε μεταφορέα. Θέλεις σίγουρα να διαγράψεις;`
+        : 'Θέλεις σίγουρα να διαγράψεις αυτή την αποστολή;',
+      [
+        { text: 'Ακύρωση', style: 'cancel' },
+        { text: 'Διαγραφή', style: 'destructive', onPress: () => deleteMut.mutate(id) },
+      ]
+    )
+  }
 
   const { data, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['dashboard-sender', sortBy],
@@ -421,6 +456,7 @@ export default function DashboardScreen() {
             filter={filter}
             matchCount={matchCounts[item.id]}
             matchCountsLoading={filter === 'active' && matchCountsLoading}
+            onDelete={filter === 'active' ? handleDelete : undefined}
           />
         )}
       />
@@ -565,6 +601,8 @@ const styles = StyleSheet.create({
   actionBtnOffText:  { fontSize: 11, fontWeight: '600', color: Colors.textMuted },
   actionBtnAmber:    { backgroundColor: Colors.accent },
   actionBtnAmberText:{ fontSize: 11, fontWeight: '700', color: '#000' },
+  actionBtnDanger:     { backgroundColor: 'rgba(239,68,68,0.1)' },
+  actionBtnDangerText: { fontSize: 11, fontWeight: '600', color: '#EF4444' } as const,
   btnBadge: {
     minWidth: 17, height: 17, borderRadius: 9, paddingHorizontal: 3,
     alignItems: 'center', justifyContent: 'center',

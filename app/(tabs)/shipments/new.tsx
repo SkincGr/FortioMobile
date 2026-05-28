@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import {
   View, Text, ScrollView, TextInput, TouchableOpacity,
   KeyboardAvoidingView, Platform, Alert,
 } from 'react-native'
 import * as Location from 'expo-location'
 import DateTimePicker from '@react-native-community/datetimepicker'
-import { router, useLocalSearchParams, Stack } from 'expo-router'
+import { router, useLocalSearchParams, Stack, useFocusEffect } from 'expo-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
 import { shipmentsApi } from '@/lib/api'
@@ -615,6 +615,17 @@ export default function NewShipmentScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError]             = useState('')
 
+  // Reset form every time the new-shipment screen gains focus (not edit mode)
+  useFocusEffect(
+    useCallback(() => {
+      if (!isEditing) {
+        setStep(1)
+        setForm(INITIAL)
+        setError('')
+      }
+    }, [isEditing])
+  )
+
   const { data: existingShipment } = useQuery({
     queryKey: ['shipment', editId],
     queryFn: () => shipmentsApi.get(editId!).then(r => r.data),
@@ -726,12 +737,17 @@ export default function NewShipmentScreen() {
           </TouchableOpacity>
         </View>
       ) : (
-        <View className="bg-primary pt-14 pb-3 px-5 flex-row items-center gap-3">
-          <TouchableOpacity onPress={() => (step > 1 ? setStep(s => s - 1) : router.back())}>
-            <Ionicons name="arrow-back" size={24} color="#fff" />
+        <View style={{ backgroundColor: Colors.primary, paddingTop: 56, paddingBottom: 14, paddingHorizontal: 20 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={{ color: '#fff', fontSize: 19, fontWeight: '800' }}>Νέα Αποστολή</Text>
+            <Text style={{ color: '#93C5FD', fontSize: 13 }}>{step}/3</Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => router.replace('/(tabs)' as any)}
+            style={{ marginTop: 8, alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 5 }}
+          >
+            <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>✕ Ακύρωση</Text>
           </TouchableOpacity>
-          <Text className="text-white text-xl font-bold flex-1">Νέα Αποστολή</Text>
-          <Text className="text-blue-200 text-sm">{step}/3</Text>
         </View>
       )}
 

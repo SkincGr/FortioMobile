@@ -74,6 +74,7 @@ export default function MessagesScreen() {
   const [messages, setMessages]               = useState<Msg[]>([])
   const [selectedShipId, setSelectedShipId]   = useState<string>(ALL_ID)
   const [kind, setKind]                       = useState<'messages' | 'offers'>('messages')
+  const [unreadOnly, setUnreadOnly]           = useState(false)
   const [loading, setLoading]                 = useState(true)
   const [threadLoading, setThreadLoading]     = useState(false)
   const [refreshing, setRefreshing]           = useState(false)
@@ -112,8 +113,8 @@ export default function MessagesScreen() {
       ? conversations
       : groups.find(g => g.shipment.id === selectedShipId)?.conversations ?? []
     return {
-      messages: pool.filter(isDirect).reduce((s, c) => s + (c._count?.messages ?? 0), 0),
-      offers:   pool.filter(isOffer).reduce((s, c)  => s + (c._count?.messages ?? 0), 0),
+      messages: pool.filter(isDirect).reduce((s, c) => s + (c.unreadCount ?? 0), 0),
+      offers:   pool.filter(isOffer).reduce((s, c)  => s + (c.unreadCount ?? 0), 0),
     }
   }, [conversations, groups, selectedShipId])
 
@@ -122,7 +123,13 @@ export default function MessagesScreen() {
   const loadConversations = useCallback(async () => {
     try {
       const res = await api.get<Conversation[]>('/api/messages')
-      setConversations(Array.isArray(res.data) ? res.data : [])
+      const data: Conversation[] = Array.isArray(res.data) ? res.data : []
+      setConversations(data)
+      // Auto-select the kind that has unread messages
+      const unreadDirect = data.filter(isDirect).some(c => (c.unreadCount ?? 0) > 0)
+      const unreadOffer  = data.filter(isOffer).some(c => (c.unreadCount ?? 0) > 0)
+      if (!unreadDirect && unreadOffer) setKind('offers')
+      else setKind('messages')
     } catch {}
     setLoading(false)
     setRefreshing(false)
@@ -153,6 +160,8 @@ export default function MessagesScreen() {
         (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       )
       setMessages(flat)
+      // If unreadOnly is on but no unread messages found, turn it off
+      if (unreadOnly && !flat.some(m => !m.isRead)) setUnreadOnly(false)
     } catch {}
     setThreadLoading(false)
   }
@@ -201,16 +210,10 @@ export default function MessagesScreen() {
         style={s.tabsScroll}
         contentContainerStyle={s.tabsContent}
       >
-        <TouchableOpacity
-          onPress={() => setSelectedShipId(ALL_ID)}
-          style={[s.chip, selectedShipId === ALL_ID && s.chipActive]}
-        >
-          <Text style={[s.chipText, selectedShipId === ALL_ID && s.chipTextActive]}>Όλες</Text>
-        </TouchableOpacity>
         {groups.map(g => (
           <TouchableOpacity
             key={g.shipment.id}
-            onPress={() => setSelectedShipId(g.shipment.id)}
+            onPress={() => setSelectedShipId(prev => prev === g.shipment.id ? ALL_ID : g.shipment.id)}
             style={[s.chip, selectedShipId === g.shipment.id && s.chipActive]}
           >
             <Text
@@ -233,7 +236,7 @@ export default function MessagesScreen() {
         </View>
       )}
 
-      {/* ── Kind filter ── */}
+      {/* ── Kind filter + Αδιάβαστα ── */}
       <View style={s.filterRow}>
         {([
           { key: 'messages' as const, label: 'Μηνύματα', count: counts.messages },
@@ -245,16 +248,27 @@ export default function MessagesScreen() {
             style={[s.filterBtn, kind === tab.key && s.filterBtnActive]}
           >
             <Text style={[s.filterText, kind === tab.key && s.filterTextActive]}>{tab.label}</Text>
-            <View style={[s.filterBadge, kind === tab.key && s.filterBadgeActive]}>
-              <Text style={[s.filterBadgeText, kind === tab.key && s.filterBadgeTextActive]}>{tab.count}</Text>
-            </View>
+            {tab.count > 0 && (
+              <View style={[s.filterBadge, kind === tab.key && s.filterBadgeActive]}>
+                <Text style={[s.filterBadgeText, kind === tab.key && s.filterBadgeTextActive]}>{tab.count}</Text>
+              </View>
+            )}
           </TouchableOpacity>
         ))}
+
+        {/* Αδιάβαστα toggle */}
+        <TouchableOpacity
+          onPress={() => setUnreadOnly(v => !v)}
+          style={[s.filterBtn, unreadOnly && s.filterBtnUnread]}
+        >
+          <View style={[s.unreadToggleDot, unreadOnly && s.unreadToggleDotOn]} />
+          <Text style={[s.filterText, unreadOnly && s.filterTextUnread]}>Αδιάβαστα</Text>
+        </TouchableOpacity>
       </View>
 
       {/* ── Messages ── */}
       <FlatList
-        data={messages}
+        data={unreadOnly ? messages.filter(m => !m.isRead) : messages}
         keyExtractor={m => m.id}
         style={{ flex: 1 }}
         contentContainerStyle={{ padding: 14, paddingBottom: 8 }}
@@ -421,6 +435,10 @@ const s = StyleSheet.create({
   filterBadgeActive:  { backgroundColor: '#F59E0B' },
   filterBadgeText:    { fontSize: 10, fontWeight: '700', color: 'rgba(255,255,255,0.5)' },
   filterBadgeTextActive: { color: '#000' },
+  filterBtnUnread:   { backgroundColor: 'rgba(99,102,241,0.12)', borderColor: 'rgba(99,102,241,0.35)' },
+  filterTextUnread:  { color: '#818CF8' },
+  unreadToggleDot:   { width: 7, height: 7, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.2)' },
+  unreadToggleDotOn: { backgroundColor: '#818CF8' },
 
   // Empty
   empty:     { alignItems: 'center', paddingTop: 60, gap: 12 },

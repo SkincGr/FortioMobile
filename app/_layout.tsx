@@ -1,5 +1,6 @@
 import '../global.css'
-import React from 'react'
+import React, { useEffect } from 'react'
+import { BackHandler } from 'react-native'
 import { Stack } from 'expo-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { StatusBar } from 'expo-status-bar'
@@ -15,9 +16,15 @@ const queryClient = new QueryClient({
 
 function AppShell() {
   const { isDark } = useTheme()
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => true)
+    return () => sub.remove()
+  }, [])
+
   return (
     <>
-      <StatusBar style={isDark ? 'light' : 'light'} />
+      <StatusBar style="light" />
       <Stack screenOptions={{ headerShown: false }} />
     </>
   )

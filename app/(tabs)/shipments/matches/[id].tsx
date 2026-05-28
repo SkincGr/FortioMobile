@@ -180,7 +180,7 @@ export default function MatchesScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: Colors.surface }}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.push('/(tabs)/' as any)} style={styles.backBtn} hitSlop={12}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="arrow-back" size={22} color="#fff" />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
@@ -202,7 +202,7 @@ export default function MatchesScreen() {
     <View style={{ flex: 1, backgroundColor: Colors.surface }}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.push('/(tabs)/' as any)} style={styles.backBtn} hitSlop={12}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>

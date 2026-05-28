@@ -1,8 +1,8 @@
 import React from 'react'
 import { Tabs, Redirect } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
-import { Colors } from '@/constants/colors'
 import { useAuth } from '@/lib/auth'
+import { useTheme } from '@/lib/theme'
 import { LoadingScreen } from '@/components/ui/LoadingScreen'
 import { View, Text } from 'react-native'
 
@@ -25,6 +25,7 @@ function TabIcon({ name, focused, badge }: { name: any; focused: boolean; badge?
 
 export default function TabsLayout() {
   const { isLoading, isAuthenticated } = useAuth()
+  const { colors } = useTheme()
 
   if (isLoading) return <LoadingScreen />
   if (!isAuthenticated) return <Redirect href="/(auth)/login" />
@@ -34,13 +35,13 @@ export default function TabsLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: Colors.tabBar,
-          borderTopColor: Colors.border,
+          backgroundColor: colors.tabBar,
+          borderTopColor: colors.border,
           paddingBottom: 4,
           height: 60,
         },
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.tabBarInactive,
+        tabBarActiveTintColor: colors.tabBarActive,
+        tabBarInactiveTintColor: colors.tabBarInactive,
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
       }}
     >

@@ -7,6 +7,8 @@ import { router } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '@/lib/auth'
+import { useTheme } from '@/lib/theme'
+import { useI18n } from '@/lib/i18n'
 import { dashboardApi, matchCountsApi, shipmentsApi, Shipment, ShipmentStatus } from '@/lib/api'
 import { ShipmentStatusBadge } from '@/components/ShipmentStatusBadge'
 import { LoadingScreen } from '@/components/ui/LoadingScreen'
@@ -60,6 +62,17 @@ function ShipmentCard({
   matchCountsLoading?: boolean
   onDelete?: (id: string, offerCount: number) => void
 }) {
+  const { colors } = useTheme()
+  return _ShipmentCard({ item, filter, matchCount, matchCountsLoading, onDelete, colors })
+}
+
+function _ShipmentCard({
+  item, filter, matchCount, matchCountsLoading, onDelete, colors,
+}: {
+  item: Shipment; filter: Filter; matchCount?: number
+  matchCountsLoading?: boolean; onDelete?: (id: string, offerCount: number) => void
+  colors: any
+}) {
   const icon       = CATEGORY_ICON[item.category] ?? '📦'
   const roadInfo   = formatRoad(item.roadDistanceKm, item.roadDurationMinutes)
   const offerCount = item._count?.offers ?? 0
@@ -78,7 +91,7 @@ function ShipmentCard({
     ?? null
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
       {/* Row 1: icon + title + status */}
       <View style={styles.row}>
         <Text style={styles.catIcon}>{icon}</Text>
@@ -247,6 +260,8 @@ function SortPicker({ value, onChange }: { value: SortKey; onChange: (v: SortKey
 
 export default function DashboardScreen() {
   const { user, logout } = useAuth()
+  const { colors, isDark } = useTheme()
+  const { t } = useI18n()
   const qc = useQueryClient()
   const [filter, setFilter] = useState<Filter>('active')
   const [sortBy, setSortBy] = useState<SortKey>('date_desc')
@@ -316,7 +331,7 @@ export default function DashboardScreen() {
   ]
 
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.surface }}>
+    <View style={{ flex: 1, backgroundColor: colors.surface }}>
 
       {/* ── Burger Menu Modal ── */}
       <Modal
@@ -396,7 +411,7 @@ export default function DashboardScreen() {
       </View>
 
       {/* ── Filter tabs ── */}
-      <View style={styles.tabBar}>
+      <View style={[styles.tabBar, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
         {TABS.map(tab => (
           <TouchableOpacity
             key={tab.key}
@@ -566,16 +581,16 @@ const styles = StyleSheet.create({
 
   // Card
   card: {
-    backgroundColor: '#fff', borderRadius: 16,
-    borderWidth: 1, borderColor: Colors.border,
+    backgroundColor: 'transparent', borderRadius: 16,
+    borderWidth: 1, borderColor: '#E2E8F0',
     padding: 14, marginBottom: 10,
     shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05, shadowRadius: 3, elevation: 1,
   },
   row:     { flexDirection: 'row', alignItems: 'center', gap: 8 },
   catIcon: { fontSize: 18, width: 24, textAlign: 'center' },
-  title:   { fontSize: 15, fontWeight: '700', color: Colors.textPrimary },
-  sub:     { fontSize: 12, color: Colors.textMuted, flexShrink: 1 },
+  title:   { fontSize: 15, fontWeight: '700', color: '#1E293B' },
+  sub:     { fontSize: 12, color: '#94A3B8', flexShrink: 1 },
   infoBox: {
     backgroundColor: '#F8FAFC', borderRadius: 10,
     padding: 10, gap: 0,
@@ -614,8 +629,8 @@ const styles = StyleSheet.create({
 
   // Empty state
   empty:       { alignItems: 'center', paddingTop: 60 },
-  emptyText:   { fontSize: 15, color: Colors.textMuted, marginBottom: 12 },
-  emptyBtn:    { paddingHorizontal: 20, paddingVertical: 10, backgroundColor: Colors.primary, borderRadius: 12 },
+  emptyText:   { fontSize: 15, color: '#94A3B8', marginBottom: 12 },
+  emptyBtn:    { paddingHorizontal: 20, paddingVertical: 10, backgroundColor: '#1B3A6B', borderRadius: 12 },
   emptyBtnText:{ color: '#fff', fontWeight: '700', fontSize: 14 },
 
   // FAB

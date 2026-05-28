@@ -1,11 +1,14 @@
 import React, { useState } from 'react'
-import { View, Text, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native'
+import { View, Text, TouchableOpacity, KeyboardAvoidingView, Platform, StyleSheet, TextInput } from 'react-native'
 import { router } from 'expo-router'
 import { api } from '@/lib/api'
-import { Input } from '@/components/ui/Input'
+import { useTheme } from '@/lib/theme'
+import { useI18n } from '@/lib/i18n'
 import { Button } from '@/components/ui/Button'
 
 export default function ForgotPasswordScreen() {
+  const { colors } = useTheme()
+  const { t } = useI18n()
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
@@ -13,8 +16,7 @@ export default function ForgotPasswordScreen() {
 
   async function handleSubmit() {
     if (!email.trim()) { setError('Συμπλήρωσε το email σου'); return }
-    setLoading(true)
-    setError('')
+    setLoading(true); setError('')
     try {
       await api.post('/api/forgot-password', { email: email.trim() })
       setSent(true)
@@ -25,35 +27,52 @@ export default function ForgotPasswordScreen() {
     }
   }
 
+  const s = StyleSheet.create({
+    root:     { flex: 1, backgroundColor: colors.surface },
+    inner:    { flex: 1, paddingHorizontal: 24, paddingTop: 64 },
+    back:     { marginBottom: 32 },
+    backTxt:  { color: colors.primary, fontSize: 15 },
+    title:    { fontSize: 26, fontWeight: '800', color: colors.textPrimary, marginBottom: 8 },
+    sub:      { fontSize: 14, color: colors.textMuted, marginBottom: 28, lineHeight: 21 },
+    label:    { fontSize: 13, fontWeight: '600', color: colors.textSecondary, marginBottom: 6 },
+    input:    { backgroundColor: colors.inputBg, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: colors.textPrimary, marginBottom: 20 },
+    sentBox:  { backgroundColor: '#D1FAE5', borderWidth: 1, borderColor: '#6EE7B7', borderRadius: 14, padding: 18 },
+    sentTitle:{ color: '#065F46', fontWeight: '700', fontSize: 16, marginBottom: 4 },
+    sentSub:  { color: '#047857', fontSize: 13 },
+    errorBox: { backgroundColor: '#FEE2E2', borderWidth: 1, borderColor: '#FCA5A5', borderRadius: 12, padding: 12, marginBottom: 16 },
+    errorTxt: { color: '#DC2626', fontSize: 13 },
+  })
+
   return (
-    <KeyboardAvoidingView
-      className="flex-1 bg-white"
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <View className="flex-1 px-6 pt-16">
-        <TouchableOpacity onPress={() => router.back()} className="mb-8">
-          <Text className="text-primary text-base">← Πίσω</Text>
+    <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <View style={s.inner}>
+        <TouchableOpacity style={s.back} onPress={() => router.back()}>
+          <Text style={s.backTxt}>{t('auth.back')}</Text>
         </TouchableOpacity>
 
-        <Text className="text-2xl font-bold text-slate-800 mb-2">Επαναφορά Κωδικού</Text>
-        <Text className="text-slate-500 mb-8">
-          Δώσε το email σου και θα σου στείλουμε οδηγίες επαναφοράς.
-        </Text>
+        <Text style={s.title}>{t('auth.forgot_title')}</Text>
+        <Text style={s.sub}>{t('auth.forgot_sub')}</Text>
 
         {sent ? (
-          <View className="bg-green-50 border border-green-200 rounded-xl p-4">
-            <Text className="text-green-700 font-semibold">Email εστάλη! ✓</Text>
-            <Text className="text-green-600 text-sm mt-1">Έλεγξε τα εισερχόμενά σου.</Text>
+          <View style={s.sentBox}>
+            <Text style={s.sentTitle}>{t('auth.sent_ok')}</Text>
+            <Text style={s.sentSub}>{t('auth.sent_check')}</Text>
           </View>
         ) : (
           <>
-            {error ? (
-              <View className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4">
-                <Text className="text-red-600 text-sm">{error}</Text>
-              </View>
-            ) : null}
-            <Input label="Email" placeholder="you@example.com" keyboardType="email-address" value={email} onChangeText={setEmail} />
-            <Button title="Αποστολή" loading={loading} onPress={handleSubmit} />
+            {error ? <View style={s.errorBox}><Text style={s.errorTxt}>{error}</Text></View> : null}
+            <Text style={s.label}>{t('auth.email')}</Text>
+            <TextInput
+              style={s.input}
+              placeholder="you@example.com"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
+              onSubmitEditing={handleSubmit}
+            />
+            <Button title={t('auth.send')} loading={loading} onPress={handleSubmit} />
           </>
         )}
       </View>

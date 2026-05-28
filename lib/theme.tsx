@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
+import { Appearance } from 'react-native'
 import * as SecureStore from 'expo-secure-store'
 
 const THEME_KEY = 'fortio_theme'
@@ -68,13 +69,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     SecureStore.getItemAsync(THEME_KEY).then(v => {
-      if (v === 'dark' || v === 'light') setMode(v)
+      if (v === 'dark' || v === 'light') {
+        setMode(v)
+        Appearance.setColorScheme(v)
+      }
     })
   }, [])
 
   function toggleTheme() {
     const next: ThemeMode = mode === 'light' ? 'dark' : 'light'
     setMode(next)
+    Appearance.setColorScheme(next)
     SecureStore.setItemAsync(THEME_KEY, next)
   }
 

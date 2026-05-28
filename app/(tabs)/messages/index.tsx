@@ -122,18 +122,14 @@ export default function MessagesScreen() {
 
   // ── Load conversations ──────────────────────────────────────────────────────
 
-  const loadConversations = useCallback(async () => {
+  const loadConversations = useCallback(async (shipId?: string) => {
     try {
       const res = await api.get<Conversation[]>('/api/messages')
       const data: Conversation[] = Array.isArray(res.data) ? res.data : []
       setConversations(data)
-      // Keep param shipmentId selected if provided, otherwise auto-select kind
-      if (paramShipId) {
-        setSelectedShipId(paramShipId)
-      }
-      const pool = paramShipId
-        ? data.filter(c => c.shipment?.id === paramShipId)
-        : data
+      const activeShipId = shipId ?? paramShipId
+      if (activeShipId) setSelectedShipId(activeShipId)
+      const pool = activeShipId ? data.filter(c => c.shipment?.id === activeShipId) : data
       const unreadDirect = pool.filter(isDirect).some(c => (c.unreadCount ?? 0) > 0)
       const unreadOffer  = pool.filter(isOffer).some(c => (c.unreadCount ?? 0) > 0)
       if (!unreadDirect && unreadOffer) setKind('offers')
@@ -141,9 +137,13 @@ export default function MessagesScreen() {
     } catch {}
     setLoading(false)
     setRefreshing(false)
-  }, [])
+  }, [paramShipId])
 
-  useEffect(() => { loadConversations() }, [])
+  // Re-load and re-select whenever the URL param changes (navigating from different shipments)
+  useEffect(() => {
+    if (paramShipId) setSelectedShipId(paramShipId)
+    loadConversations(paramShipId)
+  }, [paramShipId])
 
   // ── Load threads when visible conversations change ──────────────────────────
 
@@ -208,7 +208,7 @@ export default function MessagesScreen() {
       <View style={s.header}>
         {returnTo ? (
           <TouchableOpacity
-            onPress={() => router.push(decodeURIComponent(returnTo) as any)}
+            onPress={() => router.back()}
             style={s.backBtn}
             hitSlop={10}
           >

@@ -210,20 +210,26 @@ function OfferCard({
           </View>
         )}
 
-        <TouchableOpacity
-          style={styles.btnMessage}
-          onPress={() => router.push(
-            `/(tabs)/messages?shipmentId=${shipmentId}&returnTo=${encodeURIComponent(`/(tabs)/shipments/${shipmentId}`)}` as any
-          )}
-        >
-          <Ionicons name="chatbubble-outline" size={13} color="#D97706" />
-          <Text style={styles.btnMessageText}>Μήνυμα</Text>
-          {msgCount > 0 && (
+        {msgCount > 0 ? (
+          <TouchableOpacity
+            style={styles.btnMessage}
+            onPress={() => router.push(
+              `/(tabs)/messages?shipmentId=${shipmentId}&returnTo=${encodeURIComponent(`/(tabs)/shipments/${shipmentId}`)}` as any
+            )}
+          >
+            <Text style={styles.btnMessageText}>✉️ Μηνύματα</Text>
             <View style={styles.msgBadge}>
               <Text style={styles.msgBadgeText}>{msgCount}</Text>
             </View>
-          )}
-        </TouchableOpacity>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.btnMessageOff}>
+            <Text style={styles.btnMessageOffText}>✉️ Μηνύματα</Text>
+            <View style={styles.msgBadgeOff}>
+              <Text style={styles.msgBadgeOffText}>0</Text>
+            </View>
+          </View>
+        )}
       </View>
     </View>
   )
@@ -440,10 +446,14 @@ const styles = StyleSheet.create({
   btnRejectText:{ fontSize: 12, fontWeight: '700', color: '#EF4444' },
   acceptedBadge:{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#F0FDF4', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7 },
   acceptedText: { fontSize: 12, fontWeight: '700', color: Colors.success },
-  btnMessage:   { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#FFFBEB', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7 },
-  btnMessageText:{ fontSize: 12, fontWeight: '700', color: '#D97706' },
-  msgBadge:     { backgroundColor: Colors.accent, borderRadius: 9, minWidth: 17, height: 17, paddingHorizontal: 3, alignItems: 'center', justifyContent: 'center' },
+  btnMessage:    { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: Colors.accent, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
+  btnMessageText:{ fontSize: 11, fontWeight: '700', color: '#000' },
+  btnMessageOff: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#F1F5F9', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
+  btnMessageOffText: { fontSize: 11, fontWeight: '600', color: Colors.textMuted },
+  msgBadge:     { backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: 9, minWidth: 17, height: 17, paddingHorizontal: 3, alignItems: 'center', justifyContent: 'center' },
   msgBadgeText: { fontSize: 10, fontWeight: '800', color: '#000' },
+  msgBadgeOff:  { backgroundColor: 'rgba(0,0,0,0.08)', borderRadius: 9, minWidth: 17, height: 17, paddingHorizontal: 3, alignItems: 'center', justifyContent: 'center' },
+  msgBadgeOffText: { fontSize: 10, fontWeight: '700', color: Colors.textMuted },
 
   emptyState:    { alignItems: 'center', paddingTop: 60 },
   emptyTitle:    { fontSize: 16, fontWeight: '700', color: Colors.textPrimary, marginBottom: 8 },

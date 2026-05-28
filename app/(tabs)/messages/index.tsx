@@ -5,6 +5,7 @@ import {
   ActivityIndicator, ScrollView, Alert, KeyboardAvoidingView,
   Platform, RefreshControl, StyleSheet,
 } from 'react-native'
+import { useLocalSearchParams } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '@/lib/auth'
 import { api } from '@/lib/api'
@@ -69,10 +70,11 @@ function parseContent(content: string) {
 export default function MessagesScreen() {
   const { user } = useAuth()
   const myId = user?.id
+  const { shipmentId: paramShipId } = useLocalSearchParams<{ shipmentId?: string }>()
 
   const [conversations, setConversations]     = useState<Conversation[]>([])
   const [messages, setMessages]               = useState<Msg[]>([])
-  const [selectedShipId, setSelectedShipId]   = useState<string>(ALL_ID)
+  const [selectedShipId, setSelectedShipId]   = useState<string>(paramShipId ?? ALL_ID)
   const [kind, setKind]                       = useState<'messages' | 'offers'>('messages')
   const [unreadOnly, setUnreadOnly]           = useState(false)
   const [loading, setLoading]                 = useState(true)
@@ -125,9 +127,15 @@ export default function MessagesScreen() {
       const res = await api.get<Conversation[]>('/api/messages')
       const data: Conversation[] = Array.isArray(res.data) ? res.data : []
       setConversations(data)
-      // Auto-select the kind that has unread messages
-      const unreadDirect = data.filter(isDirect).some(c => (c.unreadCount ?? 0) > 0)
-      const unreadOffer  = data.filter(isOffer).some(c => (c.unreadCount ?? 0) > 0)
+      // Keep param shipmentId selected if provided, otherwise auto-select kind
+      if (paramShipId) {
+        setSelectedShipId(paramShipId)
+      }
+      const pool = paramShipId
+        ? data.filter(c => c.shipment?.id === paramShipId)
+        : data
+      const unreadDirect = pool.filter(isDirect).some(c => (c.unreadCount ?? 0) > 0)
+      const unreadOffer  = pool.filter(isOffer).some(c => (c.unreadCount ?? 0) > 0)
       if (!unreadDirect && unreadOffer) setKind('offers')
       else setKind('messages')
     } catch {}

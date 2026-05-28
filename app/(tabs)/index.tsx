@@ -143,7 +143,7 @@ function ShipmentCard({
               <TouchableOpacity
                 style={[styles.actionBtn, styles.actionBtnAmber]}
                 activeOpacity={0.8}
-                onPress={e => { e.stopPropagation?.(); router.push('/(tabs)/messages') }}
+                onPress={e => { e.stopPropagation?.(); router.push(`/(tabs)/messages?shipmentId=${item.id}` as any) }}
               >
                 <Text style={styles.actionBtnAmberText}>✉️ Μηνύματα</Text>
                 <View style={styles.btnBadge}><Text style={styles.btnBadgeText}>{msgCount}</Text></View>

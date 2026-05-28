@@ -305,7 +305,8 @@ function ViewOfferModal({
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function ShipmentDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>()
+  const { id, returnTo } = useLocalSearchParams<{ id: string; returnTo?: string }>()
+  const goBack = () => router.replace((returnTo ? decodeURIComponent(returnTo) : '/(tabs)') as any)
   const [viewOffer, setViewOffer] = useState<Offer | null>(null)
 
   const { data, isLoading, refetch, isRefetching } = useQuery({
@@ -333,7 +334,7 @@ export default function ShipmentDetailScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
+        <TouchableOpacity onPress={goBack} style={styles.backBtn} hitSlop={12}>
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
@@ -354,7 +355,7 @@ export default function ShipmentDetailScreen() {
             <Text style={styles.emptySubtitle}>Βρες διαθέσιμα δρομολόγια και στείλε αίτημα.</Text>
             <TouchableOpacity
               style={styles.routesBtn}
-              onPress={() => router.push(`/(tabs)/shipments/matches/${id}` as any)}
+              onPress={() => router.push(`/(tabs)/shipments/matches/${id}?returnTo=${encodeURIComponent(`/(tabs)/shipments/${id}${returnTo ? `?returnTo=${returnTo}` : ''}`)}` as any)}
             >
               <Text style={styles.routesBtnText}>Εμφάν. Δρομολογίων</Text>
             </TouchableOpacity>

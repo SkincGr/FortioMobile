@@ -208,7 +208,7 @@ export default function MessagesScreen() {
       <View style={s.header}>
         {returnTo ? (
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() => router.replace(decodeURIComponent(returnTo) as any)}
             style={s.backBtn}
             hitSlop={10}
           >

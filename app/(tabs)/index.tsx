@@ -134,7 +134,7 @@ function _ShipmentCard({
             <TouchableOpacity
               style={[styles.actionBtn, styles.actionBtnEdit]}
               activeOpacity={0.7}
-              onPress={e => { e.stopPropagation?.(); router.push(`/(tabs)/shipments/new?editId=${item.id}` as any) }}
+              onPress={e => { e.stopPropagation?.(); router.push(`/(tabs)/shipments/new?editId=${item.id}&returnTo=${encodeURIComponent('/(tabs)')}` as any) }}
             >
               <Text style={styles.actionBtnEditText}>Διόρθωση</Text>
             </TouchableOpacity>
@@ -152,7 +152,7 @@ function _ShipmentCard({
               <TouchableOpacity
                 style={[styles.actionBtn, styles.actionBtnAmber]}
                 activeOpacity={0.8}
-                onPress={e => { e.stopPropagation?.(); router.push(`/(tabs)/messages?shipmentId=${item.id}` as any) }}
+                onPress={e => { e.stopPropagation?.(); router.push(`/(tabs)/messages?shipmentId=${item.id}&returnTo=${encodeURIComponent('/(tabs)')}` as any) }}
               >
                 <Text style={styles.actionBtnAmberText}>✉️ Μηνύματα</Text>
                 <View style={styles.btnBadge}><Text style={styles.btnBadgeText}>{msgCount}</Text></View>
@@ -181,7 +181,7 @@ function _ShipmentCard({
               <TouchableOpacity
                 style={[styles.actionBtn, styles.actionBtnAmber]}
                 activeOpacity={0.8}
-                onPress={e => { e.stopPropagation?.(); router.push(`/(tabs)/shipments/matches/${item.id}?title=${encodeURIComponent(item.title)}` as any) }}
+                onPress={e => { e.stopPropagation?.(); router.push(`/(tabs)/shipments/matches/${item.id}?title=${encodeURIComponent(item.title)}&returnTo=${encodeURIComponent('/(tabs)')}` as any) }}
               >
                 <Text style={styles.actionBtnAmberText}>Εμφάν. Δρομολογίων</Text>
                 <View style={styles.btnBadge}><Text style={styles.btnBadgeText}>{matchCount}</Text></View>
@@ -192,7 +192,7 @@ function _ShipmentCard({
               <TouchableOpacity
                 style={[styles.actionBtn, styles.actionBtnAmber]}
                 activeOpacity={0.8}
-                onPress={e => { e.stopPropagation?.(); router.push(`/(tabs)/shipments/${item.id}` as any) }}
+                onPress={e => { e.stopPropagation?.(); router.push(`/(tabs)/shipments/${item.id}?returnTo=${encodeURIComponent('/(tabs)')}` as any) }}
               >
                 <Text style={styles.actionBtnAmberText}>#Αιτημ/Προσφορών</Text>
                 <View style={styles.btnBadge}><Text style={styles.btnBadgeText}>{offerCount}</Text></View>
@@ -453,7 +453,7 @@ export default function DashboardScreen() {
             <Text style={styles.emptyText}>Δεν υπάρχουν αποστολές</Text>
             {filter === 'active' && (
               <TouchableOpacity
-                onPress={() => router.push('/(tabs)/shipments/new')}
+                onPress={() => router.push(`/(tabs)/shipments/new?returnTo=${encodeURIComponent('/(tabs)')}` as any)}
                 style={styles.emptyBtn}
               >
                 <Text style={styles.emptyBtnText}>Δημιούργησε τώρα →</Text>
@@ -475,7 +475,7 @@ export default function DashboardScreen() {
       {/* ── FAB ── */}
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => router.push('/(tabs)/shipments/new')}
+        onPress={() => router.push(`/(tabs)/shipments/new?returnTo=${encodeURIComponent('/(tabs)')}` as any)}
         activeOpacity={0.85}
       >
         <Ionicons name="add" size={28} color="#fff" />

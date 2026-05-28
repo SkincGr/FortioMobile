@@ -119,7 +119,8 @@ function RouteCard({ route, isSent, onRequest }: RouteCardProps) {
 // ─── Matches screen ───────────────────────────────────────────────────────────
 
 export default function MatchesScreen() {
-  const { id: shipmentId, title: titleParam } = useLocalSearchParams<{ id: string; title?: string }>()
+  const { id: shipmentId, title: titleParam, returnTo } = useLocalSearchParams<{ id: string; title?: string; returnTo?: string }>()
+  const goBack = () => router.replace((returnTo ? decodeURIComponent(returnTo) : '/(tabs)') as any)
   const queryClient = useQueryClient()
 
   const [modalRoute, setModalRoute] = useState<RouteMatch | null>(null)
@@ -180,7 +181,7 @@ export default function MatchesScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: Colors.surface }}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
+          <TouchableOpacity onPress={goBack} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="arrow-back" size={22} color="#fff" />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
@@ -202,7 +203,7 @@ export default function MatchesScreen() {
     <View style={{ flex: 1, backgroundColor: Colors.surface }}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
+        <TouchableOpacity onPress={goBack} style={styles.backBtn} hitSlop={12}>
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>

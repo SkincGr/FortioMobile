@@ -6,15 +6,18 @@ import { useTheme } from '@/lib/theme'
 import { LoadingScreen } from '@/components/ui/LoadingScreen'
 import { View, Text } from 'react-native'
 
-function TabIcon({ name, focused, badge }: { name: any; focused: boolean; badge?: number }) {
+function TabIcon({ name, focused, badge, activeColor, inactiveColor, dangerColor }: {
+  name: any; focused: boolean; badge?: number
+  activeColor: string; inactiveColor: string; dangerColor: string
+}) {
   return (
     <View style={{ alignItems: 'center' }}>
-      <Ionicons name={name} size={24} color={focused ? Colors.primary : Colors.tabBarInactive} />
+      <Ionicons name={name} size={24} color={focused ? activeColor : inactiveColor} />
       {badge ? (
         <View style={{
           position: 'absolute', top: -4, right: -10,
-          backgroundColor: Colors.danger, borderRadius: 8,
-          minWidth: 16, height: 16, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3
+          backgroundColor: dangerColor, borderRadius: 8,
+          minWidth: 16, height: 16, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3,
         }}>
           <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>{badge > 99 ? '99+' : badge}</Text>
         </View>
@@ -29,6 +32,12 @@ export default function TabsLayout() {
 
   if (isLoading) return <LoadingScreen />
   if (!isAuthenticated) return <Redirect href="/(auth)/login" />
+
+  const iconProps = {
+    activeColor: colors.tabBarActive,
+    inactiveColor: colors.tabBarInactive,
+    dangerColor: colors.danger,
+  }
 
   return (
     <Tabs
@@ -49,24 +58,23 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: 'Dashboard',
-          tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'home' : 'home-outline'} focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'home' : 'home-outline'} focused={focused} {...iconProps} />,
         }}
       />
       <Tabs.Screen
         name="messages"
         options={{
           title: 'Μηνύματα',
-          tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'chatbubbles' : 'chatbubbles-outline'} focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'chatbubbles' : 'chatbubbles-outline'} focused={focused} {...iconProps} />,
         }}
       />
       <Tabs.Screen
         name="announcements"
         options={{
           title: 'Ανακοινώσεις',
-          tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'megaphone' : 'megaphone-outline'} focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'megaphone' : 'megaphone-outline'} focused={focused} {...iconProps} />,
         }}
       />
-      {/* Hidden from tab bar — accessible via router.push */}
       <Tabs.Screen name="shipments" options={{ href: null }} />
       <Tabs.Screen name="notifications" options={{ href: null }} />
       <Tabs.Screen name="profile" options={{ href: null }} />

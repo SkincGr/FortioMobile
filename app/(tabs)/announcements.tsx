@@ -11,8 +11,8 @@ const VEHICLE_ICONS: Record<string, string> = {
 }
 
 function AnnouncementCard({ item }: { item: Announcement }) {
-  const { colors } = useTheme()
-  const s = useMemo(() => cardStyles(colors), [colors])
+  const { colors, isDark } = useTheme()
+  const s = useMemo(() => cardStyles(colors, isDark), [colors, isDark])
   const icon   = VEHICLE_ICONS[item.carrier?.carrierProfile?.vehicleType ?? 'OTHER'] ?? '🚛'
   const rating = item.carrier?.carrierProfile?.rating
 
@@ -90,7 +90,7 @@ function screenStyles(c: any) {
   })
 }
 
-function cardStyles(c: any) {
+function cardStyles(c: any, isDark: boolean) {
   return StyleSheet.create({
     card: { backgroundColor: c.card, borderRadius: 16, borderWidth: 1, borderColor: c.border, padding: 16, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 1 },
     row: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
@@ -100,7 +100,7 @@ function cardStyles(c: any) {
     rating: { fontSize: 12, color: '#92400E', fontWeight: '600' },
     title: { fontSize: 16, fontWeight: '800', color: c.textPrimary, marginBottom: 6 },
     body: { fontSize: 14, color: c.textSecondary, lineHeight: 20 },
-    cta: { marginTop: 12, backgroundColor: c.isDark ? '#1E1500' : '#FFFBEB', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: '#FDE68A' },
+    cta: { marginTop: 12, backgroundColor: isDark ? '#1E1500' : '#FFFBEB', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: '#FDE68A' },
     ctaText: { fontSize: 13, color: '#92400E', fontWeight: '600' },
   })
 }

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import {
   View, Text, FlatList, TouchableOpacity, TextInput,
-  KeyboardAvoidingView, Platform, ActivityIndicator
+  KeyboardAvoidingView, Platform, ActivityIndicator, Alert
 } from 'react-native'
 import { useLocalSearchParams, router } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -30,6 +30,10 @@ export default function ChatScreen() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['messages', offerId] })
       setText('')
+    },
+    onError: (e: any) => {
+      const msg = e?.response?.data?.error || 'Αποτυχία αποστολής. Δοκίμασε ξανά.'
+      Alert.alert('Σφάλμα', msg)
     },
   })
 

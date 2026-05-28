@@ -212,7 +212,9 @@ function OfferCard({
 
         <TouchableOpacity
           style={styles.btnMessage}
-          onPress={() => router.push(`/(tabs)/messages/${offer.id}` as any)}
+          onPress={() => router.push(
+            `/(tabs)/messages?shipmentId=${shipmentId}&returnTo=${encodeURIComponent(`/(tabs)/shipments/${shipmentId}`)}` as any
+          )}
         >
           <Ionicons name="chatbubble-outline" size={13} color="#D97706" />
           <Text style={styles.btnMessageText}>Μήνυμα</Text>

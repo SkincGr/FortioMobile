@@ -5,7 +5,7 @@ import {
   ActivityIndicator, ScrollView, Alert, KeyboardAvoidingView,
   Platform, RefreshControl, StyleSheet,
 } from 'react-native'
-import { useLocalSearchParams } from 'expo-router'
+import { useLocalSearchParams, router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '@/lib/auth'
 import { api } from '@/lib/api'
@@ -70,7 +70,7 @@ function parseContent(content: string) {
 export default function MessagesScreen() {
   const { user } = useAuth()
   const myId = user?.id
-  const { shipmentId: paramShipId } = useLocalSearchParams<{ shipmentId?: string }>()
+  const { shipmentId: paramShipId, returnTo } = useLocalSearchParams<{ shipmentId?: string; returnTo?: string }>()
 
   const [conversations, setConversations]     = useState<Conversation[]>([])
   const [messages, setMessages]               = useState<Msg[]>([])
@@ -206,8 +206,21 @@ export default function MessagesScreen() {
     >
       {/* ── Header ── */}
       <View style={s.header}>
-        <Text style={s.logo}>FORTIO</Text>
-        <View style={s.sep} />
+        {returnTo ? (
+          <TouchableOpacity
+            onPress={() => router.push(decodeURIComponent(returnTo) as any)}
+            style={s.backBtn}
+            hitSlop={10}
+          >
+            <Ionicons name="arrow-back" size={20} color="#fff" />
+            <Text style={s.backBtnText}>Επιστροφή</Text>
+          </TouchableOpacity>
+        ) : (
+          <>
+            <Text style={s.logo}>FORTIO</Text>
+            <View style={s.sep} />
+          </>
+        )}
         <Text style={s.subtitle}>Διαχείρηση Μηνυμάτων</Text>
       </View>
 
@@ -406,6 +419,8 @@ const s = StyleSheet.create({
     color: 'rgba(255,255,255,0.4)', fontSize: 10,
     letterSpacing: 2, textTransform: 'uppercase',
   },
+  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginRight: 10 },
+  backBtnText: { color: '#fff', fontSize: 14, fontWeight: '600' },
 
   // Shipment chips
   tabsScroll:   { maxHeight: 48 },

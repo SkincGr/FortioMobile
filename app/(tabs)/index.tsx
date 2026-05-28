@@ -78,11 +78,7 @@ function ShipmentCard({
     ?? null
 
   return (
-    <TouchableOpacity
-      activeOpacity={0.75}
-      onPress={() => router.push(`/(tabs)/shipments/${item.id}`)}
-      style={styles.card}
-    >
+    <View style={styles.card}>
       {/* Row 1: icon + title + status */}
       <View style={styles.row}>
         <Text style={styles.catIcon}>{icon}</Text>
@@ -205,7 +201,7 @@ function ShipmentCard({
           {item.maxBudget ? `  ·  €${item.maxBudget}` : ''}
         </Text>
       )}
-    </TouchableOpacity>
+    </View>
   )
 }
 

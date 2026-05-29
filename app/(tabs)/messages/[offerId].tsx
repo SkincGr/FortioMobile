@@ -73,7 +73,7 @@ export default function ChatScreen() {
   return (
     <KeyboardAvoidingView
       className="flex-1 bg-surface"
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={0}
     >
       {/* Header */}

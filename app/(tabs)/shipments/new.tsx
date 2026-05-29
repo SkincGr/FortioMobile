@@ -723,7 +723,7 @@ export default function NewShipmentScreen() {
   return (
     <KeyboardAvoidingView
       className="flex-1 bg-surface"
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       {/* Header */}
       {isEditing ? (

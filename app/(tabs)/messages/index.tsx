@@ -202,7 +202,7 @@ export default function MessagesScreen() {
   return (
     <KeyboardAvoidingView
       style={s.root}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       {/* ── Header ── */}
       <View style={s.header}>

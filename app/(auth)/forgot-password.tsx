@@ -44,7 +44,7 @@ export default function ForgotPasswordScreen() {
   })
 
   return (
-    <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={s.inner}>
         <TouchableOpacity style={s.back} onPress={() => router.back()}>
           <Text style={s.backTxt}>{t('auth.back')}</Text>

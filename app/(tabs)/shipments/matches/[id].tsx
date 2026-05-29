@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react'
 import {
   View, Text, FlatList, TouchableOpacity, Modal,
   TextInput, ActivityIndicator, StyleSheet, ScrollView,
+  KeyboardAvoidingView, Platform,
 } from 'react-native'
 import { useLocalSearchParams, router, Stack } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -244,7 +245,10 @@ export default function MatchesScreen() {
 
       {/* Request modal */}
       <Modal visible={!!modalRoute} transparent animationType="slide" onRequestClose={closeModal}>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
           <View style={styles.modalCard}>
             {/* Modal header */}
             <View style={[styles.row, { justifyContent: 'space-between', marginBottom: 16 }]}>
@@ -306,7 +310,7 @@ export default function MatchesScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
     </View>

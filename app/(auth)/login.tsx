@@ -54,7 +54,7 @@ export default function LoginScreen() {
   })
 
   return (
-    <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
         <View style={s.header}>
           <Text style={s.logo}>FORTIO</Text>

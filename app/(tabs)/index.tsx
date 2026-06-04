@@ -677,48 +677,43 @@ export default function DashboardScreen() {
       <Modal visible={burgerOpen} transparent animationType="fade" onRequestClose={() => setBurgerOpen(false)}>
         <Pressable style={styles.burgerOverlay} onPress={() => setBurgerOpen(false)}>
           <Pressable style={styles.burgerPanel} onPress={e => e.stopPropagation()}>
-            <View style={styles.burgerHeader}>
-              <Text style={styles.burgerLogo}>FORTIO</Text>
-              <Text style={styles.burgerUser}>{user?.name ?? ''}</Text>
-            </View>
-
-            <TouchableOpacity style={styles.burgerItem} onPress={() => setBurgerOpen(false)}>
-              <Text style={styles.burgerItemText}>Dashboard</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.burgerItem} onPress={() => { setBurgerOpen(false); router.push('/(tabs)/profile') }}>
-              <Text style={styles.burgerItemText}>Προφίλ</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.burgerItem} onPress={() => { setBurgerOpen(false); router.push('/(tabs)/profile') }}>
-              <Text style={styles.burgerItemText}>Ασφάλεια</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.burgerItem} onPress={() => { setBurgerOpen(false); router.push('/(tabs)/profile') }}>
-              <Text style={styles.burgerItemText}>Ρυθμίσεις</Text>
-            </TouchableOpacity>
-
-            <View style={styles.burgerSep} />
-
-            <TouchableOpacity style={styles.burgerItem} onPress={() => { setBurgerOpen(false); logout() }}>
-              <Text style={[styles.burgerItemText, { color: '#F87171' }]}>Αποσύνδεση</Text>
-            </TouchableOpacity>
+{TABS.map((tab) => (
+              <TouchableOpacity key={tab.key} style={styles.burgerItem} onPress={() => { setFilter(tab.key); setBurgerOpen(false) }}>
+                <Text style={[styles.burgerItemText, filter === tab.key && { color: '#F59E0B' }]}>{tab.label}</Text>
+                <View style={styles.burgerBadge}>
+                  <Text style={styles.burgerBadgeText}>{tab.count}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
           </Pressable>
         </Pressable>
       </Modal>
 
       {/* ── Header ── */}
       <View style={styles.header}>
-        {/* Top row: logo + exit + burger */}
-        <View style={[styles.row, { justifyContent: 'space-between', marginBottom: announcementCount > 0 ? 10 : 0 }]}>
-          <Text style={styles.headerLogo}>FORTIO</Text>
-          <View style={[styles.row, { gap: 8 }]}>
-            <TouchableOpacity onPress={() => logout()} style={styles.exitBtn}>
-              <Ionicons name="log-out-outline" size={14} color="rgba(255,255,255,0.85)" />
-              <Text style={styles.exitBtnText}>Έξοδος</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setBurgerOpen(true)} style={styles.burgerBtn}>
-              <Text style={styles.burgerBtnText}>≡</Text>
-            </TouchableOpacity>
+        {/* Top row: logo + burger */}
+        <View style={[styles.row, { justifyContent: 'space-between' }]}>
+          <View style={styles.row}>
+            <Text style={styles.headerLogo}>FORTIO</Text>
+            <Text style={styles.headerLogoSub}>Dashboard</Text>
           </View>
+          <TouchableOpacity onPress={() => setBurgerOpen(true)} style={styles.burgerBtn}>
+            <Text style={styles.burgerBtnText}>≡</Text>
+          </TouchableOpacity>
         </View>
+
+        {/* Active filter subtitle */}
+        {(() => {
+          const active = TABS.find(t => t.key === filter)!
+          return (
+            <View style={[styles.row, { marginTop: 8, marginBottom: announcementCount > 0 ? 6 : 0 }]}>
+              <Text style={styles.filterSubtitle}>{active.label}</Text>
+              <View style={styles.filterSubtitleBadge}>
+                <Text style={styles.filterSubtitleBadgeText}>{active.count}</Text>
+              </View>
+            </View>
+          )
+        })()}
 
         {/* Badges row — announcements only */}
         {announcementCount > 0 && (
@@ -732,27 +727,6 @@ export default function DashboardScreen() {
             </TouchableOpacity>
           </View>
         )}
-      </View>
-
-      {/* ── Tab bar (horizontal scroll) ── */}
-      <View style={styles.tabBarOuter}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabBarContent}>
-          {TABS.map(tab => (
-            <TouchableOpacity
-              key={tab.key}
-              onPress={() => setFilter(tab.key)}
-              style={[styles.tab, filter === tab.key && styles.tabActive]}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.tabText, filter === tab.key && styles.tabTextActive]}>{tab.label}</Text>
-              <View style={[styles.tabBadge, filter === tab.key && styles.tabBadgeActive]}>
-                <Text style={[styles.tabBadgeText, filter === tab.key && styles.tabBadgeTextActive]}>
-                  {tab.count}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
       </View>
 
       {/* ── List ── */}
@@ -971,7 +945,14 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)',
     paddingTop: 56, paddingBottom: 14, paddingHorizontal: 20,
   },
-  headerLogo: { color: '#fff', fontSize: 18, fontWeight: '900', letterSpacing: -0.5 },
+  headerLogo:    { color: '#fff', fontSize: 18, fontWeight: '900', letterSpacing: -0.5 },
+  headerLogoSub: { color: 'rgba(255,255,255,0.35)', fontSize: 13, fontWeight: '500', marginLeft: 8, alignSelf: 'flex-end', marginBottom: 1 },
+  filterSubtitle: { color: 'rgba(255,255,255,0.55)', fontSize: 13, fontWeight: '600' },
+  filterSubtitleBadge: {
+    marginLeft: 8, minWidth: 22, height: 22, borderRadius: 11,
+    backgroundColor: '#F59E0B', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5,
+  },
+  filterSubtitleBadgeText: { color: '#000', fontSize: 11, fontWeight: '800' },
   headerSub:  { color: 'rgba(255,255,255,0.4)', fontSize: 13, marginBottom: 2 },
   headerName: { color: '#fff', fontSize: 22, fontWeight: '800', letterSpacing: -0.3 },
   headerDate: { color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 3 },
@@ -1014,8 +995,15 @@ const styles = StyleSheet.create({
   },
   burgerLogo: { color: '#fff', fontSize: 20, fontWeight: '900', letterSpacing: -0.5 },
   burgerUser: { color: 'rgba(255,255,255,0.55)', fontSize: 13, marginTop: 4 },
-  burgerItem: { paddingHorizontal: 20, paddingVertical: 13 },
-  burgerItemText: { color: 'rgba(255,255,255,0.7)', fontSize: 15 },
+  burgerItem: { paddingHorizontal: 20, paddingVertical: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  burgerItemText: { color: 'rgba(255,255,255,0.7)', fontSize: 15, flex: 1 },
+  burgerBadge: {
+    minWidth: 28, height: 28, borderRadius: 14,
+    backgroundColor: '#F59E0B',
+    alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  burgerBadgeText: { color: '#000', fontSize: 13, fontWeight: '800' },
   burgerSep: { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', marginVertical: 8 },
 
   // Tab bar (scrollable)

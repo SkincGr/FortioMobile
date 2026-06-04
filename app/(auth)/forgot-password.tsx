@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, StyleSheet, ActivityIndicator } from 'react-native'
 import { router } from 'expo-router'
+import { Ionicons } from '@expo/vector-icons'
 import { api } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
 
@@ -26,12 +27,17 @@ export default function ForgotPasswordScreen() {
 
   return (
     <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View style={s.inner}>
-        <TouchableOpacity style={s.back} onPress={() => router.back()}>
-          <Text style={s.backTxt}>← {t('auth.back')}</Text>
-        </TouchableOpacity>
 
-        <Text style={s.title}>{t('auth.forgot_title')}</Text>
+      {/* Header */}
+      <View style={s.header}>
+        <Text style={s.headerTitle}>Επαναφορά Κωδικού</Text>
+        <TouchableOpacity onPress={() => router.back()} style={s.backBtn} hitSlop={12}>
+          <Text style={s.backText}>Επιστροφή</Text>
+          <Ionicons name="arrow-forward" size={16} color="rgba(255,255,255,0.6)" />
+        </TouchableOpacity>
+      </View>
+
+      <View style={s.inner}>
         <Text style={s.sub}>{t('auth.forgot_sub')}</Text>
 
         {sent ? (
@@ -75,12 +81,19 @@ export default function ForgotPasswordScreen() {
 
 const s = StyleSheet.create({
   root:  { flex: 1, backgroundColor: '#0a0a0a' },
-  inner: { flex: 1, paddingHorizontal: 24, paddingTop: 64 },
 
-  back:    { marginBottom: 32 },
-  backTxt: { color: '#F59E0B', fontSize: 15 },
+  header: {
+    backgroundColor: '#0a0a0a',
+    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)',
+    paddingTop: 56, paddingBottom: 14, paddingHorizontal: 20,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+  },
+  headerTitle: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
+  backBtn:     { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  backText:    { color: 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: '600' },
 
-  title: { fontSize: 26, fontWeight: '800', color: '#fff', marginBottom: 8 },
+  inner: { flex: 1, paddingHorizontal: 24, paddingTop: 28 },
+
   sub:   { fontSize: 14, color: 'rgba(255,255,255,0.4)', marginBottom: 28, lineHeight: 21 },
   label: { fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 },
 

@@ -58,12 +58,11 @@ export default function ChangePasswordScreen() {
 
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()} style={s.backBtn} hitSlop={12}>
-          <Ionicons name="arrow-back" size={20} color="#fff" />
-          <Text style={s.backText}>Επιστροφή</Text>
-        </TouchableOpacity>
-        <View style={s.sep} />
         <Text style={s.headerTitle}>Αλλαγή Password</Text>
+        <TouchableOpacity onPress={() => router.push('/(tabs)/profile' as any)} style={s.backBtn} hitSlop={12}>
+          <Text style={s.backText}>Επιστροφή</Text>
+          <Ionicons name="arrow-forward" size={16} color="rgba(255,255,255,0.6)" />
+        </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={s.body}>
@@ -173,12 +172,11 @@ const s = StyleSheet.create({
     backgroundColor: '#0a0a0a',
     borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)',
     paddingTop: 56, paddingBottom: 14, paddingHorizontal: 20,
-    flexDirection: 'row', alignItems: 'center', gap: 10,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
-  backBtn:     { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  backText:    { color: '#fff', fontSize: 14, fontWeight: '600' },
-  sep:         { width: 1, height: 14, backgroundColor: 'rgba(255,255,255,0.2)' },
-  headerTitle: { color: 'rgba(255,255,255,0.85)', fontSize: 14, fontWeight: '800', letterSpacing: 0.5 },
+  headerTitle: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
+  backBtn:     { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  backText:    { color: 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: '600' },
 
   body:     { padding: 20, paddingBottom: 48 },
   subtitle: { color: 'rgba(255,255,255,0.4)', fontSize: 13, marginBottom: 20, lineHeight: 20 },

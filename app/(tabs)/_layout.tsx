@@ -1,6 +1,8 @@
 import React from 'react'
 import { Tabs, Redirect } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import { TouchableOpacity, Alert } from 'react-native'
+import { router } from 'expo-router'
 import { useAuth } from '@/lib/auth'
 import { useTheme } from '@/lib/theme'
 import { LoadingScreen } from '@/components/ui/LoadingScreen'
@@ -27,7 +29,7 @@ function TabIcon({ name, focused, badge, activeColor, inactiveColor, dangerColor
 }
 
 export default function TabsLayout() {
-  const { isLoading, isAuthenticated } = useAuth()
+  const { isLoading, isAuthenticated, logout } = useAuth()
   const { colors } = useTheme()
 
   if (isLoading) return <LoadingScreen />
@@ -37,6 +39,20 @@ export default function TabsLayout() {
     activeColor: colors.tabBarActive,
     inactiveColor: colors.tabBarInactive,
     dangerColor: colors.danger,
+  }
+
+  function handleLogout() {
+    Alert.alert('Έξοδος', 'Είσαι σίγουρος ότι θέλεις να αποσυνδεθείς;', [
+      { text: 'Ακύρωση', style: 'cancel' },
+      {
+        text: 'Έξοδος',
+        style: 'destructive',
+        onPress: async () => {
+          await logout()
+          router.replace('/(auth)/login')
+        },
+      },
+    ])
   }
 
   return (
@@ -75,9 +91,35 @@ export default function TabsLayout() {
           tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'megaphone' : 'megaphone-outline'} focused={focused} {...iconProps} />,
         }}
       />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Προφίλ',
+          tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'person' : 'person-outline'} focused={focused} {...iconProps} />,
+        }}
+      />
       <Tabs.Screen name="shipments" options={{ href: null }} />
       <Tabs.Screen name="notifications" options={{ href: null }} />
-      <Tabs.Screen name="profile" options={{ href: null }} />
+      <Tabs.Screen name="profile-personal" options={{ href: null }} />
+      <Tabs.Screen name="profile-password" options={{ href: null }} />
+      <Tabs.Screen
+        name="logout"
+        options={{
+          title: 'Έξοδος',
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name="log-out-outline" focused={focused} {...iconProps} />
+          ),
+          tabBarButton: (props) => (
+            <TouchableOpacity
+              style={props.style as any}
+              onPress={handleLogout}
+              activeOpacity={0.7}
+            >
+              {props.children}
+            </TouchableOpacity>
+          ),
+        }}
+      />
     </Tabs>
   )
 }

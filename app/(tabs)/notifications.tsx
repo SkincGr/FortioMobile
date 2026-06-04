@@ -1,17 +1,16 @@
 import React from 'react'
-import { View, Text, FlatList, TouchableOpacity, RefreshControl } from 'react-native'
+import { View, Text, FlatList, TouchableOpacity, RefreshControl, StyleSheet } from 'react-native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
 import { notificationsApi, Notification } from '@/lib/api'
 import { LoadingScreen } from '@/components/ui/LoadingScreen'
-import { Colors } from '@/constants/colors'
 
 const TYPE_ICONS: Record<string, { icon: string; color: string }> = {
-  OFFER:     { icon: 'pricetag-outline', color: Colors.accent },
-  MESSAGE:   { icon: 'chatbubble-outline', color: Colors.primary },
-  ACCEPTED:  { icon: 'checkmark-circle-outline', color: Colors.success },
-  DELIVERED: { icon: 'cube-outline', color: Colors.success },
-  DEFAULT:   { icon: 'notifications-outline', color: Colors.textMuted },
+  OFFER:     { icon: 'pricetag-outline',         color: '#F59E0B' },
+  MESSAGE:   { icon: 'chatbubble-outline',        color: '#60A5FA' },
+  ACCEPTED:  { icon: 'checkmark-circle-outline',  color: '#4ADE80' },
+  DELIVERED: { icon: 'cube-outline',              color: '#4ADE80' },
+  DEFAULT:   { icon: 'notifications-outline',     color: 'rgba(255,255,255,0.4)' },
 }
 
 export default function NotificationsScreen() {
@@ -32,27 +31,25 @@ export default function NotificationsScreen() {
   const unreadCount = notifications.filter(n => !n.isRead).length
 
   return (
-    <View className="flex-1 bg-surface">
-      <View className="bg-primary pt-14 pb-5 px-5">
-        <View className="flex-row justify-between items-center">
-          <Text className="text-white text-xl font-bold">Ειδοποιήσεις</Text>
-          {unreadCount > 0 && (
-            <View className="bg-red-500 rounded-full px-2 py-0.5">
-              <Text className="text-white text-xs font-bold">{unreadCount}</Text>
-            </View>
-          )}
-        </View>
+    <View style={s.root}>
+      <View style={s.header}>
+        <Text style={s.headerTitle}>Ειδοποιήσεις</Text>
+        {unreadCount > 0 && (
+          <View style={s.unreadBadge}>
+            <Text style={s.unreadBadgeText}>{unreadCount}</Text>
+          </View>
+        )}
       </View>
 
       <FlatList
         data={notifications}
         keyExtractor={item => item.id}
         contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
-        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={Colors.primary} />}
+        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#F59E0B" />}
         ListEmptyComponent={
-          <View className="items-center py-16">
-            <Ionicons name="notifications-off-outline" size={56} color={Colors.textMuted} />
-            <Text className="text-slate-400 mt-4">Δεν υπάρχουν ειδοποιήσεις</Text>
+          <View style={s.empty}>
+            <Ionicons name="notifications-off-outline" size={56} color="rgba(255,255,255,0.2)" />
+            <Text style={s.emptyText}>Δεν υπάρχουν ειδοποιήσεις</Text>
           </View>
         }
         renderItem={({ item }) => {
@@ -60,24 +57,23 @@ export default function NotificationsScreen() {
           return (
             <TouchableOpacity
               onPress={() => !item.isRead && markReadMut.mutate(item.id)}
-              className={`mb-2 rounded-2xl p-4 flex-row items-start gap-3 border ${item.isRead ? 'bg-white border-slate-100' : 'bg-blue-50 border-blue-100'}`}
+              style={[s.card, !item.isRead && s.cardUnread]}
+              activeOpacity={0.7}
             >
-              <View className={`rounded-full p-2 mt-0.5`} style={{ backgroundColor: color + '20' }}>
+              <View style={[s.iconWrap, { backgroundColor: color + '20' }]}>
                 <Ionicons name={icon as any} size={18} color={color} />
               </View>
-              <View className="flex-1">
-                <Text className={`text-sm ${item.isRead ? 'text-slate-600' : 'text-slate-800 font-semibold'}`}>
+              <View style={{ flex: 1 }}>
+                <Text style={[s.message, !item.isRead && s.messageUnread]}>
                   {item.message}
                 </Text>
-                <Text className="text-xs text-slate-400 mt-1">
+                <Text style={s.time}>
                   {new Date(item.createdAt).toLocaleString('el-GR', {
-                    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+                    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
                   })}
                 </Text>
               </View>
-              {!item.isRead && (
-                <View className="w-2 h-2 rounded-full bg-blue-500 mt-1.5" />
-              )}
+              {!item.isRead && <View style={s.dot} />}
             </TouchableOpacity>
           )
         }}
@@ -85,3 +81,33 @@ export default function NotificationsScreen() {
     </View>
   )
 }
+
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#0a0a0a' },
+
+  header: {
+    backgroundColor: '#0a0a0a',
+    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)',
+    paddingTop: 56, paddingBottom: 18, paddingHorizontal: 20,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+  },
+  headerTitle:  { color: '#fff', fontSize: 22, fontWeight: '800' },
+  unreadBadge:  { backgroundColor: '#EF4444', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 },
+  unreadBadgeText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+
+  empty:     { alignItems: 'center', paddingTop: 80 },
+  emptyText: { fontSize: 15, color: 'rgba(255,255,255,0.3)', marginTop: 12 },
+
+  card: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 12,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    padding: 14, marginBottom: 8,
+  },
+  cardUnread:    { backgroundColor: 'rgba(96,165,250,0.06)', borderColor: 'rgba(96,165,250,0.2)' },
+  iconWrap:      { borderRadius: 10, padding: 8, marginTop: 1 },
+  message:       { fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 18 },
+  messageUnread: { color: '#fff', fontWeight: '600' },
+  time:          { fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 4 },
+  dot:           { width: 8, height: 8, borderRadius: 4, backgroundColor: '#60A5FA', marginTop: 4 },
+})

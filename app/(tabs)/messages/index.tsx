@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   View, Text, FlatList, TouchableOpacity, TextInput,
   ActivityIndicator, ScrollView, Alert, KeyboardAvoidingView,
@@ -13,31 +13,28 @@ import { LoadingScreen } from '@/components/ui/LoadingScreen'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
-type Conversation = {
+type Carrier = {
+  id?: string
+  name?: string | null
+  company?: { name?: string } | null
+}
+
+type ShipmentInfo = {
   id: string
-  directShipmentId?: string
-  directRouteId?: string
+  title?: string | null
+  originCity?: string | null
+  destCity?: string | null
+  desiredDelivery?: string | null
   status?: string
-  unreadCount?: number
-  carrier?: { id: string; name: string | null }
-  shipment?: {
-    id: string
-    title: string | null
-    originCity?: string | null
-    destCity?: string | null
-    desiredDelivery?: string | null
-    status?: string
-  }
-  route?: {
-    id: string
-    originCity?: string | null
-    destCity?: string | null
-    routeNumber?: string | null
-    departureDate?: string | null
-    estimatedArrival?: string | null
-  } | null
-  messages?: Msg[]
-  _count?: { messages: number }
+}
+
+type RouteInfo = {
+  id?: string
+  routeNumber?: string | null
+  originCity?: string | null
+  destCity?: string | null
+  departureDate?: string | null
+  estimatedArrival?: string | null
 }
 
 type Msg = {
@@ -47,18 +44,41 @@ type Msg = {
   category?: string | null
   isRead: boolean
   createdAt: string
-  sender?: { id: string; name: string | null }
-  shipment?: Conversation['shipment']
-  route?: Conversation['route']
+  messageType?: number
+  sender?: { id: string; name?: string | null; company?: { name?: string } | null }
+  shipment?: ShipmentInfo
+  route?: RouteInfo | null
 }
 
-type Group = { shipment: NonNullable<Conversation['shipment']>; conversations: Conversation[] }
+type Conversation = {
+  id: string
+  directShipmentId?: string
+  directRouteId?: string
+  price?: number
+  status?: string
+  unreadCount?: number
+  carrier?: Carrier
+  shipment?: ShipmentInfo
+  route?: RouteInfo | null
+  messages?: Msg[]
+  _count?: { messages: number }
+}
+
+type ShipmentGroup = { shipment: ShipmentInfo; conversations: Conversation[] }
 
 const ALL_ID = '__all__'
 
 function isDirect(c: Conversation) { return !!c.directShipmentId }
 function isOffer(c: Conversation) { return !c.directShipmentId }
 
+function fmtDate(d?: string | null) {
+  if (!d) return '—'
+  return new Date(d).toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+function fmtDateTime(d?: string | null) {
+  if (!d) return ''
+  return new Date(d).toLocaleString('el-GR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+}
 function parseContent(content: string) {
   const m = content.match(/^\[([^\]]+)\]\s*([\s\S]*)$/)
   if (m) return { subject: m[1].trim(), body: m[2].trim() }
@@ -70,22 +90,30 @@ function parseContent(content: string) {
 export default function MessagesScreen() {
   const { user } = useAuth()
   const myId = user?.id
-  const { shipmentId: paramShipId, returnTo } = useLocalSearchParams<{ shipmentId?: string; returnTo?: string }>()
+  const { shipmentId: paramShipId, offerId: paramOfferId, routeId: paramRouteId, returnTo } =
+    useLocalSearchParams<{ shipmentId?: string; offerId?: string; routeId?: string; returnTo?: string }>()
 
-  const [conversations, setConversations]     = useState<Conversation[]>([])
-  const [messages, setMessages]               = useState<Msg[]>([])
-  const [selectedShipId, setSelectedShipId]   = useState<string>(paramShipId ?? ALL_ID)
-  const [kind, setKind]                       = useState<'messages' | 'offers'>('messages')
-  const [unreadOnly, setUnreadOnly]           = useState(false)
-  const [loading, setLoading]                 = useState(true)
-  const [threadLoading, setThreadLoading]     = useState(false)
-  const [refreshing, setRefreshing]           = useState(false)
-  const [text, setText]                       = useState('')
-  const [sending, setSending]                 = useState(false)
+  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [messages, setMessages]           = useState<Msg[]>([])
+  const [selectedShipId, setSelectedShipId] = useState<string>(paramShipId ?? '')
+  const [kind, setKind]                   = useState<'messages' | 'offers'>('messages')
+  const [unreadOnly, setUnreadOnly]       = useState(false)
+  const [loading, setLoading]             = useState(true)
+  const [threadLoading, setThreadLoading] = useState(false)
+  const [refreshing, setRefreshing]       = useState(false)
+  const [text, setText]                   = useState('')
+  const [subject, setSubject]             = useState('')
+  const [sending, setSending]             = useState(false)
+  const [replyMsgType, setReplyMsgType]   = useState<number | null>(null)
+  const flatListRef                       = useRef<FlatList>(null)
+  const subjectRef                        = useRef<TextInput>(null)
+  const chipsScrollRef                    = useRef<ScrollView>(null)
+  const chipOffsets                       = useRef<Record<string, number>>({})
 
-  // Group conversations by shipment
-  const groups = useMemo<Group[]>(() => {
-    const map = new Map<string, Group>()
+  // ── Groups ──────────────────────────────────────────────────────────────────
+
+  const groups = useMemo<ShipmentGroup[]>(() => {
+    const map = new Map<string, ShipmentGroup>()
     for (const c of conversations) {
       const s = c.shipment
       if (!s?.id) continue
@@ -95,62 +123,135 @@ export default function MessagesScreen() {
     return Array.from(map.values())
   }, [conversations])
 
-  // Conversations visible under current shipment + kind filter
-  const visible = useMemo(() => {
-    const pool = selectedShipId === ALL_ID
-      ? conversations
-      : groups.find(g => g.shipment.id === selectedShipId)?.conversations ?? []
-    return kind === 'offers' ? pool.filter(isOffer) : pool.filter(isDirect)
-  }, [conversations, groups, selectedShipId, kind])
-
-  const selectedGroup = useMemo(
-    () => selectedShipId === ALL_ID ? null : groups.find(g => g.shipment.id === selectedShipId) ?? null,
-    [groups, selectedShipId]
-  )
-
-  const selectedConversation = visible[0] ?? null
-
-  const counts = useMemo(() => {
-    const pool = selectedShipId === ALL_ID
-      ? conversations
-      : groups.find(g => g.shipment.id === selectedShipId)?.conversations ?? []
-    return {
-      messages: pool.filter(isDirect).reduce((s, c) => s + (c.unreadCount ?? 0), 0),
-      offers:   pool.filter(isOffer).reduce((s, c)  => s + (c.unreadCount ?? 0), 0),
+  // Auto-select first shipment when groups load and nothing is selected
+  useEffect(() => {
+    if (groups.length > 0 && !selectedShipId) {
+      setSelectedShipId(groups[0].shipment.id)
     }
-  }, [conversations, groups, selectedShipId])
+  }, [groups])
+
+  const selectedGroup = useMemo(() => {
+    if (!groups.length) return null
+    return groups.find(g => g.shipment.id === selectedShipId) ?? groups[0]
+  }, [groups, selectedShipId])
+
+  const visible = useMemo(() => {
+    if (!selectedGroup) return []
+    return selectedGroup.conversations.filter(kind === 'offers' ? isOffer : isDirect)
+  }, [selectedGroup, kind])
+
+  const selectedConv = useMemo(() => {
+    if (!visible.length) return null
+    if (paramOfferId) {
+      const found = visible.find(c => c.id === paramOfferId)
+      if (found) return found
+    }
+    if (paramShipId && paramRouteId) {
+      const directId = `direct:${paramShipId}:${paramRouteId}`
+      const found = visible.find(c => c.id === directId)
+      if (found) return found
+    }
+    return visible[0]
+  }, [visible, paramOfferId, paramShipId, paramRouteId])
+
+  // Counts: total messages (not unread) — matches web
+  const counts = useMemo(() => {
+    const pool = selectedGroup?.conversations ?? []
+    return {
+      messages: pool.filter(isDirect).reduce((s, c) => s + (c._count?.messages ?? 0), 0),
+      offers:   pool.filter(isOffer).reduce((s, c) => s + (c._count?.messages ?? 0), 0),
+      unread:   (kind === 'offers' ? pool.filter(isOffer) : pool.filter(isDirect))
+                  .reduce((s, c) => s + (c.unreadCount ?? 0), 0),
+    }
+  }, [selectedGroup, kind])
 
   // ── Load conversations ──────────────────────────────────────────────────────
 
-  const loadConversations = useCallback(async (shipId?: string) => {
+  const loadConversations = useCallback(async () => {
     try {
-      const res = await api.get<Conversation[]>('/api/messages')
-      const data: Conversation[] = Array.isArray(res.data) ? res.data : []
+      const listUrl = paramShipId && !paramOfferId && !paramRouteId
+        ? `/api/messages?shipmentId=${paramShipId}&list=1`
+        : paramRouteId && !paramShipId && !paramOfferId
+        ? `/api/messages?routeId=${paramRouteId}`
+        : '/api/messages'
+      const res = await api.get<Conversation[]>(listUrl)
+      let data: Conversation[] = Array.isArray(res.data) ? res.data : []
+
+      // If a specific offerId was requested but not in list, fetch it individually
+      if (paramOfferId && !data.some(c => c.id === paramOfferId)) {
+        try {
+          const r = await api.get<any>(`/api/messages?offerId=${paramOfferId}`)
+          const d = r.data
+          if (!d.error) {
+            data = [{
+              id: paramOfferId,
+              price: d.price ?? 0,
+              status: d.status,
+              carrier: d.carrier,
+              shipment: d.shipment,
+              route: d.route,
+              messages: Array.isArray(d.messages) ? d.messages.slice(-1) : [],
+              _count: { messages: Array.isArray(d.messages) ? d.messages.length : 0 },
+            }, ...data]
+          }
+        } catch {}
+      }
+
+      // If shipmentId+routeId requested, ensure direct conversation is in list
+      if (paramShipId && paramRouteId) {
+        const directId = `direct:${paramShipId}:${paramRouteId}`
+        if (!data.some(c => c.id === directId)) {
+          try {
+            const r = await api.get<any>(`/api/messages?shipmentId=${paramShipId}&routeId=${paramRouteId}`)
+            const d = r.data
+            if (!d.error && d.shipment && d.route) {
+              data = [{
+                id: directId,
+                price: 0,
+                directShipmentId: paramShipId,
+                directRouteId: paramRouteId,
+                shipment: d.shipment,
+                route: d.route,
+                messages: Array.isArray(d.messages) ? d.messages.slice(-1) : [],
+                _count: { messages: Array.isArray(d.messages) ? d.messages.length : 0 },
+              }, ...data]
+            }
+          } catch {}
+        }
+      }
+
       setConversations(data)
-      const activeShipId = shipId ?? paramShipId
-      if (activeShipId) setSelectedShipId(activeShipId)
-      const pool = activeShipId ? data.filter(c => c.shipment?.id === activeShipId) : data
-      const unreadDirect = pool.filter(isDirect).some(c => (c.unreadCount ?? 0) > 0)
-      const unreadOffer  = pool.filter(isOffer).some(c => (c.unreadCount ?? 0) > 0)
-      if (!unreadDirect && unreadOffer) setKind('offers')
-      else setKind('messages')
+
+      // Auto-select shipment & kind from params
+      if (paramShipId) setSelectedShipId(paramShipId)
+      const targetConv = paramOfferId
+        ? data.find(c => c.id === paramOfferId)
+        : paramShipId && paramRouteId
+        ? data.find(c => c.id === `direct:${paramShipId}:${paramRouteId}`)
+        : null
+      if (targetConv) setKind(isDirect(targetConv) ? 'messages' : 'offers')
     } catch {}
     setLoading(false)
     setRefreshing(false)
-  }, [paramShipId])
+  }, [paramShipId, paramOfferId, paramRouteId])
 
-  // Re-load and re-select whenever the URL param changes (navigating from different shipments)
+  useEffect(() => { loadConversations() }, [paramShipId, paramOfferId, paramRouteId])
+
+  // Auto-switch kind if current kind has no conversations
   useEffect(() => {
-    if (paramShipId) setSelectedShipId(paramShipId)
-    loadConversations(paramShipId)
-  }, [paramShipId])
+    if (!selectedGroup) return
+    const hasKind = selectedGroup.conversations.some(kind === 'offers' ? isOffer : isDirect)
+    if (hasKind) return
+    if (selectedGroup.conversations.some(isDirect)) setKind('messages')
+    else if (selectedGroup.conversations.some(isOffer)) setKind('offers')
+  }, [selectedGroup, kind])
 
-  // ── Load threads when visible conversations change ──────────────────────────
+  // ── Load threads ─────────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (!visible.length) { setMessages([]); return }
     loadThreads(visible)
-  }, [visible])
+  }, [visible, unreadOnly])
 
   async function loadThreads(convs: Conversation[]) {
     setThreadLoading(true)
@@ -164,33 +265,83 @@ export default function MessagesScreen() {
         const r = await api.get<any>(url)
         return Array.isArray(r.data.messages) ? r.data.messages as Msg[] : []
       }))
-      const flat = results.flat().sort(
-        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-      )
+      const flat = results.flat()
+        .filter(m => !unreadOnly || !m.isRead)
+        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
       setMessages(flat)
-      // If unreadOnly is on but no unread messages found, turn it off
-      if (unreadOnly && !flat.some(m => !m.isRead)) setUnreadOnly(false)
     } catch {}
     setThreadLoading(false)
   }
 
-  // ── Send reply ──────────────────────────────────────────────────────────────
+  async function refreshAll() {
+    setRefreshing(true)
+    await loadConversations()
+  }
+
+  // ── Actions ──────────────────────────────────────────────────────────────────
+
+  async function toggleRead(msg: Msg) {
+    try {
+      await api.patch(`/api/messages/${msg.id}`, { isRead: !msg.isRead })
+      setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, isRead: !m.isRead } : m))
+      setConversations(prev => prev.map(c => ({
+        ...c,
+        unreadCount: c.unreadCount !== undefined
+          ? Math.max(0, c.unreadCount + (msg.isRead ? 1 : -1))
+          : c.unreadCount,
+      })))
+    } catch {}
+  }
+
+  function replyTo(msg: Msg) {
+    const { subject: s } = parseContent(msg.content)
+    setSubject(s ? (s.startsWith('Re: ') ? s : `Re: ${s}`) : '')
+    setReplyMsgType((msg as any).messageType ?? null)
+    setText(`> ${msg.content}\n\n`)
+  }
+
+  function handleNew() {
+    setText('')
+    setSubject('')
+    setReplyMsgType(null)
+    setTimeout(() => subjectRef.current?.focus(), 50)
+  }
+
+  function handleCancel() {
+    setText('')
+    setSubject('')
+    setReplyMsgType(null)
+    subjectRef.current?.blur()
+    // scroll chips to show selected shipment
+    const x = chipOffsets.current[selectedShipId] ?? 0
+    chipsScrollRef.current?.scrollTo({ x: Math.max(0, x - 16), animated: true })
+  }
 
   async function sendReply() {
-    if (!selectedConversation || !text.trim() || sending) return
+    if (!selectedConv || !text.trim() || sending) return
     setSending(true)
     try {
-      await api.post('/api/messages', selectedConversation.directShipmentId
+      const body = selectedConv.directShipmentId
         ? {
-            shipmentId: selectedConversation.directShipmentId,
-            ...(selectedConversation.directRouteId && { routeId: selectedConversation.directRouteId }),
+            shipmentId: selectedConv.directShipmentId,
+            ...(selectedConv.directRouteId && { routeId: selectedConv.directRouteId }),
             content: text.trim(),
+            ...(subject.trim() && { subject: subject.trim() }),
+            ...(replyMsgType != null && { messageType: replyMsgType }),
           }
-        : { offerId: selectedConversation.id, content: text.trim() }
-      )
+        : {
+            offerId: selectedConv.id,
+            content: text.trim(),
+            ...(subject.trim() && { subject: subject.trim() }),
+            ...(replyMsgType != null && { messageType: replyMsgType }),
+          }
+      await api.post('/api/messages', body)
       setText('')
+      setSubject('')
+      setReplyMsgType(null)
       await loadThreads(visible)
       await loadConversations()
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 200)
     } catch (e: any) {
       Alert.alert('Σφάλμα', e?.response?.data?.error || 'Αποτυχία αποστολής')
     }
@@ -199,69 +350,68 @@ export default function MessagesScreen() {
 
   if (loading) return <LoadingScreen message="Φόρτωση μηνυμάτων..." />
 
+  const carrierName = (conv: Conversation | null) =>
+    conv?.carrier?.company?.name ?? conv?.carrier?.name ?? 'Μεταφορέας'
+
   return (
-    <KeyboardAvoidingView
-      style={s.root}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+
       {/* ── Header ── */}
       <View style={s.header}>
         {returnTo ? (
           <TouchableOpacity
             onPress={() => router.replace(decodeURIComponent(returnTo) as any)}
-            style={s.backBtn}
-            hitSlop={10}
+            style={s.backBtn} hitSlop={10}
           >
             <Ionicons name="arrow-back" size={20} color="#fff" />
             <Text style={s.backBtnText}>Επιστροφή</Text>
           </TouchableOpacity>
         ) : (
-          <>
-            <Text style={s.logo}>FORTIO</Text>
-            <View style={s.sep} />
-          </>
+          <Text style={s.logo}>FORTIO</Text>
         )}
-        <Text style={s.subtitle}>Διαχείρηση Μηνυμάτων</Text>
+        <View style={s.sep} />
+        <Text style={s.headerTitle}>ΚΕΝΤΡΟ ΜΗΝΥΜΑΤΩΝ</Text>
       </View>
 
-      {/* ── Shipment tabs ── */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={s.tabsScroll}
-        contentContainerStyle={s.tabsContent}
-      >
-        {groups.map(g => (
-          <TouchableOpacity
-            key={g.shipment.id}
-            onPress={() => setSelectedShipId(prev => prev === g.shipment.id ? ALL_ID : g.shipment.id)}
-            style={[s.chip, selectedShipId === g.shipment.id && s.chipActive]}
-          >
-            <Text
-              style={[s.chipText, selectedShipId === g.shipment.id && s.chipTextActive]}
-              numberOfLines={1}
+      {/* ── Shipment chips ── */}
+      {groups.length > 0 && (
+        <ScrollView
+          ref={chipsScrollRef}
+          horizontal showsHorizontalScrollIndicator={false}
+          style={s.chipsScroll} contentContainerStyle={s.chipsContent}
+        >
+          {groups.map(g => (
+            <TouchableOpacity
+              key={g.shipment.id}
+              onPress={() => setSelectedShipId(g.shipment.id)}
+              onLayout={e => { chipOffsets.current[g.shipment.id] = e.nativeEvent.layout.x }}
+              style={[s.chip, selectedShipId === g.shipment.id && s.chipActive]}
             >
-              {g.shipment.title || `${g.shipment.originCity} → ${g.shipment.destCity}`}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+              <Text style={[s.chipText, selectedShipId === g.shipment.id && s.chipTextActive]} numberOfLines={1}>
+                {g.shipment.title || `${g.shipment.originCity} → ${g.shipment.destCity}`}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
 
       {/* ── Selected shipment info ── */}
-      {selectedGroup && (
+      {selectedGroup && selectedGroup.shipment.id !== ALL_ID && (
         <View style={s.shipInfo}>
           <Text style={s.shipTitle} numberOfLines={1}>{selectedGroup.shipment.title}</Text>
-          <Text style={s.shipRoute}>
-            {selectedGroup.shipment.originCity} → {selectedGroup.shipment.destCity}
-          </Text>
+          {(selectedGroup.shipment.originCity || selectedGroup.shipment.destCity) && (
+            <Text style={s.shipRoute}>
+              {selectedGroup.shipment.originCity} → {selectedGroup.shipment.destCity}
+            </Text>
+          )}
         </View>
       )}
 
-      {/* ── Kind filter + Αδιάβαστα ── */}
+      {/* ── Filters ── */}
       <View style={s.filterRow}>
         {([
           { key: 'messages' as const, label: 'Μηνύματα', count: counts.messages },
-          { key: 'offers' as const,   label: 'Προσφορές', count: counts.offers },
+          { key: 'offers'   as const, label: 'Προσφορές', count: counts.offers },
         ] as const).map(tab => (
           <TouchableOpacity
             key={tab.key}
@@ -277,28 +427,29 @@ export default function MessagesScreen() {
           </TouchableOpacity>
         ))}
 
-        {/* Αδιάβαστα toggle */}
         <TouchableOpacity
           onPress={() => setUnreadOnly(v => !v)}
           style={[s.filterBtn, unreadOnly && s.filterBtnUnread]}
         >
-          <View style={[s.unreadToggleDot, unreadOnly && s.unreadToggleDotOn]} />
+          <View style={[s.unreadDot, unreadOnly && s.unreadDotOn]} />
           <Text style={[s.filterText, unreadOnly && s.filterTextUnread]}>Αδιάβαστα</Text>
+          {counts.unread > 0 && (
+            <View style={[s.filterBadge, { backgroundColor: 'rgba(99,102,241,0.2)' }]}>
+              <Text style={[s.filterBadgeText, { color: '#818CF8' }]}>{counts.unread}</Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 
       {/* ── Messages ── */}
       <FlatList
-        data={unreadOnly ? messages.filter(m => !m.isRead) : messages}
+        ref={flatListRef}
+        data={messages}
         keyExtractor={m => m.id}
         style={{ flex: 1 }}
         contentContainerStyle={{ padding: 14, paddingBottom: 8 }}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => { setRefreshing(true); loadConversations() }}
-            tintColor="#F59E0B"
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={refreshAll} tintColor="#F59E0B" />
         }
         ListEmptyComponent={
           <View style={s.empty}>
@@ -311,91 +462,145 @@ export default function MessagesScreen() {
             }
           </View>
         }
-        renderItem={({ item }) => <MessageCard msg={item} myId={myId} />}
+        renderItem={({ item }) => (
+          <MessageRow
+            msg={item}
+            myId={myId}
+            carrierName={carrierName(selectedConv)}
+            onToggleRead={() => toggleRead(item)}
+            onReply={() => replyTo(item)}
+            onNew={handleNew}
+          />
+        )}
       />
 
       {/* ── Reply footer ── */}
-      {selectedConversation && (
+      {selectedConv && (
         <View style={s.footer}>
           <TextInput
-            style={s.input}
-            placeholder="Γράψε απάντηση..."
+            ref={subjectRef}
+            style={s.subjectInput}
+            placeholder="Θέμα..."
             placeholderTextColor="rgba(255,255,255,0.3)"
-            value={text}
-            onChangeText={setText}
-            multiline
+            value={subject}
+            onChangeText={setSubject}
           />
-          <TouchableOpacity
-            onPress={sendReply}
-            disabled={sending || !text.trim()}
-            style={[s.sendBtn, (!text.trim() || sending) && s.sendBtnDisabled]}
-          >
-            {sending
-              ? <ActivityIndicator size="small" color="#000" />
-              : <Text style={s.sendBtnText}>Απάντηση</Text>
-            }
-          </TouchableOpacity>
+          <View style={s.replyRow}>
+            <TextInput
+              style={s.input}
+              placeholder="Γράψε απάντηση..."
+              placeholderTextColor="rgba(255,255,255,0.3)"
+              value={text}
+              onChangeText={setText}
+              multiline
+            />
+            <View style={s.replyBtns}>
+              <TouchableOpacity
+                onPress={sendReply}
+                disabled={sending || !text.trim()}
+                style={[s.sendBtn, (!text.trim() || sending) && s.sendBtnDisabled]}
+              >
+                {sending
+                  ? <ActivityIndicator size="small" color="#000" />
+                  : <Text style={s.sendBtnText}>Απάντηση</Text>
+                }
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleCancel} style={[s.sendBtn, s.cancelBtn]}>
+                <Text style={s.sendBtnText}>Ακύρωση</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       )}
     </KeyboardAvoidingView>
   )
 }
 
-// ─── Message card ─────────────────────────────────────────────────────────────
+// ─── Message row ──────────────────────────────────────────────────────────────
 
-function MessageCard({ msg, myId }: { msg: Msg; myId?: string }) {
-  const isMine = msg.sender?.id === myId
+function MessageRow({ msg, myId, carrierName, onToggleRead, onReply, onNew }: {
+  msg: Msg
+  myId?: string
+  carrierName: string
+  onToggleRead: () => void
+  onReply: () => void
+  onNew: () => void
+}) {
+  const isOutgoing = msg.sender?.id === myId
   const { subject, body } = parseContent(msg.content)
   const displaySubject = subject || msg.subject || msg.category || ''
+  const senderName = msg.sender?.company?.name ?? msg.sender?.name ?? '—'
+
+  const routeNum = msg.route?.routeNumber || (msg.route?.id ? msg.route.id.slice(-8).toUpperCase() : null)
+  const routeOrigin = msg.route?.originCity?.split(' / ')[0]
+  const routeDest   = msg.route?.destCity?.split(' / ')[0]
 
   return (
     <View style={[s.card, msg.isRead && s.cardRead]}>
-      {/* Sender + time */}
-      <View style={s.cardHeader}>
-        <Text style={[s.senderName, isMine && s.senderMine]} numberOfLines={1}>
-          {isMine
-            ? (msg.sender?.name || 'Εγώ')
-            : `Αποστολέας: ${msg.sender?.name || '—'}`}
-        </Text>
-        <Text style={s.cardTime}>
-          {new Date(msg.createdAt).toLocaleString('el-GR', {
-            day: '2-digit', month: '2-digit',
-            hour: '2-digit', minute: '2-digit',
-          })}
-        </Text>
+      {/* Row 1: sender direction + timestamp + read badge */}
+      <View style={[s.cardHeader]}>
+        <View style={s.senderRow}>
+          {isOutgoing ? (
+            <>
+              <Text style={s.dirLabel}>Προς: </Text>
+              <Text style={[s.senderName, s.senderOut]}>{carrierName}</Text>
+              <View style={[s.dirDiamond, { backgroundColor: '#60A5FA' }]} />
+            </>
+          ) : (
+            <>
+              <Text style={s.dirLabel}>Από: </Text>
+              <Text style={[s.senderName, s.senderIn]}>{senderName}</Text>
+              <View style={[s.dirDiamond, { backgroundColor: '#4ADE80' }]} />
+            </>
+          )}
+          <Text style={s.cardTime}>{fmtDateTime(msg.createdAt)}</Text>
+        </View>
+        <View style={[s.readBadge, msg.isRead ? s.readBadgeRead : s.readBadgeUnread]}>
+          <Text style={[s.readBadgeText, msg.isRead ? s.readBadgeReadText : s.readBadgeUnreadText]}>
+            {msg.isRead ? '✓ Διαβάστηκε' : 'Αδιάβαστο'}
+          </Text>
+        </View>
       </View>
 
-      {/* Shipment */}
-      {msg.shipment && (
-        <Text style={s.metaLine} numberOfLines={1}>
-          📦 {msg.shipment.title}
-          {msg.shipment.originCity ? ` · ${msg.shipment.originCity} → ${msg.shipment.destCity}` : ''}
+      {/* Row 2: route info */}
+      {routeNum && (
+        <Text style={s.routeLine} numberOfLines={1}>
+          <Text style={s.routeNumText}>#{routeNum}</Text>
+          {(routeOrigin || routeDest) && (
+            <Text style={s.routeMeta}>
+              {'  ·  '}
+              {routeOrigin ?? '—'}{msg.route?.departureDate ? ` (${fmtDate(msg.route.departureDate)})` : ''}
+              {' → '}
+              {routeDest ?? '—'}{msg.route?.estimatedArrival ? ` (${fmtDate(msg.route.estimatedArrival)})` : ''}
+            </Text>
+          )}
         </Text>
       )}
 
-      {/* Route */}
-      {msg.route && (
-        <Text style={s.metaLine} numberOfLines={1}>
-          🚛 #{msg.route.routeNumber || msg.route.id?.slice(-6).toUpperCase()}
-          {msg.route.originCity ? ` · ${msg.route.originCity} → ${msg.route.destCity}` : ''}
-        </Text>
-      )}
-
-      {/* Subject */}
+      {/* Row 3: subject */}
       {!!displaySubject && (
         <Text style={s.msgSubject}>{displaySubject}</Text>
       )}
 
-      {/* Body */}
+      {/* Row 4: body */}
       <Text style={s.msgBody}>{body}</Text>
 
-      {/* Unread dot */}
-      {!msg.isRead && (
-        <View style={s.unreadRow}>
-          <View style={s.unreadDot} />
-          <Text style={s.unreadLabel}>Αδιάβαστο</Text>
-        </View>
-      )}
+      {/* Row 5: actions */}
+      <View style={s.actionsRow}>
+        {!isOutgoing && (
+          <TouchableOpacity onPress={onToggleRead} style={s.actionBtn}>
+            <Text style={s.actionBtnText}>{msg.isRead ? '✓ Διαβάστηκε' : 'Διαβάστηκε'}</Text>
+          </TouchableOpacity>
+        )}
+        {!isOutgoing && (
+          <TouchableOpacity onPress={onReply} style={s.actionBtn}>
+            <Text style={s.actionBtnText}>Απάντηση</Text>
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity onPress={onNew} style={s.actionBtn}>
+          <Text style={s.actionBtnText}>Νέο</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   )
 }
@@ -408,94 +613,101 @@ const s = StyleSheet.create({
   // Header
   header: {
     backgroundColor: '#0a0a0a',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.1)',
+    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)',
     paddingTop: 56, paddingBottom: 14, paddingHorizontal: 20,
     flexDirection: 'row', alignItems: 'center', gap: 10,
   },
-  logo: { color: '#fff', fontSize: 18, fontWeight: '900', letterSpacing: -0.5 },
-  sep:  { width: 1, height: 14, backgroundColor: 'rgba(255,255,255,0.2)' },
-  subtitle: {
-    color: 'rgba(255,255,255,0.4)', fontSize: 10,
-    letterSpacing: 2, textTransform: 'uppercase',
-  },
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginRight: 10 },
+  logo:        { color: '#fff', fontSize: 18, fontWeight: '900', letterSpacing: -0.5 },
+  sep:         { width: 1, height: 14, backgroundColor: 'rgba(255,255,255,0.2)' },
+  headerTitle: { color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: '800', letterSpacing: 1.5 },
+  backBtn:     { flexDirection: 'row', alignItems: 'center', gap: 6 },
   backBtnText: { color: '#fff', fontSize: 14, fontWeight: '600' },
 
-  // Shipment chips
-  tabsScroll:   { maxHeight: 48 },
-  tabsContent:  { paddingHorizontal: 16, paddingVertical: 8, gap: 8, flexDirection: 'row', alignItems: 'center' },
-  chip:         { paddingHorizontal: 14, paddingVertical: 5, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: 'rgba(255,255,255,0.06)' },
-  chipActive:   { backgroundColor: '#F59E0B', borderColor: '#F59E0B' },
-  chipText:     { fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.6)' },
-  chipTextActive: { color: '#000' },
+  // Chips
+  chipsScroll:   { maxHeight: 48, flexShrink: 0 },
+  chipsContent:  { paddingHorizontal: 16, paddingVertical: 8, gap: 8, flexDirection: 'row', alignItems: 'center' },
+  chip:          { paddingHorizontal: 14, paddingVertical: 5, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: 'rgba(255,255,255,0.06)' },
+  chipActive:    { backgroundColor: '#F59E0B', borderColor: '#F59E0B' },
+  chipText:      { fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.6)' },
+  chipTextActive:{ color: '#000' },
 
   // Shipment info
   shipInfo:  { paddingHorizontal: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
-  shipTitle: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  shipTitle: { color: '#fff', fontSize: 15, fontWeight: '800', marginTop: 8 },
   shipRoute: { color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 2 },
 
   // Filters
   filterRow: {
-    flexDirection: 'row', gap: 8,
+    flexDirection: 'row', gap: 8, flexWrap: 'wrap',
     paddingHorizontal: 16, paddingVertical: 10,
     borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)',
   },
-  filterBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 12, paddingVertical: 5, borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    backgroundColor: 'rgba(255,255,255,0.04)',
-  },
-  filterBtnActive: {
-    backgroundColor: 'rgba(245,158,11,0.12)',
-    borderColor: 'rgba(245,158,11,0.35)',
-  },
-  filterText:         { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.45)' },
-  filterTextActive:   { color: '#F59E0B' },
-  filterBadge:        { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 10, paddingHorizontal: 5, paddingVertical: 1 },
-  filterBadgeActive:  { backgroundColor: '#F59E0B' },
-  filterBadgeText:    { fontSize: 10, fontWeight: '700', color: 'rgba(255,255,255,0.5)' },
-  filterBadgeTextActive: { color: '#000' },
-  filterBtnUnread:   { backgroundColor: 'rgba(99,102,241,0.12)', borderColor: 'rgba(99,102,241,0.35)' },
-  filterTextUnread:  { color: '#818CF8' },
-  unreadToggleDot:   { width: 7, height: 7, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.2)' },
-  unreadToggleDotOn: { backgroundColor: '#818CF8' },
+  filterBtn:           { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', backgroundColor: 'rgba(255,255,255,0.04)' },
+  filterBtnActive:     { backgroundColor: 'rgba(245,158,11,0.12)', borderColor: 'rgba(245,158,11,0.35)' },
+  filterText:          { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.45)' },
+  filterTextActive:    { color: '#F59E0B' },
+  filterBadge:         { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 10, paddingHorizontal: 5, paddingVertical: 1 },
+  filterBadgeActive:   { backgroundColor: '#F59E0B' },
+  filterBadgeText:     { fontSize: 10, fontWeight: '700', color: 'rgba(255,255,255,0.5)' },
+  filterBadgeTextActive:{ color: '#000' },
+  filterBtnUnread:     { backgroundColor: 'rgba(99,102,241,0.12)', borderColor: 'rgba(99,102,241,0.35)' },
+  filterTextUnread:    { color: '#818CF8' },
+  unreadDot:           { width: 7, height: 7, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.2)' },
+  unreadDotOn:         { backgroundColor: '#818CF8' },
 
   // Empty
   empty:     { alignItems: 'center', paddingTop: 60, gap: 12 },
   emptyText: { color: 'rgba(255,255,255,0.25)', fontSize: 14 },
 
-  // Message card
+  // Message card — matches web MessageRow
   card: {
     borderRadius: 10, borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
     backgroundColor: 'rgba(255,255,255,0.04)',
     padding: 14, marginBottom: 8,
   },
-  cardRead: {
-    borderColor: 'rgba(255,255,255,0.05)',
-    backgroundColor: 'rgba(255,255,255,0.02)',
-  },
-  cardHeader:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
-  senderName:  { fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.8)', flex: 1 },
-  senderMine:  { color: '#F59E0B' },
-  cardTime:    { fontSize: 10, color: 'rgba(255,255,255,0.3)', marginLeft: 8 },
-  metaLine:    { fontSize: 10, color: 'rgba(255,255,255,0.3)', marginBottom: 3 },
-  msgSubject:  { fontSize: 13, fontWeight: '700', color: '#F59E0B', marginBottom: 5 },
-  msgBody:     { fontSize: 14, color: '#fff', lineHeight: 20 },
-  unreadRow:   { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 8 },
-  unreadDot:   { width: 6, height: 6, borderRadius: 3, backgroundColor: '#F59E0B' },
-  unreadLabel: { fontSize: 10, color: 'rgba(255,255,255,0.35)' },
+  cardRead: { borderColor: 'rgba(255,255,255,0.05)', backgroundColor: 'rgba(255,255,255,0.015)' },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 },
+  senderRow:  { flexDirection: 'row', alignItems: 'center', gap: 3, flex: 1, flexWrap: 'wrap' },
+  dirLabel:   { fontSize: 11, color: 'rgba(255,255,255,0.35)' },
+  senderName: { fontSize: 12, fontWeight: '700' },
+  senderOut:  { color: '#60A5FA' },
+  senderIn:   { color: '#4ADE80' },
+  dirDiamond: { width: 5, height: 5, transform: [{ rotate: '45deg' }] },
+  cardTime:   { fontSize: 10, color: 'rgba(255,255,255,0.3)', marginLeft: 4 },
+  readBadge:  { borderRadius: 20, paddingHorizontal: 8, paddingVertical: 2, borderWidth: 1 },
+  readBadgeRead:     { backgroundColor: 'rgba(74,222,128,0.1)', borderColor: 'rgba(74,222,128,0.25)' },
+  readBadgeUnread:   { backgroundColor: 'rgba(245,158,11,0.1)', borderColor: 'rgba(245,158,11,0.25)' },
+  readBadgeText:     { fontSize: 10, fontWeight: '700' },
+  readBadgeReadText: { color: '#4ADE80' },
+  readBadgeUnreadText:{ color: '#F59E0B' },
 
-  // Footer
+  // Route line
+  routeLine:    { fontSize: 11, color: 'rgba(255,255,255,0.55)', marginBottom: 4 },
+  routeNumText: { fontFamily: 'monospace', fontWeight: '700', color: '#fff' },
+  routeMeta:    { color: 'rgba(255,255,255,0.4)' },
+
+  // Message content
+  msgSubject: { fontSize: 13, fontWeight: '700', color: '#F59E0B', marginBottom: 5 },
+  msgBody:    { fontSize: 14, color: '#fff', lineHeight: 20 },
+
+  // Action buttons (per message)
+  actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
+  actionBtn:     { backgroundColor: '#F59E0B', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
+  actionBtnText: { fontSize: 11, fontWeight: '700', color: '#000' },
+
+  // Reply footer
   footer: {
     borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)',
-    backgroundColor: '#111',
-    padding: 12,
-    flexDirection: 'row', alignItems: 'flex-end', gap: 8,
+    backgroundColor: '#111', padding: 12, gap: 8,
   },
+  subjectInput: {
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8,
+    color: '#fff', fontSize: 13,
+  },
+  replyRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
   input: {
     flex: 1,
     backgroundColor: 'rgba(255,255,255,0.06)',
@@ -503,7 +715,9 @@ const s = StyleSheet.create({
     borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10,
     color: '#fff', fontSize: 14, maxHeight: 100,
   },
-  sendBtn:         { backgroundColor: '#F59E0B', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 10 },
+  replyBtns:       { gap: 6 },
+  sendBtn:         { backgroundColor: '#F59E0B', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9, alignItems: 'center' },
   sendBtnDisabled: { backgroundColor: 'rgba(245,158,11,0.25)' },
-  sendBtnText:     { color: '#000', fontWeight: '700', fontSize: 13 },
+  cancelBtn:       { backgroundColor: '#F59E0B' },
+  sendBtnText:     { color: '#000', fontWeight: '700', fontSize: 12 },
 })

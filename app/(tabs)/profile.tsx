@@ -1,18 +1,14 @@
 import React, { useState } from 'react'
-import { View, Text, ScrollView, TouchableOpacity, Alert, Switch, StyleSheet } from 'react-native'
+import { View, Text, ScrollView, TouchableOpacity, Alert, StyleSheet } from 'react-native'
 import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '@/lib/auth'
-import { useTheme } from '@/lib/theme'
 import { useI18n, Language } from '@/lib/i18n'
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth()
-  const { isDark, colors, toggleTheme } = useTheme()
   const { t, language, setLanguage } = useI18n()
   const [loggingOut, setLoggingOut] = useState(false)
-
-  const s = makeStyles(colors, isDark)
 
   function confirmLogout() {
     Alert.alert(t('profile.logout'), t('profile.logout_q'), [
@@ -29,8 +25,22 @@ export default function ProfileScreen() {
     ])
   }
 
+  const menuSections = [
+    {
+      label: 'Λογαριασμός',
+      items: [
+        { icon: 'person-outline',             label: 'Προσωπικά Στοιχεία',  onPress: () => router.push('/(tabs)/profile-personal' as any) },
+        { icon: 'key-outline',                label: 'Αλλαγή Password',     onPress: () => router.push('/(tabs)/profile-password' as any) },
+        { icon: 'lock-closed-outline',        label: t('profile.forgot_pass'), onPress: () => router.push('/(auth)/forgot-password') },
+        { icon: 'notifications-outline',      label: t('profile.notifications'), onPress: () => {} },
+        { icon: 'help-circle-outline',        label: t('profile.help'),     onPress: () => {} },
+        { icon: 'information-circle-outline', label: t('profile.about'),    onPress: () => {} },
+      ],
+    },
+  ]
+
   return (
-    <View style={[s.root]}>
+    <View style={s.root}>
       {/* Header */}
       <View style={s.header}>
         <View style={s.avatar}>
@@ -45,26 +55,11 @@ export default function ProfileScreen() {
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
 
-        {/* ── Appearance ── */}
-        <Text style={s.sectionLabel}>{t('profile.theme')}</Text>
-        <View style={s.card}>
-          <View style={s.row}>
-            <Ionicons name={isDark ? 'moon' : 'sunny'} size={20} color={colors.accent} />
-            <Text style={s.itemLabel}>{isDark ? t('profile.dark_mode') : t('profile.light_mode')}</Text>
-            <Switch
-              value={isDark}
-              onValueChange={toggleTheme}
-              trackColor={{ false: colors.border, true: colors.primary }}
-              thumbColor="#fff"
-            />
-          </View>
-        </View>
-
         {/* ── Language ── */}
         <Text style={s.sectionLabel}>{t('profile.language')}</Text>
         <View style={s.card}>
           <View style={s.row}>
-            <Text style={s.flagLabel}>🌐</Text>
+            <Text style={{ fontSize: 18 }}>🌐</Text>
             <Text style={s.itemLabel}>{t('profile.language')}</Text>
             <View style={s.langRow}>
               {(['el', 'en'] as Language[]).map(lang => (
@@ -83,43 +78,26 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* ── Account ── */}
-        <Text style={s.sectionLabel}>{t('profile.account')}</Text>
-        <View style={s.card}>
-          {[
-            {
-              icon: 'lock-closed-outline',
-              label: t('profile.forgot_pass'),
-              onPress: () => router.push('/(auth)/forgot-password'),
-            },
-            {
-              icon: 'notifications-outline',
-              label: t('profile.notifications'),
-              onPress: () => {},
-            },
-            {
-              icon: 'help-circle-outline',
-              label: t('profile.help'),
-              onPress: () => {},
-            },
-            {
-              icon: 'information-circle-outline',
-              label: t('profile.about'),
-              onPress: () => {},
-            },
-          ].map((item, idx, arr) => (
-            <TouchableOpacity
-              key={item.label}
-              onPress={item.onPress}
-              style={[s.menuItem, idx < arr.length - 1 && s.menuItemBorder]}
-              activeOpacity={0.7}
-            >
-              <Ionicons name={item.icon as any} size={20} color={colors.textSecondary} />
-              <Text style={s.menuLabel}>{item.label}</Text>
-              <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-            </TouchableOpacity>
-          ))}
-        </View>
+        {/* ── Menu sections ── */}
+        {menuSections.map(section => (
+          <View key={section.label}>
+            <Text style={s.sectionLabel}>{section.label}</Text>
+            <View style={s.card}>
+              {section.items.map((item, idx, arr) => (
+                <TouchableOpacity
+                  key={item.label}
+                  onPress={item.onPress}
+                  style={[s.menuItem, idx < arr.length - 1 && s.menuItemBorder]}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name={item.icon as any} size={20} color="rgba(255,255,255,0.5)" />
+                  <Text style={s.menuLabel}>{item.label}</Text>
+                  <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.25)" />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        ))}
 
         {/* ── Logout ── */}
         <TouchableOpacity
@@ -138,66 +116,59 @@ export default function ProfileScreen() {
   )
 }
 
-function makeStyles(colors: any, isDark: boolean) {
-  return StyleSheet.create({
-    root: { flex: 1, backgroundColor: colors.surface },
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#0a0a0a' },
 
-    header: {
-      backgroundColor: colors.headerBg,
-      paddingTop: 56, paddingBottom: 28, paddingHorizontal: 20,
-      alignItems: 'center',
-    },
-    avatar: {
-      width: 80, height: 80, borderRadius: 40,
-      backgroundColor: 'rgba(255,255,255,0.2)',
-      alignItems: 'center', justifyContent: 'center', marginBottom: 10,
-    },
-    avatarText: { color: '#fff', fontSize: 32, fontWeight: '900' },
-    name:       { color: '#fff', fontSize: 20, fontWeight: '700' },
-    email:      { color: 'rgba(255,255,255,0.6)', fontSize: 13, marginTop: 2 },
-    roleBadge:  { marginTop: 8, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4 },
-    roleText:   { color: '#fff', fontSize: 11, fontWeight: '600' },
+  header: {
+    backgroundColor: '#111',
+    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)',
+    paddingTop: 56, paddingBottom: 28, paddingHorizontal: 20,
+    alignItems: 'center',
+  },
+  avatar: {
+    width: 80, height: 80, borderRadius: 40,
+    backgroundColor: 'rgba(245,158,11,0.2)',
+    borderWidth: 2, borderColor: 'rgba(245,158,11,0.4)',
+    alignItems: 'center', justifyContent: 'center', marginBottom: 10,
+  },
+  avatarText: { color: '#F59E0B', fontSize: 32, fontWeight: '900' },
+  name:       { color: '#fff', fontSize: 20, fontWeight: '700' },
+  email:      { color: 'rgba(255,255,255,0.4)', fontSize: 13, marginTop: 2 },
+  roleBadge:  { marginTop: 8, backgroundColor: 'rgba(245,158,11,0.15)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4 },
+  roleText:   { color: '#F59E0B', fontSize: 11, fontWeight: '600' },
 
-    sectionLabel: {
-      fontSize: 11, fontWeight: '700', color: colors.textMuted,
-      textTransform: 'uppercase', letterSpacing: 1,
-      marginTop: 20, marginBottom: 8, marginLeft: 4,
-    },
+  sectionLabel: {
+    fontSize: 10, fontWeight: '800', color: 'rgba(255,255,255,0.35)',
+    textTransform: 'uppercase', letterSpacing: 1.5,
+    marginTop: 20, marginBottom: 8, marginLeft: 4,
+  },
 
-    card: {
-      backgroundColor: colors.card,
-      borderRadius: 16, borderWidth: 1, borderColor: colors.border,
-      overflow: 'hidden', marginBottom: 4,
-    },
+  card: {
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    overflow: 'hidden',
+  },
 
-    row: {
-      flexDirection: 'row', alignItems: 'center', gap: 12,
-      paddingHorizontal: 16, paddingVertical: 14,
-    },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14 },
+  itemLabel: { flex: 1, fontSize: 14, fontWeight: '500', color: '#fff' },
 
-    itemLabel: { flex: 1, fontSize: 14, fontWeight: '500', color: colors.textPrimary },
-    flagLabel: { fontSize: 18 },
+  langRow:           { flexDirection: 'row', gap: 6 },
+  langBtn:           { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: 'rgba(255,255,255,0.04)' },
+  langBtnActive:     { backgroundColor: '#F59E0B', borderColor: '#F59E0B' },
+  langBtnText:       { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.5)' },
+  langBtnTextActive: { color: '#000' },
 
-    langRow:         { flexDirection: 'row', gap: 6 },
-    langBtn:         { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
-    langBtnActive:   { backgroundColor: colors.primary, borderColor: colors.primary },
-    langBtnText:     { fontSize: 12, fontWeight: '600', color: colors.textSecondary },
-    langBtnTextActive: { color: '#fff' },
+  menuItem:       { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14 },
+  menuItemBorder: { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
+  menuLabel:      { flex: 1, fontSize: 14, fontWeight: '500', color: '#fff' },
 
-    menuItem: {
-      flexDirection: 'row', alignItems: 'center', gap: 12,
-      paddingHorizontal: 16, paddingVertical: 14,
-    },
-    menuItemBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },
-    menuLabel: { flex: 1, fontSize: 14, fontWeight: '500', color: colors.textPrimary },
+  logoutBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: 'rgba(239,68,68,0.15)',
+    borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)',
+    borderRadius: 12, paddingVertical: 14, marginTop: 24,
+  },
+  logoutText: { color: '#F87171', fontSize: 15, fontWeight: '700' },
 
-    logoutBtn: {
-      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-      backgroundColor: '#EF4444', borderRadius: 14,
-      paddingVertical: 14, marginTop: 24,
-    },
-    logoutText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-
-    version: { textAlign: 'center', color: colors.textMuted, fontSize: 11, marginTop: 20 },
-  })
-}
+  version: { textAlign: 'center', color: 'rgba(255,255,255,0.2)', fontSize: 11, marginTop: 20 },
+})

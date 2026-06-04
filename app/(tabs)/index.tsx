@@ -22,6 +22,33 @@ const CATEGORY_ICON: Record<string, string> = {
   FOOD: '🥩', HAZARDOUS: '⚠️', OTHER: '🗃️',
 }
 
+const OFFER_STATUS_LABEL: Record<string, string> = {
+  REQUEST: 'Αίτημα Τιμής', PENDING: 'Σε Αναμονή',
+  AWAITING_SENDER: 'Αναμένει εσάς', AWAITING_CARRIER: 'Αναμένει Μεταφορέα',
+  ACCEPTED: 'Αποδεκτό',
+}
+const OFFER_STATUS_BG: Record<string, string> = {
+  REQUEST: '#EFF6FF', PENDING: '#FFFBEB',
+  AWAITING_SENDER: '#F5F3FF', AWAITING_CARRIER: '#FFF7ED', ACCEPTED: '#F0FDF4',
+}
+const OFFER_STATUS_COLOR: Record<string, string> = {
+  REQUEST: '#3B82F6', PENDING: '#D97706',
+  AWAITING_SENDER: '#7C3AED', AWAITING_CARRIER: '#EA580C', ACCEPTED: '#166534',
+}
+
+const ROUTE_STATUS_LABEL: Record<string, string> = {
+  ACTIVE: 'Ενεργό', FULL: 'Πλήρες', IN_TRANSIT: 'Σε Μεταφορά',
+  COMPLETED: 'Ολοκληρώθηκε', CANCELLED: 'Ακυρώθηκε',
+}
+const ROUTE_STATUS_BG: Record<string, string> = {
+  ACTIVE: '#F0FDF4', FULL: '#FFFBEB', IN_TRANSIT: '#F0F9FF',
+  COMPLETED: '#F8FAFC', CANCELLED: '#FEF2F2',
+}
+const ROUTE_STATUS_COLOR: Record<string, string> = {
+  ACTIVE: '#166534', FULL: '#D97706', IN_TRANSIT: '#0369A1',
+  COMPLETED: '#64748B', CANCELLED: '#DC2626',
+}
+
 const SORT_OPTIONS = [
   { id: 'date_desc',   label: 'Νεότερα πρώτα' },
   { id: 'date_asc',    label: 'Παλαιότερα πρώτα' },
@@ -61,108 +88,171 @@ function fCity(raw?: string | null) {
 
 // ─── OfferRow (single offer inside a group) ──────────────────────────────────
 
-function OfferRow({ offer, mode, onAccept, onReject }: {
+function OfferRow({ offer, mode, shipmentId, showMessages, onViewOffer }: {
   offer: Offer
   mode: 'request' | 'carrier_offer'
-  onAccept?: (id: string) => void
-  onReject?: (id: string) => void
+  shipmentId: string
+  showMessages?: boolean
+  onViewOffer?: () => void
 }) {
-  const msgCount      = offer._count?.messages ?? 0
-  const carrierName   = offer.carrier?.carrierProfile?.companyName
-    ?? offer.carrier?.name ?? '—'
-  const routeOrigin   = offer.route?.originCity ?? '—'
-  const routeDest     = offer.route?.destCity ?? '—'
-  const routeNum      = offer.route?.routeNumber ? `#${offer.route.routeNumber}` : null
-  const departureDate = offer.route?.departureDate
+  const msgCount    = offer._count?.messages ?? 0
+  const carrierName = offer.carrier?.company?.name ?? offer.carrier?.name ?? '—'
+  const depDate     = offer.route?.departureDate
+    ? new Date(offer.route.departureDate).toLocaleDateString('el-GR') : null
+  const arrDate     = offer.route?.estimatedArrival
+    ? new Date(offer.route.estimatedArrival).toLocaleDateString('el-GR') : null
+  const midStops    = (offer.route?.stops ?? []).slice(1, -1)
 
-  return (
-    <View style={styles.offerRow}>
-      {/* Route info */}
-      <View style={styles.routeHeader}>
-        <View style={styles.row}>
-          <Ionicons name="bus-outline" size={13} color={Colors.primary} />
-          {routeNum && <Text style={styles.routeNum}>{routeNum} · </Text>}
-          <Text style={[styles.routeCity, { flex: 1 }]} numberOfLines={1}>
-            {fCity(routeOrigin)} → {fCity(routeDest)}
-          </Text>
-        </View>
-        <View style={[styles.row, { marginTop: 2, marginLeft: 21 }]}>
-          <Ionicons name="business-outline" size={11} color={Colors.textMuted} />
-          <Text style={[styles.sub, { flexShrink: 1 }]}>{carrierName}</Text>
-          {departureDate && (
-            <>
-              <Text style={styles.sub}> · </Text>
-              <Text style={styles.sub}>{new Date(departureDate).toLocaleDateString('el-GR')}</Text>
-            </>
+  /* ── REQUEST mode: simple row ── */
+  if (mode === 'request') {
+    return (
+      <View style={styles.offerRow}>
+        <View style={styles.routeHeader}>
+          <View style={styles.row}>
+            <Text style={{ fontSize: 14 }}>🚛</Text>
+            <Text style={[styles.routeCity, { flex: 1 }]} numberOfLines={1}>{carrierName}</Text>
+          </View>
+          {(offer.route?.originCity || offer.route?.destCity) && (
+            <View style={[styles.row, { marginTop: 3, flexWrap: 'wrap', gap: 3 }]}>
+              <Text style={styles.sub}>{fCity(offer.route?.originCity)}</Text>
+              {depDate && <Text style={styles.sub}>({depDate})</Text>}
+              <Text style={styles.sub}>→</Text>
+              <Text style={styles.sub}>{fCity(offer.route?.destCity)}</Text>
+            </View>
           )}
         </View>
+        <View style={[styles.actionsRow, { marginTop: 8 }]}>
+          <TouchableOpacity
+            style={[styles.actionBtn, styles.actionBtnEdit]}
+            activeOpacity={0.8}
+            onPress={() => router.push(`/(tabs)/shipments/${shipmentId}?returnTo=${encodeURIComponent('/(tabs)')}` as any)}
+          >
+            <Text style={styles.actionBtnEditText}>Δείτε Αίτημα →</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionBtn, msgCount > 0 ? styles.actionBtnAmber : styles.actionBtnOff]}
+            activeOpacity={0.8}
+            onPress={() => router.push(`/(tabs)/messages/${offer.id}?returnTo=${encodeURIComponent('/(tabs)')}` as any)}
+          >
+            <Text style={msgCount > 0 ? styles.actionBtnAmberText : styles.actionBtnOffText}>✉️ Μηνύματα</Text>
+            <View style={msgCount > 0 ? styles.btnBadge : styles.btnBadgeOff}>
+              <Text style={msgCount > 0 ? styles.btnBadgeText : styles.btnBadgeOffText}>{msgCount}</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+      </View>
+    )
+  }
+
+  /* ── CARRIER OFFER mode: full layout ── */
+  return (
+    <View style={styles.offerRow}>
+
+      {/* Row 1: icon + carrier + price + status */}
+      <View style={[styles.row, { flexWrap: 'wrap', gap: 6, marginBottom: 8 }]}>
+        <Text style={{ fontSize: 16 }}>🚛</Text>
+        <Text style={styles.offerCarrierName} numberOfLines={1}>{carrierName}</Text>
+        {(offer.price ?? 0) > 0 && (
+          <View style={styles.offerPricePill}>
+            <Text style={styles.offerPriceText}>€{offer.price}</Text>
+          </View>
+        )}
+        {offer.status && (
+          <View style={[styles.offerStatusPill, { backgroundColor: OFFER_STATUS_BG[offer.status] ?? '#F1F5F9' }]}>
+            <Text style={[styles.offerStatusPillText, { color: OFFER_STATUS_COLOR[offer.status] ?? Colors.textMuted }]}>
+              {OFFER_STATUS_LABEL[offer.status] ?? offer.status}
+            </Text>
+          </View>
+        )}
       </View>
 
-      {/* Price + actions */}
-      <View style={[styles.actionsRow, { marginTop: 8 }]}>
-        {mode === 'carrier_offer' && offer.price !== undefined && (
-          <View style={[styles.actionBtn, { backgroundColor: '#F0FDF4' }]}>
-            <Ionicons name="cash-outline" size={12} color="#16A34A" />
-            <Text style={[styles.actionBtnEditText, { color: '#16A34A' }]}>€{offer.price}</Text>
-          </View>
-        )}
+      {/* Row 2: route origin → dest with dates */}
+      {(offer.route?.originCity || offer.route?.destCity) && (
+        <View style={[styles.row, { flexWrap: 'wrap', gap: 4, marginBottom: 4 }]}>
+          <Ionicons name="navigate-outline" size={12} color={Colors.primary} />
+          <Text style={styles.offerRouteCity}>{fCity(offer.route?.originCity)}</Text>
+          {depDate && <Text style={styles.offerRouteDate}>({depDate})</Text>}
+          <Text style={styles.offerRouteArrow}>→</Text>
+          <Text style={styles.offerRouteCity}>{fCity(offer.route?.destCity)}</Text>
+          {arrDate && <Text style={styles.offerRouteDate}>({arrDate})</Text>}
+        </View>
+      )}
+
+      {/* Row 3: mid stops */}
+      {midStops.length > 0 && (
+        <View style={[styles.row, { flexWrap: 'wrap', gap: 3, marginBottom: 4, marginLeft: 16 }]}>
+          <Ionicons name="ellipsis-horizontal" size={11} color={Colors.textMuted} />
+          {midStops.map((s, i) => (
+            <Text key={i} style={styles.offerStopText}>
+              {s.city ?? '—'}{s.estimatedDate ? ` (${new Date(s.estimatedDate).toLocaleDateString('el-GR')})` : ''}{i < midStops.length - 1 ? ' ·' : ''}
+            </Text>
+          ))}
+        </View>
+      )}
+
+      {/* Row 4: carrier message */}
+      {offer.message ? (
+        <Text style={styles.offerMessage} numberOfLines={3}>"{offer.message}"</Text>
+      ) : null}
+
+      {/* Row 5: conditions */}
+      {offer.conditions ? (
+        <View style={styles.offerConditionsBox}>
+          {offer.conditions.split('\n').filter(Boolean).map((line, i) => (
+            <Text key={i} style={styles.offerConditionLine}>{line}</Text>
+          ))}
+        </View>
+      ) : null}
+
+      {/* Row 6: buttons */}
+      <View style={[styles.actionsRow, { marginTop: 10 }]}>
         <TouchableOpacity
-          style={[styles.actionBtn, msgCount > 0 ? styles.actionBtnAmber : styles.actionBtnOff]}
+          style={[styles.actionBtn, styles.actionBtnEdit]}
           activeOpacity={0.8}
-          onPress={() => router.push(`/(tabs)/messages/${offer.id}?returnTo=${encodeURIComponent('/(tabs)')}` as any)}
+          onPress={() => onViewOffer?.()}
         >
-          <Text style={msgCount > 0 ? styles.actionBtnAmberText : styles.actionBtnOffText}>✉️ Μηνύματα</Text>
-          <View style={msgCount > 0 ? styles.btnBadge : styles.btnBadgeOff}>
-            <Text style={msgCount > 0 ? styles.btnBadgeText : styles.btnBadgeOffText}>{msgCount}</Text>
-          </View>
+          <Ionicons name="eye-outline" size={12} color={Colors.textPrimary} />
+          <Text style={styles.actionBtnEditText}>Προβολή Προσφοράς</Text>
         </TouchableOpacity>
-        {mode === 'carrier_offer' && (
-          <>
-            <TouchableOpacity
-              style={[styles.actionBtn, { backgroundColor: '#DCFCE7' }]}
-              activeOpacity={0.8}
-              onPress={() => onAccept?.(offer.id)}
-            >
-              <Ionicons name="checkmark-outline" size={12} color="#166534" />
-              <Text style={[styles.actionBtnEditText, { color: '#166534' }]}>Αποδοχή</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionBtn, styles.actionBtnDanger]}
-              activeOpacity={0.8}
-              onPress={() => onReject?.(offer.id)}
-            >
-              <Ionicons name="close-outline" size={12} color="#EF4444" />
-              <Text style={styles.actionBtnDangerText}>Απόρριψη</Text>
-            </TouchableOpacity>
-          </>
+        {showMessages && (
+          <TouchableOpacity
+            style={[styles.actionBtn, msgCount > 0 ? styles.actionBtnAmber : styles.actionBtnOff]}
+            activeOpacity={0.8}
+            onPress={() => router.push(`/(tabs)/messages/${offer.id}?returnTo=${encodeURIComponent('/(tabs)')}` as any)}
+          >
+            <Text style={msgCount > 0 ? styles.actionBtnAmberText : styles.actionBtnOffText}>✉️ Μηνύματα</Text>
+            <View style={msgCount > 0 ? styles.btnBadge : styles.btnBadgeOff}>
+              <Text style={msgCount > 0 ? styles.btnBadgeText : styles.btnBadgeOffText}>{msgCount}</Text>
+            </View>
+          </TouchableOpacity>
         )}
       </View>
+
     </View>
   )
 }
 
 // ─── OfferGroupSection (shipment header + offer rows) ─────────────────────────
 
-function OfferGroupSection({ group, mode, onAccept, onReject }: {
+function OfferGroupSection({ group, mode, showMessages, onViewOffer }: {
   group: OfferGroup
   mode: 'request' | 'carrier_offer'
-  onAccept?: (id: string) => void
-  onReject?: (id: string) => void
+  showMessages?: boolean
+  onViewOffer?: (offer: Offer, shipmentTitle: string) => void
 }) {
   const { colors } = useTheme()
   const { shipment, offers } = group
   const roadInfo = formatRoad(shipment.roadDistanceKm, shipment.roadDurationMinutes)
 
   return (
-    <View style={[styles.groupSection, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <View style={styles.groupSection}>
       {/* Shipment header */}
       <View style={styles.groupShipmentHeader}>
-        <View style={styles.row}>
+        <View style={[styles.row, { marginBottom: 4 }]}>
           <Text style={styles.catIcon}>{CATEGORY_ICON[shipment.category] ?? '📦'}</Text>
           <Text style={[styles.title, { flex: 1 }]} numberOfLines={1}>{shipment.title}</Text>
-          <ShipmentStatusBadge status={shipment.status} />
         </View>
-        <View style={[styles.row, { marginTop: 4, marginLeft: 32 }]}>
+        <View style={[styles.row, { marginLeft: 32 }]}>
           <Ionicons name="navigate-outline" size={12} color={Colors.textMuted} />
           <Text style={styles.sub} numberOfLines={1}>
             {fCity(shipment.originCity)} → {fCity(shipment.destCity)}
@@ -177,8 +267,9 @@ function OfferGroupSection({ group, mode, onAccept, onReject }: {
           key={offer.id}
           offer={offer}
           mode={mode}
-          onAccept={onAccept}
-          onReject={onReject}
+          shipmentId={shipment.id}
+          showMessages={showMessages}
+          onViewOffer={onViewOffer ? () => onViewOffer(offer, shipment.title) : undefined}
         />
       ))}
     </View>
@@ -187,26 +278,24 @@ function OfferGroupSection({ group, mode, onAccept, onReject }: {
 
 // ─── Shipment card ────────────────────────────────────────────────────────────
 
-function ShipmentCard({ item, filter, matchCount, matchCountsLoading, onDelete }: {
+function ShipmentCard({ item, filter, matchCount, matchCountsLoading, onDelete, onViewOffer }: {
   item: Shipment
   filter: Filter
   matchCount?: number
   matchCountsLoading?: boolean
   onDelete?: (id: string, offerCount: number) => void
+  onViewOffer?: (offer: Offer, title: string) => void
 }) {
   const { colors } = useTheme()
   const icon       = CATEGORY_ICON[item.category] ?? '📦'
   const roadInfo   = formatRoad(item.roadDistanceKm, item.roadDurationMinutes)
   const offerCount = item._count?.offers ?? 0
-  const msgCount   = (item.offers ?? []).reduce((s, o) => s + (o._count?.messages ?? 0), 0)
-    + (item._count?.messages ?? 0)
-
   const requestCount      = (item.offers ?? []).filter(o => o.status === 'REQUEST').length
-  const pendingOfferCount = (item.offers ?? []).filter(o => o.status === 'PENDING').length
+  const pendingOfferCount = (item.offers ?? []).filter(o => ['PENDING', 'AWAITING_SENDER', 'AWAITING_CARRIER'].includes(o.status)).length
   const hasAccepted       = (item.offers ?? []).some(o => o.status === 'ACCEPTED')
 
   const acceptedOffer = (item.offers ?? []).find(o => ['ACCEPTED', 'COMPLETED'].includes(o.status))
-  const carrierName   = acceptedOffer?.carrier?.carrierProfile?.companyName
+  const carrierName   = acceptedOffer?.carrier?.company?.name
     ?? acceptedOffer?.carrier?.name ?? null
   const deliveryDate  = acceptedOffer?.deliveryDate
     ?? acceptedOffer?.route?.estimatedArrival ?? null
@@ -214,7 +303,7 @@ function ShipmentCard({ item, filter, matchCount, matchCountsLoading, onDelete }
   const isTransitView = filter === 'to_transport' || filter === 'in_transit'
 
   return (
-    <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <View style={styles.card}>
       {/* Row 1: icon + title + status */}
       <View style={styles.row}>
         <Text style={styles.catIcon}>{icon}</Text>
@@ -255,21 +344,69 @@ function ShipmentCard({ item, filter, matchCount, matchCountsLoading, onDelete }
         </View>
       )}
 
-      {/* Transit views: carrier + delivery */}
-      {isTransitView && carrierName && (
-        <View style={[styles.infoBox, { marginTop: 8 }]}>
-          <View style={styles.row}>
-            <Ionicons name="business-outline" size={13} color={Colors.primary} />
-            <Text style={[styles.sub, { color: Colors.textPrimary, fontWeight: '600' }]}>{carrierName}</Text>
-          </View>
-          {deliveryDate && (
-            <View style={[styles.row, { marginTop: 3 }]}>
-              <Ionicons name="calendar-outline" size={13} color={Colors.textMuted} />
-              <Text style={styles.sub}>
-                Παράδοση: {new Date(deliveryDate).toLocaleDateString('el-GR')}
-              </Text>
+      {/* Transit views: carrier + delivery + route status + action buttons */}
+      {isTransitView && (
+        <View style={{ marginTop: 8 }}>
+          {carrierName && (
+            <View style={[styles.infoBox, { marginBottom: 8 }]}>
+              <View style={styles.row}>
+                <Ionicons name="business-outline" size={13} color={Colors.primary} />
+                <Text style={[styles.sub, { color: Colors.textPrimary, fontWeight: '600', flex: 1 }]}>{carrierName}</Text>
+                {/* Route status badge — Tab 5 only */}
+                {filter === 'in_transit' && acceptedOffer?.route?.status && (
+                  <View style={[styles.routeStatusBadge, { backgroundColor: ROUTE_STATUS_BG[acceptedOffer.route.status] ?? '#F1F5F9' }]}>
+                    <Text style={[styles.routeStatusText, { color: ROUTE_STATUS_COLOR[acceptedOffer.route.status] ?? Colors.textMuted }]}>
+                      {ROUTE_STATUS_LABEL[acceptedOffer.route.status] ?? acceptedOffer.route.status}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              {deliveryDate && (
+                <View style={[styles.row, { marginTop: 3 }]}>
+                  <Ionicons name="calendar-outline" size={13} color={Colors.textMuted} />
+                  <Text style={styles.sub}>Παράδοση: {new Date(deliveryDate).toLocaleDateString('el-GR')}</Text>
+                </View>
+              )}
             </View>
           )}
+
+          {/* Action buttons */}
+          <View style={styles.actionsRow}>
+            {filter === 'to_transport' && acceptedOffer && (
+              <TouchableOpacity
+                style={[styles.actionBtn, styles.actionBtnEdit]}
+                activeOpacity={0.8}
+                onPress={() => onViewOffer?.(acceptedOffer, item.title)}
+              >
+                <Ionicons name="eye-outline" size={12} color={Colors.textPrimary} />
+                <Text style={styles.actionBtnEditText}>Προβολή Προσφοράς</Text>
+              </TouchableOpacity>
+            )}
+            {filter === 'in_transit' && (
+              <TouchableOpacity
+                style={[styles.actionBtn, styles.actionBtnEdit]}
+                activeOpacity={0.8}
+                onPress={() => router.push(`/(tabs)/shipments/${item.id}?returnTo=${encodeURIComponent('/(tabs)')}` as any)}
+              >
+                <Ionicons name="document-text-outline" size={12} color={Colors.textPrimary} />
+                <Text style={styles.actionBtnEditText}>Προβολή Αποστολής</Text>
+              </TouchableOpacity>
+            )}
+            {filter === 'in_transit' && acceptedOffer && (
+              <TouchableOpacity
+                style={[styles.actionBtn, (acceptedOffer._count?.messages ?? 0) > 0 ? styles.actionBtnAmber : styles.actionBtnOff]}
+                activeOpacity={0.8}
+                onPress={() => router.push(`/(tabs)/messages/${acceptedOffer.id}?returnTo=${encodeURIComponent('/(tabs)')}` as any)}
+              >
+                <Text style={(acceptedOffer._count?.messages ?? 0) > 0 ? styles.actionBtnAmberText : styles.actionBtnOffText}>✉️ Μηνύματα</Text>
+                <View style={(acceptedOffer._count?.messages ?? 0) > 0 ? styles.btnBadge : styles.btnBadgeOff}>
+                  <Text style={(acceptedOffer._count?.messages ?? 0) > 0 ? styles.btnBadgeText : styles.btnBadgeOffText}>
+                    {acceptedOffer._count?.messages ?? 0}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       )}
 
@@ -296,7 +433,7 @@ function ShipmentCard({ item, filter, matchCount, matchCountsLoading, onDelete }
             </TouchableOpacity>
           </View>
 
-          {/* Row B: Δρομολόγια + Μηνύματα */}
+          {/* Row B: Δρομολόγια */}
           <View style={styles.actionsRow}>
             {(matchCountsLoading || matchCount === undefined) ? (
               <TouchableOpacity style={[styles.actionBtn, styles.actionBtnOff]} activeOpacity={1} onPress={e => e.stopPropagation?.()}>
@@ -316,22 +453,6 @@ function ShipmentCard({ item, filter, matchCount, matchCountsLoading, onDelete }
               >
                 <Text style={styles.actionBtnAmberText}>Δρομολόγια</Text>
                 <View style={styles.btnBadge}><Text style={styles.btnBadgeText}>{matchCount}</Text></View>
-              </TouchableOpacity>
-            )}
-
-            {msgCount > 0 ? (
-              <TouchableOpacity
-                style={[styles.actionBtn, styles.actionBtnAmber]}
-                activeOpacity={0.8}
-                onPress={e => { e.stopPropagation?.(); router.push(`/(tabs)/messages?shipmentId=${item.id}&returnTo=${encodeURIComponent('/(tabs)')}` as any) }}
-              >
-                <Text style={styles.actionBtnAmberText}>✉️ Μηνύματα</Text>
-                <View style={styles.btnBadge}><Text style={styles.btnBadgeText}>{msgCount}</Text></View>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity style={[styles.actionBtn, styles.actionBtnOff]} activeOpacity={1} onPress={e => e.stopPropagation?.()}>
-                <Text style={styles.actionBtnOffText}>✉️ Μηνύματα</Text>
-                <View style={styles.btnBadgeOff}><Text style={styles.btnBadgeOffText}>0</Text></View>
               </TouchableOpacity>
             )}
           </View>
@@ -395,6 +516,7 @@ export default function DashboardScreen() {
   const [filter, setFilter] = useState<Filter>('shipments')
   const [sortBy, setSortBy] = useState<SortKey>('date_desc')
   const [burgerOpen, setBurgerOpen] = useState(false)
+  const [offerModal, setOfferModal] = useState<{ offer: Offer; shipmentTitle: string } | null>(null)
 
   const deleteMut = useMutation({
     mutationFn: (id: string) => shipmentsApi.delete(id),
@@ -470,9 +592,31 @@ export default function DashboardScreen() {
 
   const carrierOfferGroups = useMemo<OfferGroup[]>(() =>
     (data?.shipments ?? [])
-      .map(s => ({ shipment: s, offers: (s.offers ?? []).filter(o => o.status === 'PENDING') }))
+      .map(s => ({ shipment: s, offers: (s.offers ?? []).filter(o => ['PENDING', 'AWAITING_SENDER', 'AWAITING_CARRIER'].includes(o.status)) }))
       .filter(g => g.offers.length > 0)
   , [data])
+
+  const toTransportGroups = useMemo<OfferGroup[]>(() =>
+    allToTransport
+      .map(s => {
+        const offer = (s.offers ?? []).find(o =>
+          ['ACCEPTED', 'LOADED', 'AWAITING_SENDER', 'AWAITING_CARRIER'].includes(o.status)
+        )
+        return offer ? { shipment: s, offers: [offer] } : null
+      })
+      .filter((g): g is OfferGroup => g !== null)
+  , [allToTransport])
+
+  const inTransitGroups = useMemo<OfferGroup[]>(() =>
+    allInTransit
+      .map(s => {
+        const offer = (s.offers ?? []).find(o =>
+          ['ACCEPTED', 'COMPLETED', 'LOADED', 'AWAITING_SENDER', 'AWAITING_CARRIER'].includes(o.status)
+        )
+        return offer ? { shipment: s, offers: [offer] } : null
+      })
+      .filter((g): g is OfferGroup => g !== null)
+  , [allInTransit])
 
   const activeIds = useMemo(() => allShipments.map(s => s.id), [allShipments])
 
@@ -498,7 +642,7 @@ export default function DashboardScreen() {
 
   if (error) {
     return (
-      <View style={[styles.errorScreen, { backgroundColor: colors.surface }]}>
+      <View style={styles.errorScreen}>
         <Ionicons name="warning-outline" size={42} color={Colors.danger} />
         <Text style={styles.errorTitle}>Δεν φορτώθηκαν τα records</Text>
         <Text style={styles.errorText}>
@@ -512,18 +656,22 @@ export default function DashboardScreen() {
   }
 
   const TABS: { key: Filter; label: string; count: number }[] = [
-    { key: 'shipments',      label: 'Αποστολές',        count: allShipments.length },
+    { key: 'shipments',      label: 'Αποστολές προς Διεκπεραίωση', count: allShipments.length },
     { key: 'offer_requests', label: 'Αιτημ. Προσφορών', count: offerRequestGroups.reduce((s, g) => s + g.offers.length, 0) },
     { key: 'carrier_offers', label: 'Προσφορές Μεταφ.',  count: carrierOfferGroups.reduce((s, g) => s + g.offers.length, 0) },
     { key: 'to_transport',   label: 'Πρός Μεταφορά',    count: allToTransport.length },
     { key: 'in_transit',     label: 'Μεταφέρονται',     count: allInTransit.length },
   ]
 
-  const isOfferView  = filter === 'offer_requests' || filter === 'carrier_offers'
-  const offerGroups  = filter === 'offer_requests' ? offerRequestGroups : carrierOfferGroups
+  const isOfferView  = filter === 'offer_requests' || filter === 'carrier_offers' || filter === 'to_transport' || filter === 'in_transit'
+  const offerGroups  =
+    filter === 'offer_requests' ? offerRequestGroups :
+    filter === 'to_transport'   ? toTransportGroups  :
+    filter === 'in_transit'     ? inTransitGroups    :
+    carrierOfferGroups
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.surface }}>
+    <View style={{ flex: 1, backgroundColor: '#0a0a0a' }}>
 
       {/* ── Burger Menu Modal ── */}
       <Modal visible={burgerOpen} transparent animationType="fade" onRequestClose={() => setBurgerOpen(false)}>
@@ -559,7 +707,7 @@ export default function DashboardScreen() {
       {/* ── Header ── */}
       <View style={styles.header}>
         {/* Top row: logo + exit + burger */}
-        <View style={[styles.row, { justifyContent: 'space-between', marginBottom: (inboxCount > 0 || announcementCount > 0) ? 10 : 0 }]}>
+        <View style={[styles.row, { justifyContent: 'space-between', marginBottom: announcementCount > 0 ? 10 : 0 }]}>
           <Text style={styles.headerLogo}>FORTIO</Text>
           <View style={[styles.row, { gap: 8 }]}>
             <TouchableOpacity onPress={() => logout()} style={styles.exitBtn}>
@@ -572,30 +720,22 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        {/* Badges row */}
-        {(inboxCount > 0 || announcementCount > 0) && (
+        {/* Badges row — announcements only */}
+        {announcementCount > 0 && (
           <View style={[styles.row, { gap: 8 }]}>
-            {inboxCount > 0 && (
-              <TouchableOpacity onPress={() => router.push('/(tabs)/messages')} style={styles.badge}>
-                <Ionicons name="chatbubbles-outline" size={13} color="#fff" />
-                <Text style={styles.badgeText}>{inboxCount} αδιάβαστα</Text>
-              </TouchableOpacity>
-            )}
-            {announcementCount > 0 && (
-              <TouchableOpacity
-                onPress={() => router.push('/(tabs)/announcements')}
-                style={[styles.badge, { backgroundColor: '#D97706' }]}
-              >
-                <Ionicons name="megaphone-outline" size={13} color="#fff" />
-                <Text style={styles.badgeText}>{announcementCount} ανακοινώσεις</Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              onPress={() => router.push('/(tabs)/announcements')}
+              style={[styles.badge, { backgroundColor: '#D97706' }]}
+            >
+              <Ionicons name="megaphone-outline" size={13} color="#fff" />
+              <Text style={styles.badgeText}>{announcementCount} ανακοινώσεις</Text>
+            </TouchableOpacity>
           </View>
         )}
       </View>
 
       {/* ── Tab bar (horizontal scroll) ── */}
-      <View style={[styles.tabBarOuter, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+      <View style={styles.tabBarOuter}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabBarContent}>
           {TABS.map(tab => (
             <TouchableOpacity
@@ -621,12 +761,15 @@ export default function DashboardScreen() {
           data={offerGroups}
           keyExtractor={item => item.shipment.id}
           contentContainerStyle={{ padding: 16, paddingBottom: 96 }}
-          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={Colors.primary} />}
+          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#F59E0B" />}
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text style={{ fontSize: 40, marginBottom: 12 }}>📋</Text>
               <Text style={styles.emptyText}>
-                {filter === 'offer_requests' ? 'Δεν έχετε στείλει αιτήματα' : 'Δεν υπάρχουν εκκρεμείς προσφορές'}
+                {filter === 'offer_requests' ? 'Δεν έχετε στείλει αιτήματα' :
+                 filter === 'to_transport'   ? 'Δεν υπάρχουν αποστολές προς μεταφορά' :
+                 filter === 'in_transit'     ? 'Δεν υπάρχουν αποστολές σε μεταφορά' :
+                 'Δεν υπάρχουν εκκρεμείς προσφορές'}
               </Text>
             </View>
           }
@@ -634,8 +777,8 @@ export default function DashboardScreen() {
             <OfferGroupSection
               group={item}
               mode={filter === 'offer_requests' ? 'request' : 'carrier_offer'}
-              onAccept={handleAccept}
-              onReject={handleReject}
+              showMessages={filter === 'in_transit'}
+              onViewOffer={(offer, title) => setOfferModal({ offer, shipmentTitle: title })}
             />
           )}
         />
@@ -644,7 +787,7 @@ export default function DashboardScreen() {
           data={displayed}
           keyExtractor={s => s.id}
           contentContainerStyle={{ padding: 16, paddingBottom: 96 }}
-          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={Colors.primary} />}
+          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#F59E0B" />}
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text style={{ fontSize: 40, marginBottom: 12 }}>📦</Text>
@@ -666,10 +809,145 @@ export default function DashboardScreen() {
               matchCount={matchCounts[item.id]}
               matchCountsLoading={filter === 'shipments' && matchCountsLoading}
               onDelete={filter === 'shipments' ? handleDelete : undefined}
+              onViewOffer={(offer, title) => setOfferModal({ offer, shipmentTitle: title })}
             />
           )}
         />
       )}
+
+      {/* ── Offer Detail Modal ── */}
+      <Modal visible={!!offerModal} transparent animationType="fade" onRequestClose={() => setOfferModal(null)}>
+        <Pressable style={styles.burgerOverlay} onPress={() => setOfferModal(null)}>
+          <Pressable style={styles.offerModalCard} onPress={e => e.stopPropagation()}>
+            {offerModal && (() => {
+              const { offer: o, shipmentTitle } = offerModal
+              const midStops = (o.route?.stops ?? []).slice(1, -1)
+              const msgCount = o._count?.messages ?? 0
+              return (
+                <>
+                  {/* Header */}
+                  <View style={[styles.row, { justifyContent: 'space-between', marginBottom: 16 }]}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.offerModalLabel}>ΠΡΟΣΦΟΡΑ ΜΕΤΑΦΟΡΕΑ</Text>
+                      <Text style={styles.offerModalTitle} numberOfLines={1}>{shipmentTitle}</Text>
+                    </View>
+                    <TouchableOpacity onPress={() => setOfferModal(null)} hitSlop={12}>
+                      <Ionicons name="close" size={22} color={Colors.textMuted} />
+                    </TouchableOpacity>
+                  </View>
+
+                  <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 420 }}>
+                    {/* Carrier */}
+                    <View style={styles.offerModalRow}>
+                      <Text style={styles.offerModalKey}>Μεταφορέας</Text>
+                      <Text style={styles.offerModalVal}>🚛 {o.carrier?.company?.name ?? o.carrier?.name ?? '—'}</Text>
+                    </View>
+
+                    {/* Price */}
+                    {(o.price ?? 0) > 0 && (
+                      <View style={styles.offerModalRow}>
+                        <Text style={styles.offerModalKey}>Τιμή</Text>
+                        <Text style={[styles.offerModalVal, { color: Colors.accent, fontWeight: '800', fontSize: 16 }]}>€{o.price}</Text>
+                      </View>
+                    )}
+
+                    {/* Status */}
+                    <View style={styles.offerModalRow}>
+                      <Text style={styles.offerModalKey}>Κατάσταση</Text>
+                      <View style={[styles.offerStatusPill, { backgroundColor: OFFER_STATUS_BG[o.status] ?? '#F1F5F9' }]}>
+                        <Text style={[styles.offerStatusPillText, { color: OFFER_STATUS_COLOR[o.status] ?? Colors.textMuted }]}>
+                          {OFFER_STATUS_LABEL[o.status] ?? o.status}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Route */}
+                    {o.route && (
+                      <View style={[styles.offerModalSection]}>
+                        <Text style={styles.offerModalSectionTitle}>Δρομολόγιο</Text>
+                        <View style={[styles.row, { flexWrap: 'wrap', gap: 4 }]}>
+                          <Text style={styles.offerModalVal}>{fCity(o.route.originCity)}</Text>
+                          {o.route.departureDate && <Text style={styles.offerModalMuted}>({new Date(o.route.departureDate).toLocaleDateString('el-GR')})</Text>}
+                          <Text style={styles.offerModalMuted}>→</Text>
+                          <Text style={styles.offerModalVal}>{fCity(o.route.destCity)}</Text>
+                          {o.route.estimatedArrival && <Text style={styles.offerModalMuted}>({new Date(o.route.estimatedArrival).toLocaleDateString('el-GR')})</Text>}
+                        </View>
+                        {midStops.length > 0 && (
+                          <Text style={[styles.offerModalMuted, { marginTop: 4 }]}>
+                            {midStops.map(s => s.city ?? '—').join(' · ')}
+                          </Text>
+                        )}
+                      </View>
+                    )}
+
+                    {/* Pickup / Delivery */}
+                    {(o.pickupDate || o.deliveryDate) && (
+                      <View style={[styles.row, { gap: 16, marginTop: 10 }]}>
+                        {o.pickupDate && (
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.offerModalKey}>Παραλαβή</Text>
+                            <Text style={styles.offerModalVal}>{new Date(o.pickupDate).toLocaleDateString('el-GR')}</Text>
+                          </View>
+                        )}
+                        {o.deliveryDate && (
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.offerModalKey}>Παράδοση</Text>
+                            <Text style={styles.offerModalVal}>{new Date(o.deliveryDate).toLocaleDateString('el-GR')}</Text>
+                          </View>
+                        )}
+                      </View>
+                    )}
+
+                    {/* Carrier message */}
+                    {o.message && (
+                      <View style={styles.offerModalSection}>
+                        <Text style={styles.offerModalSectionTitle}>Μήνυμα Μεταφορέα</Text>
+                        <Text style={styles.offerModalBody}>"{o.message}"</Text>
+                      </View>
+                    )}
+
+                    {/* Conditions */}
+                    {o.conditions && (
+                      <View style={styles.offerModalSection}>
+                        <Text style={styles.offerModalSectionTitle}>Όροι Μεταφοράς</Text>
+                        {o.conditions.split('\n').map((line, i) => (
+                          <Text key={i} style={styles.offerModalBody}>{line}</Text>
+                        ))}
+                      </View>
+                    )}
+                  </ScrollView>
+
+                  {/* Footer buttons */}
+                  <View style={[styles.row, { gap: 8, marginTop: 16 }]}>
+                    {!['ACCEPTED', 'COMPLETED'].includes(o.status) && ['AWAITING_SENDER', 'PENDING'].includes(o.status) && (
+                      <TouchableOpacity
+                        style={[styles.actionBtn, { flex: 1, justifyContent: 'center', backgroundColor: '#DCFCE7', paddingVertical: 12 }]}
+                        onPress={() => { setOfferModal(null); handleAccept(o.id) }}
+                      >
+                        <Text style={[styles.actionBtnEditText, { color: '#166534' }]}>Αποδοχή</Text>
+                      </TouchableOpacity>
+                    )}
+                    {!['ACCEPTED', 'COMPLETED'].includes(o.status) && (
+                      <TouchableOpacity
+                        style={[styles.actionBtn, styles.actionBtnDanger, { flex: 1, justifyContent: 'center', paddingVertical: 12 }]}
+                        onPress={() => { setOfferModal(null); handleReject(o.id) }}
+                      >
+                        <Text style={styles.actionBtnDangerText}>Απόρριψη</Text>
+                      </TouchableOpacity>
+                    )}
+                    <TouchableOpacity
+                      style={[styles.actionBtn, styles.actionBtnEdit, { flex: 1, justifyContent: 'center', paddingVertical: 12 }]}
+                      onPress={() => setOfferModal(null)}
+                    >
+                      <Text style={styles.actionBtnEditText}>Κλείσιμο</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )
+            })()}
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {/* ── FAB ── */}
       <TouchableOpacity
@@ -689,19 +967,20 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   // Header
   header: {
-    backgroundColor: Colors.primary,
+    backgroundColor: '#0a0a0a',
+    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)',
     paddingTop: 56, paddingBottom: 14, paddingHorizontal: 20,
   },
   headerLogo: { color: '#fff', fontSize: 18, fontWeight: '900', letterSpacing: -0.5 },
-  headerSub:  { color: '#93C5FD', fontSize: 13, marginBottom: 2 },
+  headerSub:  { color: 'rgba(255,255,255,0.4)', fontSize: 13, marginBottom: 2 },
   headerName: { color: '#fff', fontSize: 22, fontWeight: '800', letterSpacing: -0.3 },
-  headerDate: { color: '#93C5FD', fontSize: 12, marginTop: 3 },
+  headerDate: { color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 3 },
   badge: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(245,158,11,0.15)',
     borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5,
   },
-  badgeText: { color: '#fff', fontSize: 12, fontWeight: '600' },
+  badgeText: { color: '#F59E0B', fontSize: 12, fontWeight: '600' },
 
   // Exit button
   exitBtn: {
@@ -740,7 +1019,7 @@ const styles = StyleSheet.create({
   burgerSep: { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', marginVertical: 8 },
 
   // Tab bar (scrollable)
-  tabBarOuter: { flexShrink: 0, borderBottomWidth: 1 },
+  tabBarOuter: { flexShrink: 0, borderBottomWidth: 1, backgroundColor: '#111', borderBottomColor: 'rgba(255,255,255,0.1)' },
   tabBarContent: { paddingHorizontal: 4 },
   tab: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
@@ -748,17 +1027,17 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2, borderBottomColor: 'transparent',
     minWidth: 100,
   },
-  tabActive:    { borderBottomColor: Colors.primary },
-  tabText:      { fontSize: 12, fontWeight: '600', color: Colors.textMuted },
-  tabTextActive: { color: Colors.primary },
+  tabActive:    { borderBottomColor: '#F59E0B' },
+  tabText:      { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.4)' },
+  tabTextActive: { color: '#F59E0B' },
   tabBadge: {
     minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#E2E8F0',
+    backgroundColor: 'rgba(255,255,255,0.1)',
   },
-  tabBadgeActive:     { backgroundColor: Colors.primary },
-  tabBadgeText:       { fontSize: 10, fontWeight: '700', color: Colors.textMuted },
-  tabBadgeTextActive: { color: '#fff' },
+  tabBadgeActive:     { backgroundColor: '#F59E0B' },
+  tabBadgeText:       { fontSize: 10, fontWeight: '700', color: 'rgba(255,255,255,0.4)' },
+  tabBadgeTextActive: { color: '#000' },
 
   // Section header
   sectionTitle: { fontSize: 14, fontWeight: '700', color: Colors.textPrimary },
@@ -787,39 +1066,49 @@ const styles = StyleSheet.create({
 
   // Card
   card: {
-    borderRadius: 16, borderWidth: 1, borderColor: '#E2E8F0',
+    borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     padding: 14, marginBottom: 10,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05, shadowRadius: 3, elevation: 1,
   },
   row:     { flexDirection: 'row', alignItems: 'center', gap: 8 },
   catIcon: { fontSize: 18, width: 24, textAlign: 'center' },
-  title:   { fontSize: 15, fontWeight: '700', color: '#1E293B' },
-  sub:     { fontSize: 12, color: '#94A3B8', flexShrink: 1 },
+  title:   { fontSize: 15, fontWeight: '700', color: '#fff' },
+  sub:     { fontSize: 12, color: 'rgba(255,255,255,0.4)', flexShrink: 1 },
   infoBox: {
-    backgroundColor: '#F8FAFC', borderRadius: 10, padding: 10,
+    backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: 10,
   },
 
   // Offer group section
   groupSection: {
-    borderRadius: 16, borderWidth: 1, borderColor: '#E2E8F0',
+    borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     marginBottom: 10, overflow: 'hidden',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05, shadowRadius: 3, elevation: 1,
   },
   groupShipmentHeader: { padding: 14, paddingBottom: 12 },
   offerRow: {
     paddingHorizontal: 14, paddingVertical: 12,
-    borderTopWidth: 1, borderTopColor: '#F1F5F9',
+    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)',
   },
 
-  // Route header (inside OfferRow)
+  // Route header (request mode inside OfferRow)
   routeHeader: {
-    backgroundColor: 'rgba(27,58,107,0.05)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 8, padding: 8,
   },
-  routeNum:  { fontSize: 11, fontWeight: '700', color: Colors.primary },
-  routeCity: { fontSize: 12, fontWeight: '700', color: Colors.textPrimary },
+  routeNum:  { fontSize: 11, fontWeight: '700', color: '#F59E0B' },
+  routeCity: { fontSize: 12, fontWeight: '700', color: '#fff' },
+
+  // carrier_offer mode styles
+  offerCarrierName:  { fontSize: 14, fontWeight: '700', color: '#fff', flexShrink: 1 },
+  offerPricePill:    { backgroundColor: 'rgba(74,222,128,0.12)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
+  offerPriceText:    { fontSize: 12, fontWeight: '800', color: '#4ADE80' },
+  offerRouteCity:    { fontSize: 13, fontWeight: '700', color: '#fff' },
+  offerRouteDate:    { fontSize: 11, color: 'rgba(255,255,255,0.4)' },
+  offerRouteArrow:   { fontSize: 12, color: 'rgba(255,255,255,0.4)' },
+  offerStopText:     { fontSize: 11, color: 'rgba(255,255,255,0.4)' },
+  offerMessage:      { fontSize: 12, color: 'rgba(255,255,255,0.6)', fontStyle: 'italic', marginBottom: 6, paddingHorizontal: 2 },
+  offerConditionsBox:{ backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 8, marginBottom: 4 },
+  offerConditionLine:{ fontSize: 11, color: 'rgba(255,255,255,0.5)', lineHeight: 17 },
 
   // Action buttons
   actionsCol: { marginTop: 10, gap: 6, marginLeft: 32 },
@@ -828,59 +1117,88 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 4,
     borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6,
   },
-  actionBtnEdit:     { backgroundColor: 'rgba(148,163,184,0.15)' },
-  actionBtnEditText: { fontSize: 11, fontWeight: '600', color: Colors.textPrimary },
-  actionBtnOff:      { backgroundColor: '#F1F5F9' },
-  actionBtnOffText:  { fontSize: 11, fontWeight: '600', color: Colors.textMuted },
-  actionBtnAmber:    { backgroundColor: Colors.accent },
+  actionBtnEdit:     { backgroundColor: 'rgba(255,255,255,0.08)' },
+  actionBtnEditText: { fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.85)' },
+  actionBtnOff:      { backgroundColor: 'rgba(255,255,255,0.06)' },
+  actionBtnOffText:  { fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.35)' },
+  actionBtnAmber:    { backgroundColor: '#F59E0B' },
   actionBtnAmberText:{ fontSize: 11, fontWeight: '700', color: '#000' },
-  actionBtnDanger:     { backgroundColor: 'rgba(239,68,68,0.1)' },
-  actionBtnDangerText: { fontSize: 11, fontWeight: '600', color: '#EF4444' } as const,
+  actionBtnDanger:     { backgroundColor: 'rgba(239,68,68,0.12)' },
+  actionBtnDangerText: { fontSize: 11, fontWeight: '600', color: '#F87171' } as const,
   btnBadge: {
     minWidth: 17, height: 17, borderRadius: 9, paddingHorizontal: 3,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.2)',
+    backgroundColor: 'rgba(0,0,0,0.25)',
   },
   btnBadgeText:    { fontSize: 10, fontWeight: '800', color: '#000' },
   btnBadgeOff: {
     minWidth: 17, height: 17, borderRadius: 9, paddingHorizontal: 3,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
-  btnBadgeOffText: { fontSize: 10, fontWeight: '700', color: Colors.textMuted },
+  btnBadgeOffText: { fontSize: 10, fontWeight: '700', color: 'rgba(255,255,255,0.35)' },
 
   // Status labels (Row C)
   statusLabel: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4,
   },
-  statusLabelAccepted: { backgroundColor: '#DCFCE7' },
-  statusLabelText: { fontSize: 11, fontWeight: '600', color: Colors.textSecondary },
+  statusLabelAccepted: { backgroundColor: 'rgba(74,222,128,0.12)' },
+  statusLabelText: { fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.6)' },
   statusLabelBadge: {
     minWidth: 16, height: 16, borderRadius: 8, paddingHorizontal: 3,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.12)',
   },
-  statusLabelBadgeText: { fontSize: 10, fontWeight: '700', color: Colors.textPrimary },
+  statusLabelBadgeText: { fontSize: 10, fontWeight: '700', color: '#fff' },
 
   // Empty state
   empty:       { alignItems: 'center', paddingTop: 60 },
-  emptyText:   { fontSize: 15, color: '#94A3B8', marginBottom: 12 },
-  emptyBtn:    { paddingHorizontal: 20, paddingVertical: 10, backgroundColor: '#1B3A6B', borderRadius: 12 },
-  emptyBtnText:{ color: '#fff', fontWeight: '700', fontSize: 14 },
-  errorScreen: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  errorTitle:  { color: Colors.textPrimary, fontSize: 18, fontWeight: '800', marginTop: 12 },
-  errorText:   { color: Colors.textMuted, fontSize: 13, textAlign: 'center', marginTop: 8, marginBottom: 16 },
+  emptyText:   { fontSize: 15, color: 'rgba(255,255,255,0.3)', marginBottom: 12 },
+  emptyBtn:    { paddingHorizontal: 20, paddingVertical: 10, backgroundColor: '#F59E0B', borderRadius: 12 },
+  emptyBtnText:{ color: '#000', fontWeight: '700', fontSize: 14 },
+  errorScreen: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: '#0a0a0a' },
+  errorTitle:  { color: '#fff', fontSize: 18, fontWeight: '800', marginTop: 12 },
+  errorText:   { color: 'rgba(255,255,255,0.4)', fontSize: 13, textAlign: 'center', marginTop: 8, marginBottom: 16 },
+
+  // Route status badge (transit view)
+  routeStatusBadge: {
+    borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3,
+  },
+  routeStatusText: { fontSize: 10, fontWeight: '700' },
+
+  // Offer detail modal
+  offerModalCard: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    backgroundColor: '#111', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)',
+    padding: 20, paddingBottom: 36,
+    maxHeight: '90%',
+  },
+  offerModalLabel: { fontSize: 10, fontWeight: '800', color: '#F59E0B', letterSpacing: 1.5 },
+  offerModalTitle: { fontSize: 17, fontWeight: '800', color: '#fff', marginTop: 2 },
+  offerModalRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)',
+  },
+  offerModalKey:  { fontSize: 12, color: 'rgba(255,255,255,0.4)' },
+  offerModalVal:  { fontSize: 13, fontWeight: '600', color: '#fff' },
+  offerModalMuted:{ fontSize: 12, color: 'rgba(255,255,255,0.4)' },
+  offerModalSection: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)' },
+  offerModalSectionTitle: { fontSize: 10, fontWeight: '800', color: 'rgba(255,255,255,0.4)', letterSpacing: 1, marginBottom: 6, textTransform: 'uppercase' },
+  offerModalBody: { fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 18 },
+  offerStatusPill: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
+  offerStatusPillText: { fontSize: 11, fontWeight: '700' },
 
   // FAB
   fab: {
     position: 'absolute', bottom: 28, right: 20,
     width: 56, height: 56, borderRadius: 28,
-    backgroundColor: Colors.primary,
+    backgroundColor: '#F59E0B',
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: Colors.primary,
+    shadowColor: '#F59E0B',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35, shadowRadius: 10, elevation: 8,
+    shadowOpacity: 0.4, shadowRadius: 10, elevation: 8,
   },
 })

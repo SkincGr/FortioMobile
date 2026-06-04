@@ -22,9 +22,9 @@ FortioMobile and Fortio are **two separate Git repositories** that share the **s
 
 ### Critical separation rules
 
-* **Never modify Fortio files from this repo.** Any shared logic (types, constants, validation rules) must be duplicated in FortioMobile until a shared package is introduced — do not create cross-repo file imports or symlinks.
+* **NEVER edit files in `C:\Users\CSKIN\Fortio`.** All code changes happen exclusively in `C:\Users\CSKIN\FortioMobile`. Fortio files may only be **read** — to understand API contracts, data models, or business logic — never written or modified.
 * **Never alter the Prisma schema or run migrations from this directory.** Schema changes always happen in `C:\Users\CSKIN\Fortio` via `npx prisma migrate dev`.
-* **API contract:** FortioMobile calls Fortio's `/api/*` endpoints. Any API change in Fortio must be reflected here, and vice-versa a change here must not require an undocumented API behaviour change in Fortio.
+* **API contract:** FortioMobile calls Fortio's `/api/*` endpoints. Any API change required must be communicated to the user so they can apply it in Fortio manually — Claude must not edit Fortio API files.
 * **Auth:** Authentication is handled by Fortio's NextAuth. FortioMobile stores the session token received from the web API — never implement a parallel auth system.
 * **Environment variables:** This app has its own `.env` / `app.config.js`. Fortio's server-side secrets (Stripe secret key, Supabase service key, etc.) must **never** appear in mobile code or be embedded in the app bundle.
 
@@ -101,13 +101,20 @@ npx tsc --noEmit          # Type-check without emitting
 
 ## 6. Session Documentation (MANDATORY — mirrors Fortio policy)
 
-At the end of every session or completed task, create a dated subfolder inside `docs/sessions/` and populate two files:
+At the end of every session or completed task, create a dated subfolder inside `docs/sessions/` and populate **three** files:
 
 ```
-docs/sessions/YYYY-MM-DD-feature-name/
+docs/sessions/YYYY-MM-DD-HHmm-feature-name/
+  commands.md  ← all instructions / requests given by the user during the session
   changes.md   ← what was built / changed
   errors.md    ← problems encountered
 ```
+
+> Folder name format: `YYYY-MM-DD-HHmm-feature-name` (date + time + short description).  
+> Example: `2026-06-04-1430-dashboard-redesign`
+
+### `commands.md` must include:
+A numbered list of **every instruction or request** the user gave during the session, in order. Write each one as a short summary (one line), preserving the original intent.
 
 ### `changes.md` must include:
 1. Files created or modified (with brief description of each).

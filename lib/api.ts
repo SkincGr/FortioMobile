@@ -59,17 +59,21 @@ export type Offer = {
   routeId?: string | null
   carrier: {
     id?: string; name?: string; email: string; phone?: string
-    carrierProfile?: { companyName?: string; rating?: number; vehicleType?: string }
+    company?: { name?: string; rating?: number }
   }
   route?: {
     id?: string
     routeNumber?: string
+    status?: string
     estimatedArrival?: string
     originCity?: string
     destCity?: string
     departureDate?: string
     stops?: { city?: string; estimatedDate?: string }[]
   }
+  message?: string
+  conditions?: string
+  pickupDate?: string
   _count?: { messages: number }
   unreadCount?: number
 }
@@ -100,7 +104,7 @@ export type Announcement = {
   carrier?: {
     id: string
     name: string
-    carrierProfile?: { rating?: number; totalTrips?: number; vehicleType?: string }
+    company?: { rating?: number; totalTrips?: number }
   }
 }
 
@@ -202,14 +206,12 @@ export type RouteMatch = {
   availableVolume?: number
   pricePerKg?: number
   pricePerM3?: number
-  carrier: {
-    vehicleType?: string
-    rating?: number
-    user: { id: string; name?: string }
-  }
+  company?: { name: string; rating?: number } | null
+  vehicle?: { type?: string } | null
   stops: RouteStop[]
   distanceKm?: number | null
   hasExactOriginMatch: boolean
+  messageCount?: number
 }
 
 export const matchesApi = {
@@ -234,6 +236,10 @@ export const messagesApi = {
   sendOfferRequest: (data: { shipmentId: string; routeId: string; content: string }) =>
     api.post('/api/messages', { ...data, category: 'Offer Request' }),
 
+  // Send a plain message to a carrier route (not an offer request)
+  sendPlainMessage: (data: { shipmentId: string; routeId: string; content: string }) =>
+    api.post('/api/messages', { ...data, messageType: 1 }),
+
   // Mark a message as read
   markRead: (messageId: string) =>
     api.patch(`/api/messages/${messageId}`, { isRead: true }),
@@ -257,10 +263,18 @@ export const announcementsApi = {
 
 // ─── Profile ──────────────────────────────────────────────────────────────────
 
+export type SenderProfile = {
+  name?: string; email?: string; username?: string; phone?: string
+  vatNumber?: string; country?: string; city?: string; address?: string
+}
+
 export const profileApi = {
-  update: (data: Partial<{ name: string; phone: string }>) =>
-    api.patch('/api/sender/profile', data),
+  get: () =>
+    api.get<SenderProfile>('/api/sender/profile'),
+
+  update: (data: SenderProfile) =>
+    api.patch<SenderProfile>('/api/sender/profile', data),
 
   changePassword: (data: { currentPassword: string; newPassword: string }) =>
-    api.post('/api/sender/security', data),
+    api.post('/api/change-password', data),
 }

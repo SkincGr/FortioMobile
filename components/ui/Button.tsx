@@ -1,44 +1,60 @@
 import React from 'react'
-import { TouchableOpacity, Text, ActivityIndicator, TouchableOpacityProps } from 'react-native'
-import { Colors } from '@/constants/colors'
+import { TouchableOpacity, Text, ActivityIndicator, StyleSheet, TouchableOpacityProps } from 'react-native'
 
 type Variant = 'primary' | 'secondary' | 'danger' | 'ghost'
+type Size    = 'sm' | 'md' | 'lg'
 
 type Props = TouchableOpacityProps & {
   title: string
   variant?: Variant
   loading?: boolean
-  size?: 'sm' | 'md' | 'lg'
+  size?: Size
 }
 
-const variantStyles: Record<Variant, { container: string; text: string }> = {
-  primary: { container: 'bg-primary', text: 'text-white' },
-  secondary: { container: 'bg-white border border-primary', text: 'text-primary' },
-  danger: { container: 'bg-red-500', text: 'text-white' },
-  ghost: { container: 'bg-transparent', text: 'text-primary' },
+const VARIANTS: Record<Variant, { bg: string; border?: string; text: string; spinnerColor: string }> = {
+  primary:   { bg: '#F59E0B',                    text: '#000',                    spinnerColor: '#000' },
+  secondary: { bg: 'rgba(255,255,255,0.06)', border: 'rgba(255,255,255,0.15)', text: '#fff',  spinnerColor: '#fff' },
+  danger:    { bg: 'rgba(239,68,68,0.15)',   border: 'rgba(239,68,68,0.3)',    text: '#F87171', spinnerColor: '#F87171' },
+  ghost:     { bg: 'transparent',                text: '#F59E0B',                 spinnerColor: '#F59E0B' },
 }
 
-const sizeStyles = {
-  sm: { container: 'px-3 py-2 rounded-lg', text: 'text-sm font-medium' },
-  md: { container: 'px-4 py-3 rounded-xl', text: 'text-base font-semibold' },
-  lg: { container: 'px-6 py-4 rounded-2xl', text: 'text-lg font-bold' },
+const SIZES: Record<Size, { px: number; py: number; radius: number; fontSize: number }> = {
+  sm: { px: 12, py: 8,  radius: 8,  fontSize: 13 },
+  md: { px: 16, py: 12, radius: 12, fontSize: 15 },
+  lg: { px: 20, py: 15, radius: 14, fontSize: 16 },
 }
 
 export function Button({ title, variant = 'primary', loading, size = 'md', disabled, style, ...rest }: Props) {
-  const v = variantStyles[variant]
-  const s = sizeStyles[size]
-  const opacity = disabled || loading ? 'opacity-50' : ''
+  const v = VARIANTS[variant]
+  const sz = SIZES[size]
+  const opacity = disabled || loading ? 0.5 : 1
 
   return (
     <TouchableOpacity
-      className={`${v.container} ${s.container} ${opacity} items-center justify-center flex-row gap-2`}
+      style={[
+        s.btn,
+        {
+          backgroundColor: v.bg,
+          borderWidth: v.border ? 1 : 0,
+          borderColor: v.border ?? 'transparent',
+          borderRadius: sz.radius,
+          paddingHorizontal: sz.px,
+          paddingVertical: sz.py,
+          opacity,
+        },
+        style as any,
+      ]}
       disabled={disabled || loading}
-      style={style as any}
       activeOpacity={0.8}
       {...rest}
     >
-      {loading && <ActivityIndicator size="small" color={variant === 'primary' ? '#fff' : Colors.primary} />}
-      <Text className={`${v.text} ${s.text}`}>{title}</Text>
+      {loading && <ActivityIndicator size="small" color={v.spinnerColor} style={{ marginRight: 6 }} />}
+      <Text style={[s.text, { color: v.text, fontSize: sz.fontSize }]}>{title}</Text>
     </TouchableOpacity>
   )
 }
+
+const s = StyleSheet.create({
+  btn:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  text: { fontWeight: '700' },
+})

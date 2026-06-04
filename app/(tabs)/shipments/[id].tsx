@@ -95,9 +95,8 @@ function OfferCard({
     onError: () => Alert.alert('Σφάλμα', 'Δεν ήταν δυνατή η απόρριψη'),
   })
 
-  const vehicleType = offer.carrier?.carrierProfile?.vehicleType
-  const icon        = VEHICLE_ICON[vehicleType ?? ''] ?? '🚛'
-  const companyName = offer.carrier?.carrierProfile?.companyName ?? offer.carrier?.name ?? offer.carrier?.email ?? '—'
+  const icon        = '🚛'
+  const companyName = offer.carrier?.company?.name ?? offer.carrier?.name ?? offer.carrier?.email ?? '—'
   const email       = offer.carrier?.email ?? '—'
   const phone       = offer.carrier?.phone ?? ''
   const msgCount    = offer.unreadCount ?? offer._count?.messages ?? 0
@@ -245,7 +244,7 @@ function ViewOfferModal({
   onClose: () => void
 }) {
   if (!offer) return null
-  const companyName = offer.carrier?.carrierProfile?.companyName ?? offer.carrier?.name ?? offer.carrier?.email ?? '—'
+  const companyName = offer.carrier?.company?.name ?? offer.carrier?.name ?? offer.carrier?.email ?? '—'
   const statusColor = STATUS_COLOR[offer.status] ?? Colors.textMuted
 
   return (
@@ -317,9 +316,9 @@ export default function ShipmentDetailScreen() {
 
   if (isLoading) return <LoadingScreen message="Φόρτωση..." />
   if (!data) return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.surface }}>
-      <Ionicons name="alert-circle-outline" size={40} color={Colors.textMuted} />
-      <Text style={{ color: Colors.textMuted, marginTop: 12 }}>Η αποστολή δεν βρέθηκε</Text>
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0a0a0a' }}>
+      <Ionicons name="alert-circle-outline" size={40} color="rgba(255,255,255,0.3)" />
+      <Text style={{ color: 'rgba(255,255,255,0.3)', marginTop: 12 }}>Η αποστολή δεν βρέθηκε</Text>
     </View>
   )
 
@@ -329,7 +328,7 @@ export default function ShipmentDetailScreen() {
   const totalActive   = requestOffers.length + carrierOffers.length
 
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.surface }}>
+    <View style={{ flex: 1, backgroundColor: '#0a0a0a' }}>
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Header */}
@@ -346,7 +345,7 @@ export default function ShipmentDetailScreen() {
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
-        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={Colors.primary} />}
+        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#F59E0B" />}
       >
         {totalActive === 0 ? (
           <View style={styles.emptyState}>
@@ -396,78 +395,75 @@ export default function ShipmentDetailScreen() {
 
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: Colors.primary,
+    backgroundColor: '#0a0a0a',
+    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)',
     paddingTop: 56, paddingBottom: 16, paddingHorizontal: 20,
     flexDirection: 'row', alignItems: 'center', gap: 12,
   },
   backBtn:     { padding: 4 },
   headerTitle: { color: '#fff', fontSize: 14, fontWeight: '800', lineHeight: 18 },
-  headerSub:   { color: '#93C5FD', fontSize: 12, marginTop: 4 },
+  headerSub:   { color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 4 },
 
-  sectionHeader: {
-    flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10,
-  },
-  sectionTitle:     { fontSize: 14, fontWeight: '700', color: Colors.textSecondary },
-  sectionBadge:     { backgroundColor: '#F1F5F9', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 2 },
-  sectionBadgeText: { fontSize: 12, fontWeight: '600', color: Colors.textMuted },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+  sectionTitle:     { fontSize: 14, fontWeight: '700', color: 'rgba(255,255,255,0.7)' },
+  sectionBadge:     { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 2 },
+  sectionBadgeText: { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.4)' },
 
   card: {
-    backgroundColor: '#fff', borderRadius: 16,
-    borderWidth: 1, borderColor: Colors.border,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
     padding: 14, marginBottom: 10,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05, shadowRadius: 3, elevation: 1,
   },
-  cardAccepted: { borderColor: '#86EFAC', backgroundColor: '#F0FDF4' },
-  cardRejected: { opacity: 0.55 },
+  cardAccepted: { borderColor: 'rgba(74,222,128,0.3)', backgroundColor: 'rgba(74,222,128,0.05)' },
+  cardRejected: { opacity: 0.45 },
 
-  row:        { flexDirection: 'row', alignItems: 'center' },
-  routeNum:   { fontSize: 13, fontWeight: '800', color: Colors.accent, fontVariant: ['tabular-nums'] },
-  statusBadge:{ borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 },
-  statusText: { fontSize: 11, fontWeight: '700' },
-  awaitingText:{ fontSize: 10, color: Colors.textMuted, marginTop: 2 },
-  priceText:  { fontSize: 20, fontWeight: '900', color: Colors.accent, marginTop: 2 },
+  row:         { flexDirection: 'row', alignItems: 'center' },
+  routeNum:    { fontSize: 13, fontWeight: '800', color: '#F59E0B', fontVariant: ['tabular-nums'] },
+  statusBadge: { borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 },
+  statusText:  { fontSize: 11, fontWeight: '700' },
+  awaitingText:{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginTop: 2 },
+  priceText:   { fontSize: 20, fontWeight: '900', color: '#F59E0B', marginTop: 2 },
 
   carrierRow: { fontSize: 12, marginTop: 6, lineHeight: 18 },
-  bold:       { fontWeight: '600', color: Colors.textPrimary },
-  muted:      { color: Colors.textMuted },
+  bold:       { fontWeight: '600', color: '#fff' },
+  muted:      { color: 'rgba(255,255,255,0.4)' },
 
-  cityText:  { fontSize: 13, fontWeight: '700', color: Colors.textPrimary },
-  dateText:  { fontSize: 11, color: Colors.textMuted },
-  arrow:     { fontSize: 12, color: Colors.textMuted, marginHorizontal: 4 },
-  stopsText: { fontSize: 11, color: Colors.textMuted, marginTop: 4 },
+  cityText:  { fontSize: 13, fontWeight: '700', color: '#fff' },
+  dateText:  { fontSize: 11, color: 'rgba(255,255,255,0.4)' },
+  arrow:     { fontSize: 12, color: 'rgba(255,255,255,0.4)', marginHorizontal: 4 },
+  stopsText: { fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 4 },
 
-  divider: { height: 1, backgroundColor: Colors.border, marginVertical: 10 },
+  divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginVertical: 10 },
 
-  btnView:      { backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7 },
-  btnViewText:  { fontSize: 12, fontWeight: '700', color: Colors.textSecondary },
-  btnAccept:    { backgroundColor: Colors.success, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7 },
+  btnView:      { backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7 },
+  btnViewText:  { fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.7)' },
+  btnAccept:    { backgroundColor: '#22C55E', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7 },
   btnAcceptText:{ fontSize: 12, fontWeight: '700', color: '#fff' },
-  btnReject:    { backgroundColor: '#FEF2F2', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7 },
-  btnRejectText:{ fontSize: 12, fontWeight: '700', color: '#EF4444' },
-  acceptedBadge:{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#F0FDF4', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7 },
-  acceptedText: { fontSize: 12, fontWeight: '700', color: Colors.success },
-  btnMessage:    { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: Colors.accent, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
+  btnReject:    { backgroundColor: 'rgba(239,68,68,0.12)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7 },
+  btnRejectText:{ fontSize: 12, fontWeight: '700', color: '#F87171' },
+  acceptedBadge:{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(74,222,128,0.12)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7 },
+  acceptedText: { fontSize: 12, fontWeight: '700', color: '#4ADE80' },
+  btnMessage:    { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#F59E0B', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
   btnMessageText:{ fontSize: 11, fontWeight: '700', color: '#000' },
-  btnMessageOff: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#F1F5F9', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
-  btnMessageOffText: { fontSize: 11, fontWeight: '600', color: Colors.textMuted },
-  msgBadge:     { backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: 9, minWidth: 17, height: 17, paddingHorizontal: 3, alignItems: 'center', justifyContent: 'center' },
+  btnMessageOff: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
+  btnMessageOffText: { fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.35)' },
+  msgBadge:     { backgroundColor: 'rgba(0,0,0,0.25)', borderRadius: 9, minWidth: 17, height: 17, paddingHorizontal: 3, alignItems: 'center', justifyContent: 'center' },
   msgBadgeText: { fontSize: 10, fontWeight: '800', color: '#000' },
-  msgBadgeOff:  { backgroundColor: 'rgba(0,0,0,0.08)', borderRadius: 9, minWidth: 17, height: 17, paddingHorizontal: 3, alignItems: 'center', justifyContent: 'center' },
-  msgBadgeOffText: { fontSize: 10, fontWeight: '700', color: Colors.textMuted },
+  msgBadgeOff:  { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 9, minWidth: 17, height: 17, paddingHorizontal: 3, alignItems: 'center', justifyContent: 'center' },
+  msgBadgeOffText: { fontSize: 10, fontWeight: '700', color: 'rgba(255,255,255,0.35)' },
 
   emptyState:    { alignItems: 'center', paddingTop: 60 },
-  emptyTitle:    { fontSize: 16, fontWeight: '700', color: Colors.textPrimary, marginBottom: 8 },
-  emptySubtitle: { fontSize: 13, color: Colors.textMuted, marginBottom: 20, textAlign: 'center' },
-  routesBtn:     { backgroundColor: Colors.accent, borderRadius: 12, paddingHorizontal: 20, paddingVertical: 11 },
+  emptyTitle:    { fontSize: 16, fontWeight: '700', color: '#fff', marginBottom: 8 },
+  emptySubtitle: { fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 20, textAlign: 'center' },
+  routesBtn:     { backgroundColor: '#F59E0B', borderRadius: 12, paddingHorizontal: 20, paddingVertical: 11 },
   routesBtnText: { fontSize: 14, fontWeight: '700', color: '#000' },
 
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalCard:    { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 36 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
+  modalCard:    { backgroundColor: '#111', borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 20, paddingTop: 20, paddingBottom: 36 },
   modalRow:     { marginBottom: 14 },
-  modalLabel:   { fontSize: 10, fontWeight: '800', letterSpacing: 1.5, color: Colors.textMuted, marginBottom: 4 },
-  modalValue:   { fontSize: 15, fontWeight: '600', color: Colors.textPrimary },
-  modalPrice:   { fontSize: 28, fontWeight: '900', color: Colors.accent },
-  btnClose:     { marginTop: 16, borderWidth: 1, borderColor: Colors.border, borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
-  btnCloseText: { fontSize: 14, color: Colors.textSecondary, fontWeight: '600' },
+  modalLabel:   { fontSize: 10, fontWeight: '800', letterSpacing: 1.5, color: 'rgba(255,255,255,0.4)', marginBottom: 4 },
+  modalValue:   { fontSize: 15, fontWeight: '600', color: '#fff' },
+  modalPrice:   { fontSize: 28, fontWeight: '900', color: '#F59E0B' },
+  btnClose:     { marginTop: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
+  btnCloseText: { fontSize: 14, color: 'rgba(255,255,255,0.5)', fontWeight: '600' },
 })

@@ -39,12 +39,13 @@ type RouteCardProps = {
   route: RouteMatch
   isSent: boolean
   onRequest: () => void
+  onMessage: () => void
 }
 
-function RouteCard({ route, isSent, onRequest }: RouteCardProps) {
-  const icon = VEHICLE_ICON[route.carrier?.vehicleType ?? ''] ?? '🚛'
-  const carrier = route.carrier?.user?.name ?? 'Μεταφορέας'
-  const rating = route.carrier?.rating
+function RouteCard({ route, isSent, onRequest, onMessage }: RouteCardProps) {
+  const icon = VEHICLE_ICON[route.vehicle?.type ?? ''] ?? '🚛'
+  const carrier = route.company?.name ?? 'Μεταφορέας'
+  const rating = route.company?.rating
   const depDate = fDate(route.departureDate)
   const arrDate = fDate(route.estimatedArrival ?? route.departureDate)
 
@@ -52,28 +53,18 @@ function RouteCard({ route, isSent, onRequest }: RouteCardProps) {
 
   return (
     <View style={styles.card}>
-      {/* Row 1: vehicle + route number + carrier */}
-      <View style={[styles.row, { flexWrap: 'wrap', gap: 6, marginBottom: 8 }]}>
-        <Text style={{ fontSize: 18 }}>{icon}</Text>
-        <Text style={styles.routeNum}>#{routeNumber(route)}</Text>
-        <View style={styles.carrierChip}>
-          <Text style={styles.carrierText}>{carrier}</Text>
-          {rating != null && rating > 0 && (
-            <Text style={styles.ratingText}> ★ {Number(rating).toFixed(1)}</Text>
-          )}
-        </View>
-        {route.isRecurring && (
-          <View style={styles.recurringChip}>
-            <Text style={styles.recurringText}>Επαναλαμβανόμενο</Text>
-          </View>
-        )}
-        {route.distanceKm != null && route.distanceKm > 0 && (
-          <View style={styles.distChip}>
-            <Ionicons name="navigate-outline" size={10} color={Colors.primary} />
-            <Text style={styles.distText}>{route.distanceKm} km</Text>
-          </View>
-        )}
+      {/* Row 1: vehicle icon + company name */}
+      <View style={[styles.row, { gap: 8, marginBottom: 4 }]}>
+        <Text style={{ fontSize: 20 }}>{icon}</Text>
+        <Text style={styles.carrierName}>{carrier}</Text>
       </View>
+
+      {/* Row 2: Επαναλαμβανόμενο (μόνο αν ισχύει) */}
+      {route.isRecurring && (
+        <View style={[styles.recurringChip, { alignSelf: 'flex-start', marginBottom: 8 }]}>
+          <Text style={styles.recurringText}>Επαναλαμβανόμενο</Text>
+        </View>
+      )}
 
       {/* Row 2: origin → dest */}
       <View style={[styles.row, { marginBottom: 4, flexWrap: 'wrap', gap: 4 }]}>
@@ -92,7 +83,7 @@ function RouteCard({ route, isSent, onRequest }: RouteCardProps) {
       )}
 
       {/* Price + CTA */}
-      <View style={[styles.row, { marginTop: 10, justifyContent: 'space-between' }]}>
+      <View style={[styles.row, { marginTop: 10, justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }]}>
         <View>
           {route.pricePerKg != null && (
             <Text style={styles.priceText}>€{route.pricePerKg}/kg</Text>
@@ -102,16 +93,26 @@ function RouteCard({ route, isSent, onRequest }: RouteCardProps) {
           )}
         </View>
 
-        {isSent ? (
-          <View style={styles.sentBadge}>
-            <Ionicons name="checkmark-circle" size={14} color={Colors.success} />
-            <Text style={styles.sentText}>Έχει Σταλεί Αίτημα για Προσφορά</Text>
-          </View>
-        ) : (
-          <TouchableOpacity style={styles.requestBtn} onPress={onRequest} activeOpacity={0.85}>
-            <Text style={styles.requestBtnText}>Αίτημα Προσφοράς</Text>
+        <View style={[styles.row, { gap: 8, flexWrap: 'wrap' }]}>
+          {isSent ? (
+            <View style={styles.sentBadge}>
+              <Ionicons name="checkmark-circle" size={14} color={Colors.success} />
+              <Text style={styles.sentText}>Έχει Σταλεί Αίτημα</Text>
+            </View>
+          ) : (
+            <TouchableOpacity style={styles.requestBtn} onPress={onRequest} activeOpacity={0.85}>
+              <Text style={styles.requestBtnText}>Αίτημα Προσφοράς</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Μηνύματα */}
+          <TouchableOpacity style={styles.msgBtn} onPress={onMessage} activeOpacity={0.85}>
+            <Text style={styles.msgBtnText}>Μηνύματα</Text>
+            <View style={styles.msgBadge}>
+              <Text style={styles.msgBadgeText}>{route.messageCount ?? 0}</Text>
+            </View>
           </TouchableOpacity>
-        )}
+        </View>
       </View>
     </View>
   )
@@ -127,6 +128,9 @@ export default function MatchesScreen() {
   const [modalRoute, setModalRoute] = useState<RouteMatch | null>(null)
   const [messageText, setMessageText] = useState('')
   const [sentIds, setSentIds] = useState<Set<string>>(new Set())
+
+  const [msgModal, setMsgModal] = useState<RouteMatch | null>(null)
+  const [msgText, setMsgText] = useState('')
 
   const { data: shipmentData, isLoading: loadingShipment } = useQuery({
     queryKey: ['shipment', shipmentId],
@@ -160,6 +164,16 @@ export default function MatchesScreen() {
     },
   })
 
+  const { mutate: sendPlainMsg, isPending: sendingMsg } = useMutation({
+    mutationFn: (vars: { shipmentId: string; routeId: string; content: string }) =>
+      messagesApi.sendPlainMessage(vars),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['matches', shipmentId] })
+      setMsgModal(null)
+      setMsgText('')
+    },
+  })
+
   function openModal(route: RouteMatch) {
     setModalRoute(route)
     setMessageText('')
@@ -173,6 +187,20 @@ export default function MatchesScreen() {
   function handleSend() {
     if (!modalRoute || !shipmentId) return
     sendRequest({ shipmentId, routeId: modalRoute.id, content: messageText.trim() })
+  }
+
+  function handleMessage(route: RouteMatch) {
+    const count = route.messageCount ?? 0
+    if (count > 0) {
+      const offer = shipmentData?.offers?.find((o: any) => o.routeId === route.id)
+      if (offer) {
+        const currentPath = `/(tabs)/shipments/matches/${shipmentId}?title=${encodeURIComponent(shipmentData?.title ?? '')}&returnTo=${encodeURIComponent(returnTo ?? '/(tabs)')}`
+        router.push(`/(tabs)/messages/${offer.id}?returnTo=${encodeURIComponent(currentPath)}` as any)
+      }
+    } else {
+      setMsgModal(route)
+      setMsgText('')
+    }
   }
 
   const routes = matchData?.routes ?? []
@@ -239,6 +267,7 @@ export default function MatchesScreen() {
             route={item}
             isSent={allSent.has(item.id)}
             onRequest={() => openModal(item)}
+            onMessage={() => handleMessage(item)}
           />
         )}
       />
@@ -266,11 +295,11 @@ export default function MatchesScreen() {
               <View style={styles.modalRouteInfo}>
                 <View style={[styles.row, { gap: 6, marginBottom: 8 }]}>
                   <Text style={{ fontSize: 16 }}>
-                    {VEHICLE_ICON[modalRoute.carrier?.vehicleType ?? ''] ?? '🚛'}
+                    {VEHICLE_ICON[modalRoute.vehicle?.type ?? ''] ?? '🚛'}
                   </Text>
                   <Text style={styles.modalRouteNum}>#{routeNumber(modalRoute)}</Text>
                   <Text style={styles.modalCarrierName}>
-                    {modalRoute.carrier?.user?.name ?? 'Μεταφορέας'}
+                    {modalRoute.company?.name ?? 'Μεταφορέας'}
                   </Text>
                 </View>
                 <View style={[styles.row, { gap: 6, flexWrap: 'wrap' }]}>
@@ -304,6 +333,75 @@ export default function MatchesScreen() {
                 disabled={sending}
               >
                 {sending
+                  ? <ActivityIndicator size="small" color="#000" />
+                  : <Text style={styles.sendBtnText}>Αποστολή</Text>
+                }
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Plain message modal (count = 0) */}
+      <Modal visible={!!msgModal} transparent animationType="slide" onRequestClose={() => setMsgModal(null)}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.modalCard}>
+            <View style={[styles.row, { justifyContent: 'space-between', marginBottom: 16 }]}>
+              <View>
+                <Text style={styles.modalLabel}>ΜΗΝΥΜΑ</Text>
+                <Text style={styles.modalTitle}>Αποστολή Μηνύματος</Text>
+              </View>
+              <TouchableOpacity onPress={() => setMsgModal(null)} hitSlop={12}>
+                <Ionicons name="close" size={22} color={Colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            {msgModal && (
+              <View style={styles.modalRouteInfo}>
+                <View style={[styles.row, { gap: 6, marginBottom: 8 }]}>
+                  <Text style={{ fontSize: 16 }}>
+                    {VEHICLE_ICON[msgModal.vehicle?.type ?? ''] ?? '🚛'}
+                  </Text>
+                  <Text style={styles.modalRouteNum}>#{routeNumber(msgModal)}</Text>
+                  <Text style={styles.modalCarrierName}>
+                    {msgModal.company?.name ?? 'Μεταφορέας'}
+                  </Text>
+                </View>
+                <View style={[styles.row, { gap: 6, flexWrap: 'wrap' }]}>
+                  <Text style={styles.modalCityText}>{fCity(msgModal.originCity)}</Text>
+                  <Text style={styles.arrow}>→</Text>
+                  <Text style={styles.modalCityText}>{fCity(msgModal.destCity)}</Text>
+                </View>
+              </View>
+            )}
+
+            <TextInput
+              value={msgText}
+              onChangeText={setMsgText}
+              placeholder="Γράψε το μήνυμά σου…"
+              placeholderTextColor={Colors.textMuted}
+              multiline
+              numberOfLines={4}
+              style={styles.messageInput}
+              textAlignVertical="top"
+            />
+
+            <View style={[styles.row, { gap: 10, marginTop: 16 }]}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setMsgModal(null)}>
+                <Text style={styles.cancelBtnText}>Ακύρωση</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.sendBtn, (sendingMsg || !msgText.trim()) && { opacity: 0.5 }]}
+                onPress={() => {
+                  if (!msgModal || !shipmentId || !msgText.trim()) return
+                  sendPlainMsg({ shipmentId, routeId: msgModal.id, content: msgText.trim() })
+                }}
+                disabled={sendingMsg || !msgText.trim()}
+              >
+                {sendingMsg
                   ? <ActivityIndicator size="small" color="#000" />
                   : <Text style={styles.sendBtnText}>Αποστολή</Text>
                 }
@@ -362,6 +460,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1F5F9', borderRadius: 20,
     paddingHorizontal: 8, paddingVertical: 3,
   },
+  carrierName: { fontSize: 15, fontWeight: '700', color: Colors.textPrimary },
   carrierText: { fontSize: 12, color: Colors.textPrimary, fontWeight: '600' },
   ratingText:  { fontSize: 11, color: Colors.accent, fontWeight: '700' },
   recurringChip: {
@@ -393,6 +492,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 9,
   },
   requestBtnText: { fontSize: 13, fontWeight: '700', color: '#000' },
+  msgBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: Colors.accent, borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 9,
+  },
+  msgBtnText: { fontSize: 13, fontWeight: '700', color: '#000' },
+  msgBadge: {
+    minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 4,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.2)',
+  },
+  msgBadgeText: { fontSize: 11, fontWeight: '800', color: '#000' },
 
   // Empty
   empty: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 24 },

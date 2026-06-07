@@ -8,17 +8,17 @@ import { Ionicons } from '@expo/vector-icons'
 export default function LoginScreen() {
   const { login } = useAuth()
   const { t } = useI18n()
-  const [email, setEmail]       = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading]   = useState(false)
-  const [error, setError]       = useState('')
-  const [showPw, setShowPw]     = useState(false)
+  const [identifier, setIdentifier] = useState('')
+  const [password, setPassword]     = useState('')
+  const [loading, setLoading]       = useState(false)
+  const [error, setError]           = useState('')
+  const [showPw, setShowPw]         = useState(false)
 
   async function handleLogin() {
-    if (!email.trim() || !password) { setError('Συμπλήρωσε email και κωδικό'); return }
+    if (!identifier.trim() || !password) { setError('Συμπλήρωσε email/username και κωδικό'); return }
     setLoading(true); setError('')
     try {
-      await login(email.trim(), password)
+      await login(identifier.trim(), password)
       router.replace('/(tabs)' as any)
     } catch (e: any) {
       setError(e?.response?.data?.error || e?.message || 'Σφάλμα σύνδεσης')
@@ -44,16 +44,17 @@ export default function LoginScreen() {
 
           {error ? <View style={s.errorBox}><Text style={s.errorTxt}>{error}</Text></View> : null}
 
-          <Text style={s.label}>{t('auth.email')}</Text>
+          <Text style={s.label}>{t('auth.identifier')}</Text>
           <TextInput
             style={s.input}
-            placeholder="you@example.com"
+            placeholder="email ή username"
             placeholderTextColor="rgba(255,255,255,0.25)"
-            keyboardType="email-address"
-            autoComplete="email"
+            keyboardType="default"
+            autoComplete="username"
             autoCapitalize="none"
-            value={email}
-            onChangeText={setEmail}
+            autoCorrect={false}
+            value={identifier}
+            onChangeText={setIdentifier}
           />
 
           <Text style={s.label}>{t('auth.password')}</Text>

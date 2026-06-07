@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { View, Text, ScrollView, TouchableOpacity, Alert, StyleSheet } from 'react-native'
+import { View, Text, ScrollView, TouchableOpacity, Alert, StyleSheet, Switch } from 'react-native'
 import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '@/lib/auth'
@@ -7,7 +7,7 @@ import { useI18n, Language } from '@/lib/i18n'
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth()
-  const { t, language, setLanguage } = useI18n()
+  const { t, language, setLanguage, autoTranslate, setAutoTranslate } = useI18n()
   const [loggingOut, setLoggingOut] = useState(false)
 
   function confirmLogout() {
@@ -27,10 +27,10 @@ export default function ProfileScreen() {
 
   const menuSections = [
     {
-      label: 'Λογαριασμός',
+      label: t('profile.account'),
       items: [
-        { icon: 'person-outline',             label: 'Προσωπικά Στοιχεία',  onPress: () => router.push('/(tabs)/profile-personal' as any) },
-        { icon: 'key-outline',                label: 'Αλλαγή Password',     onPress: () => router.push('/(tabs)/profile-password' as any) },
+        { icon: 'person-outline',             label: t('profile.personal_info') || 'Προσωπικά Στοιχεία',  onPress: () => router.push('/(tabs)/profile-personal' as any) },
+        { icon: 'key-outline',                label: t('profile.change_pass'),     onPress: () => router.push('/(tabs)/profile-password' as any) },
         { icon: 'lock-closed-outline',        label: t('profile.forgot_pass'), onPress: () => router.push('/(auth)/forgot-password') },
         { icon: 'notifications-outline',      label: t('profile.notifications'), onPress: () => {} },
         { icon: 'help-circle-outline',        label: t('profile.help'),     onPress: () => {} },
@@ -62,7 +62,7 @@ export default function ProfileScreen() {
             <Text style={{ fontSize: 18 }}>🌐</Text>
             <Text style={s.itemLabel}>{t('profile.language')}</Text>
             <View style={s.langRow}>
-              {(['el', 'en'] as Language[]).map(lang => (
+              {(['el', 'en', 'fr'] as Language[]).map(lang => (
                 <TouchableOpacity
                   key={lang}
                   onPress={() => setLanguage(lang)}
@@ -70,11 +70,22 @@ export default function ProfileScreen() {
                   activeOpacity={0.7}
                 >
                   <Text style={[s.langBtnText, language === lang && s.langBtnTextActive]}>
-                    {lang === 'el' ? '🇬🇷 ΕΛ' : '🇬🇧 EN'}
+                    {lang === 'el' ? '🇬🇷 ΕΛ' : lang === 'en' ? '🇬🇧 EN' : '🇫🇷 FR'}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
+          </View>
+          
+          <View style={[s.row, { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)' }]}>
+            <Text style={{ fontSize: 18 }}>🤖</Text>
+            <Text style={s.itemLabel}>{t('profile.auto_translate')}</Text>
+            <Switch
+              value={autoTranslate}
+              onValueChange={setAutoTranslate}
+              trackColor={{ false: 'rgba(255,255,255,0.1)', true: '#F59E0B' }}
+              thumbColor="#fff"
+            />
           </View>
         </View>
 

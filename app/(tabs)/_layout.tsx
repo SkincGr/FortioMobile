@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/auth'
 import { useTheme } from '@/lib/theme'
 import { LoadingScreen } from '@/components/ui/LoadingScreen'
 import { View, Text } from 'react-native'
+import { useI18n } from '@/lib/i18n'
 
 function TabIcon({ name, focused, badge, activeColor, inactiveColor, dangerColor }: {
   name: any; focused: boolean; badge?: number
@@ -31,6 +32,7 @@ function TabIcon({ name, focused, badge, activeColor, inactiveColor, dangerColor
 export default function TabsLayout() {
   const { isLoading, isAuthenticated, logout } = useAuth()
   const { colors } = useTheme()
+  const { t } = useI18n()
 
   if (isLoading) return <LoadingScreen />
   if (!isAuthenticated) return <Redirect href="/(auth)/login" />
@@ -42,10 +44,10 @@ export default function TabsLayout() {
   }
 
   function handleLogout() {
-    Alert.alert('Έξοδος', 'Είσαι σίγουρος ότι θέλεις να αποσυνδεθείς;', [
-      { text: 'Ακύρωση', style: 'cancel' },
+    Alert.alert(t('profile.logout'), t('profile.logout_q'), [
+      { text: t('profile.cancel'), style: 'cancel' },
       {
-        text: 'Έξοδος',
+        text: t('profile.logout'),
         style: 'destructive',
         onPress: async () => {
           await logout()
@@ -80,21 +82,21 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="messages"
         options={{
-          title: 'Μηνύματα',
+          title: t('msg.tab_messages') || 'Μηνύματα',
           tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'chatbubbles' : 'chatbubbles-outline'} focused={focused} {...iconProps} />,
         }}
       />
       <Tabs.Screen
         name="announcements"
         options={{
-          title: 'Ανακοινώσεις',
+          title: t('dash.announcements') || 'Ανακοινώσεις',
           tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'megaphone' : 'megaphone-outline'} focused={focused} {...iconProps} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Προφίλ',
+          title: t('profile.account') || 'Προφίλ',
           tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'person' : 'person-outline'} focused={focused} {...iconProps} />,
         }}
       />
@@ -105,7 +107,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="logout"
         options={{
-          title: 'Έξοδος',
+          title: t('profile.logout') || 'Έξοδος',
           tabBarIcon: ({ focused }) => (
             <TabIcon name="log-out-outline" focused={focused} {...iconProps} />
           ),

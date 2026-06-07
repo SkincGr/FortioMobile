@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '@/lib/auth'
 import { api } from '@/lib/api'
 import { LoadingScreen } from '@/components/ui/LoadingScreen'
+import { useI18n, translateText } from '@/lib/i18n'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -89,6 +90,7 @@ function parseContent(content: string) {
 
 export default function MessagesScreen() {
   const { user } = useAuth()
+  const { t, language, autoTranslate } = useI18n()
   const myId = user?.id
   const { shipmentId: paramShipId, offerId: paramOfferId, routeId: paramRouteId, returnTo } =
     useLocalSearchParams<{ shipmentId?: string; offerId?: string; routeId?: string; returnTo?: string }>()
@@ -220,6 +222,32 @@ export default function MessagesScreen() {
         }
       }
 
+      if (autoTranslate) {
+        data = await Promise.all(data.map(async c => {
+          const tC = { ...c }
+          try {
+            const [trLast, trMsg, trCond, trShipTitle, trShipOrigin, trShipDest] = await Promise.all([
+              tC.lastMessage ? translateText(tC.lastMessage, language) : null,
+              tC.message ? translateText(tC.message, language) : null,
+              tC.conditions ? translateText(tC.conditions, language) : null,
+              tC.shipment?.title ? translateText(tC.shipment.title, language) : null,
+              tC.shipment?.originCity ? translateText(tC.shipment.originCity, language) : null,
+              tC.shipment?.destCity ? translateText(tC.shipment.destCity, language) : null,
+            ])
+            if (trLast) tC.lastMessage = trLast
+            if (trMsg) tC.message = trMsg
+            if (trCond) tC.conditions = trCond
+            if (tC.shipment) {
+              tC.shipment = { ...tC.shipment }
+              if (trShipTitle) tC.shipment.title = trShipTitle
+              if (trShipOrigin) tC.shipment.originCity = trShipOrigin
+              if (trShipDest) tC.shipment.destCity = trShipDest
+            }
+          } catch {}
+          return tC
+        }))
+      }
+
       setConversations(data)
 
       // Auto-select shipment & kind from params
@@ -233,9 +261,9 @@ export default function MessagesScreen() {
     } catch {}
     setLoading(false)
     setRefreshing(false)
-  }, [paramShipId, paramOfferId, paramRouteId])
+  }, [paramShipId, paramOfferId, paramRouteId, autoTranslate, language, myId])
 
-  useEffect(() => { loadConversations() }, [paramShipId, paramOfferId, paramRouteId])
+  useEffect(() => { loadConversations() }, [paramShipId, paramOfferId, paramRouteId, autoTranslate, language])
 
   // Auto-switch kind if current kind has no conversations
   useEffect(() => {
@@ -251,7 +279,7 @@ export default function MessagesScreen() {
   useEffect(() => {
     if (!visible.length) { setMessages([]); return }
     loadThreads(visible)
-  }, [visible, unreadOnly])
+  }, [visible, unreadOnly, autoTranslate, language])
 
   async function loadThreads(convs: Conversation[]) {
     setThreadLoading(true)
@@ -268,7 +296,27 @@ export default function MessagesScreen() {
       const flat = results.flat()
         .filter(m => !unreadOnly || !m.isRead)
         .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-      setMessages(flat)
+        
+      if (autoTranslate) {
+        const translated = await Promise.all(flat.map(async m => {
+          try {
+            const [trContent, trOrigin, trDest] = await Promise.all([
+              translateText(m.content, language),
+              m.route?.originCity ? translateText(m.route.originCity, language) : null,
+              m.route?.destCity ? translateText(m.route.destCity, language) : null,
+            ])
+            const trRoute = m.route ? { ...m.route } : null
+            if (trRoute && trOrigin) trRoute.originCity = trOrigin
+            if (trRoute && trDest) trRoute.destCity = trDest
+            return { ...m, content: trContent, route: trRoute }
+          } catch {
+            return m
+          }
+        }))
+        setMessages(translated)
+      } else {
+        setMessages(flat)
+      }
     } catch {}
     setThreadLoading(false)
   }
@@ -343,15 +391,15 @@ export default function MessagesScreen() {
       await loadConversations()
       setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 200)
     } catch (e: any) {
-      Alert.alert('Σφάλμα', e?.response?.data?.error || 'Αποτυχία αποστολής')
+      Alert.alert(t('common.error'), e?.response?.data?.error || t('msg.error.send'))
     }
     setSending(false)
   }
 
-  if (loading) return <LoadingScreen message="Φόρτωση μηνυμάτων..." />
+  if (loading) return <LoadingScreen message={t('msg.loading')} />
 
   const carrierName = (conv: Conversation | null) =>
-    conv?.carrier?.company?.name ?? conv?.carrier?.name ?? 'Μεταφορέας'
+    conv?.carrier?.company?.name ?? conv?.carrier?.name ?? t('match.carrier_fallback')
 
   return (
     <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -364,13 +412,13 @@ export default function MessagesScreen() {
             style={s.backBtn} hitSlop={10}
           >
             <Ionicons name="arrow-back" size={20} color="#fff" />
-            <Text style={s.backBtnText}>Επιστροφή</Text>
+            <Text style={s.backBtnText}>{t('msg.back')}</Text>
           </TouchableOpacity>
         ) : (
           <Text style={s.logo}>FORTIO</Text>
         )}
         <View style={s.sep} />
-        <Text style={s.headerTitle}>ΚΕΝΤΡΟ ΜΗΝΥΜΑΤΩΝ</Text>
+        <Text style={s.headerTitle}>{t('msg.title')}</Text>
       </View>
 
       {/* ── Shipment chips ── */}
@@ -410,8 +458,8 @@ export default function MessagesScreen() {
       {/* ── Filters ── */}
       <View style={s.filterRow}>
         {([
-          { key: 'messages' as const, label: 'Μηνύματα', count: counts.messages },
-          { key: 'offers'   as const, label: 'Προσφορές', count: counts.offers },
+          { key: 'messages' as const, label: t('msg.tab_messages'), count: counts.messages },
+          { key: 'offers'   as const, label: t('msg.tab_offers'), count: counts.offers },
         ] as const).map(tab => (
           <TouchableOpacity
             key={tab.key}
@@ -432,7 +480,7 @@ export default function MessagesScreen() {
           style={[s.filterBtn, unreadOnly && s.filterBtnUnread]}
         >
           <View style={[s.unreadDot, unreadOnly && s.unreadDotOn]} />
-          <Text style={[s.filterText, unreadOnly && s.filterTextUnread]}>Αδιάβαστα</Text>
+          <Text style={[s.filterText, unreadOnly && s.filterTextUnread]}>{t('msg.unread_only')}</Text>
           {counts.unread > 0 && (
             <View style={[s.filterBadge, { backgroundColor: 'rgba(99,102,241,0.2)' }]}>
               <Text style={[s.filterBadgeText, { color: '#818CF8' }]}>{counts.unread}</Text>
@@ -457,7 +505,7 @@ export default function MessagesScreen() {
               ? <ActivityIndicator color="#F59E0B" size="large" />
               : <>
                   <Ionicons name="chatbubbles-outline" size={48} color="rgba(255,255,255,0.15)" />
-                  <Text style={s.emptyText}>Δεν υπάρχουν μηνύματα</Text>
+                  <Text style={s.emptyText}>{t('msg.empty')}</Text>
                 </>
             }
           </View>
@@ -480,7 +528,7 @@ export default function MessagesScreen() {
           <TextInput
             ref={subjectRef}
             style={s.subjectInput}
-            placeholder="Θέμα..."
+            placeholder={t('msg.ph.subject')}
             placeholderTextColor="rgba(255,255,255,0.3)"
             value={subject}
             onChangeText={setSubject}
@@ -488,7 +536,7 @@ export default function MessagesScreen() {
           <View style={s.replyRow}>
             <TextInput
               style={s.input}
-              placeholder="Γράψε απάντηση..."
+              placeholder={t('msg.ph.body')}
               placeholderTextColor="rgba(255,255,255,0.3)"
               value={text}
               onChangeText={setText}
@@ -502,11 +550,11 @@ export default function MessagesScreen() {
               >
                 {sending
                   ? <ActivityIndicator size="small" color="#000" />
-                  : <Text style={s.sendBtnText}>Απάντηση</Text>
+                  : <Text style={s.sendBtnText}>{t('msg.btn.reply')}</Text>
                 }
               </TouchableOpacity>
               <TouchableOpacity onPress={handleCancel} style={[s.sendBtn, s.cancelBtn]}>
-                <Text style={s.sendBtnText}>Ακύρωση</Text>
+                <Text style={s.sendBtnText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -526,6 +574,7 @@ function MessageRow({ msg, myId, carrierName, onToggleRead, onReply, onNew }: {
   onReply: () => void
   onNew: () => void
 }) {
+  const { t } = useI18n()
   const isOutgoing = msg.sender?.id === myId
   const { subject, body } = parseContent(msg.content)
   const displaySubject = subject || msg.subject || msg.category || ''
@@ -542,13 +591,13 @@ function MessageRow({ msg, myId, carrierName, onToggleRead, onReply, onNew }: {
         <View style={s.senderRow}>
           {isOutgoing ? (
             <>
-              <Text style={s.dirLabel}>Προς: </Text>
+              <Text style={s.dirLabel}>{t('msg.to')} </Text>
               <Text style={[s.senderName, s.senderOut]}>{carrierName}</Text>
               <View style={[s.dirDiamond, { backgroundColor: '#60A5FA' }]} />
             </>
           ) : (
             <>
-              <Text style={s.dirLabel}>Από: </Text>
+              <Text style={s.dirLabel}>{t('msg.from')} </Text>
               <Text style={[s.senderName, s.senderIn]}>{senderName}</Text>
               <View style={[s.dirDiamond, { backgroundColor: '#4ADE80' }]} />
             </>
@@ -557,7 +606,7 @@ function MessageRow({ msg, myId, carrierName, onToggleRead, onReply, onNew }: {
         </View>
         <View style={[s.readBadge, msg.isRead ? s.readBadgeRead : s.readBadgeUnread]}>
           <Text style={[s.readBadgeText, msg.isRead ? s.readBadgeReadText : s.readBadgeUnreadText]}>
-            {msg.isRead ? '✓ Διαβάστηκε' : 'Αδιάβαστο'}
+            {msg.isRead ? t('msg.read') : t('msg.unread')}
           </Text>
         </View>
       </View>
@@ -589,16 +638,16 @@ function MessageRow({ msg, myId, carrierName, onToggleRead, onReply, onNew }: {
       <View style={s.actionsRow}>
         {!isOutgoing && (
           <TouchableOpacity onPress={onToggleRead} style={s.actionBtn}>
-            <Text style={s.actionBtnText}>{msg.isRead ? '✓ Διαβάστηκε' : 'Διαβάστηκε'}</Text>
+            <Text style={s.actionBtnText}>{msg.isRead ? t('msg.read') : t('msg.mark_read')}</Text>
           </TouchableOpacity>
         )}
         {!isOutgoing && (
           <TouchableOpacity onPress={onReply} style={s.actionBtn}>
-            <Text style={s.actionBtnText}>Απάντηση</Text>
+            <Text style={s.actionBtnText}>{t('msg.btn.reply')}</Text>
           </TouchableOpacity>
         )}
         <TouchableOpacity onPress={onNew} style={s.actionBtn}>
-          <Text style={s.actionBtnText}>Νέο</Text>
+          <Text style={s.actionBtnText}>{t('msg.btn.new')}</Text>
         </TouchableOpacity>
       </View>
     </View>

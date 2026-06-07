@@ -4,6 +4,7 @@ import { router } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
 import { dashboardApi, Shipment } from '@/lib/api'
+import { useI18n, translateText } from '@/lib/i18n'
 import { ShipmentStatusBadge } from '@/components/ShipmentStatusBadge'
 import { LoadingScreen } from '@/components/ui/LoadingScreen'
 
@@ -19,9 +20,32 @@ function fCity(raw?: string | null) {
 }
 
 export default function ShipmentsListScreen() {
+  const { t, autoTranslate, language } = useI18n()
+
   const { data, isLoading, refetch, isRefetching } = useQuery({
-    queryKey: ['sender-shipments'],
-    queryFn: () => dashboardApi.getSender().then(r => r.data),
+    queryKey: ['sender-shipments', language, autoTranslate],
+    queryFn: async () => {
+      const r = await dashboardApi.getSender()
+      let result = r.data
+      
+      if (autoTranslate && result.shipments) {
+        result.shipments = await Promise.all(result.shipments.map(async (s: Shipment) => {
+          const ts = { ...s }
+          try {
+            const [trTitle, trOrigin, trDest] = await Promise.all([
+              ts.title ? translateText(ts.title, language) : null,
+              ts.originCity ? translateText(ts.originCity, language) : null,
+              ts.destCity ? translateText(ts.destCity, language) : null,
+            ])
+            if (trTitle) ts.title = trTitle
+            if (trOrigin) ts.originCity = trOrigin
+            if (trDest) ts.destCity = trDest
+          } catch {}
+          return ts
+        }))
+      }
+      return result
+    },
   })
 
   const shipments: Shipment[] = [
@@ -29,15 +53,15 @@ export default function ShipmentsListScreen() {
     ...(data?.completedShipments ?? []),
   ]
 
-  if (isLoading) return <LoadingScreen message="Φόρτωση αποστολών..." />
+  if (isLoading) return <LoadingScreen message={t('ship.list.loading')} />
 
   return (
     <View style={s.root}>
       <View style={s.header}>
-        <Text style={s.headerTitle}>Αποστολές</Text>
+        <Text style={s.headerTitle}>{t('ship.list.title')}</Text>
         <TouchableOpacity onPress={() => router.push('/(tabs)/shipments/new')} style={s.newBtn}>
           <Ionicons name="add" size={18} color="#000" />
-          <Text style={s.newBtnText}>Νέα</Text>
+          <Text style={s.newBtnText}>{t('ship.list.new')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -49,9 +73,9 @@ export default function ShipmentsListScreen() {
         ListEmptyComponent={
           <View style={s.empty}>
             <Ionicons name="cube-outline" size={56} color="rgba(255,255,255,0.2)" />
-            <Text style={s.emptyText}>Δεν έχεις αποστολές</Text>
+            <Text style={s.emptyText}>{t('ship.list.empty')}</Text>
             <TouchableOpacity style={s.emptyBtn} onPress={() => router.push('/(tabs)/shipments/new')}>
-              <Text style={s.emptyBtnText}>Δημιούργησε Αποστολή</Text>
+              <Text style={s.emptyBtnText}>{t('ship.list.create')}</Text>
             </TouchableOpacity>
           </View>
         }

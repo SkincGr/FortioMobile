@@ -3,23 +3,45 @@ import { View, Text, FlatList, RefreshControl, StyleSheet } from 'react-native'
 import { useQuery } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
 import { announcementsApi, Announcement } from '@/lib/api'
+import { useI18n, translateText } from '@/lib/i18n'
 import { LoadingScreen } from '@/components/ui/LoadingScreen'
 
 export default function AnnouncementsScreen() {
+  const { t, autoTranslate, language } = useI18n()
+  
   const { data, isLoading, refetch, isRefetching } = useQuery({
-    queryKey: ['announcements'],
-    queryFn: () => announcementsApi.list().then(r => r.data),
+    queryKey: ['announcements', language, autoTranslate],
+    queryFn: async () => {
+      let r = await announcementsApi.list().then(res => res.data)
+      if (autoTranslate && r.length > 0) {
+        r = await Promise.all(r.map(async (a: Announcement) => {
+          const ta = { ...a }
+          try {
+            const [trTitle, trBody, trCta] = await Promise.all([
+              ta.title ? translateText(ta.title, language) : null,
+              ta.body ? translateText(ta.body, language) : null,
+              ta.ctaText ? translateText(ta.ctaText, language) : null,
+            ])
+            if (trTitle) ta.title = trTitle
+            if (trBody) ta.body = trBody
+            if (trCta) ta.ctaText = trCta
+          } catch {}
+          return ta
+        }))
+      }
+      return r
+    },
     staleTime: 60_000,
   })
 
-  if (isLoading) return <LoadingScreen message="Φόρτωση ανακοινώσεων..." />
+  if (isLoading) return <LoadingScreen message={t('common.loading')} />
 
   const announcements: Announcement[] = data ?? []
 
   return (
     <View style={s.root}>
       <View style={s.header}>
-        <Text style={s.headerTitle}>Ανακοινώσεις</Text>
+        <Text style={s.headerTitle}>{t('announcements.title') || 'Ανακοινώσεις'}</Text>
         {announcements.length > 0 && (
           <View style={s.countBadge}><Text style={s.countText}>{announcements.length}</Text></View>
         )}
@@ -33,7 +55,7 @@ export default function AnnouncementsScreen() {
         ListEmptyComponent={
           <View style={s.empty}>
             <Ionicons name="megaphone-outline" size={56} color="rgba(255,255,255,0.2)" />
-            <Text style={s.emptyText}>Δεν υπάρχουν ανακοινώσεις</Text>
+            <Text style={s.emptyText}>{t('announcements.empty') || 'Δεν υπάρχουν ανακοινώσεις'}</Text>
           </View>
         }
         renderItem={({ item }) => <AnnouncementCard item={item} />}

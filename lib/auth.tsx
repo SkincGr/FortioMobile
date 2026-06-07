@@ -10,7 +10,7 @@ type AuthState = {
 }
 
 type AuthContextType = AuthState & {
-  login: (email: string, password: string) => Promise<void>
+  login: (identifier: string, password: string) => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -54,8 +54,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })()
   }, [])
 
-  const login = useCallback(async (email: string, password: string) => {
-    const { data } = await authApi.login({ email, password })
+  const login = useCallback(async (identifier: string, password: string) => {
+    const { data } = await authApi.login({ identifier, password })
     await Promise.all([saveToken(data.token), saveUser(data.user)])
     setState({ user: data.user, token: data.token, isLoading: false, isAuthenticated: true })
   }, [])

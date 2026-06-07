@@ -6,10 +6,12 @@ import {
 import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { profileApi } from '@/lib/api'
+import { useI18n } from '@/lib/i18n'
 
 // ─── Change password screen ───────────────────────────────────────────────────
 
 export default function ChangePasswordScreen() {
+  const { t } = useI18n()
   const [form, setForm] = useState({
     currentPassword: '', newPassword: '', confirmPassword: '',
   })
@@ -28,13 +30,13 @@ export default function ChangePasswordScreen() {
     setError(''); setSaved(false)
 
     if (!form.currentPassword || !form.newPassword || !form.confirmPassword) {
-      setError('Συμπλήρωσε όλα τα πεδία.'); return
+      setError(t('pass.err.fields')); return
     }
     if (form.newPassword.length < 8) {
-      setError('Ο νέος κωδικός πρέπει να έχει τουλάχιστον 8 χαρακτήρες.'); return
+      setError(t('pass.err.length')); return
     }
     if (form.newPassword !== form.confirmPassword) {
-      setError('Οι νέοι κωδικοί δεν ταιριάζουν.'); return
+      setError(t('pass.err.match')); return
     }
 
     setSaving(true)
@@ -47,7 +49,7 @@ export default function ChangePasswordScreen() {
       setForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
       setTimeout(() => setSaved(false), 4000)
     } catch (e: any) {
-      setError(e?.response?.data?.error || 'Σφάλμα αλλαγής κωδικού.')
+      setError(e?.response?.data?.error || t('pass.err.generic'))
     } finally {
       setSaving(false)
     }
@@ -58,9 +60,9 @@ export default function ChangePasswordScreen() {
 
       {/* Header */}
       <View style={s.header}>
-        <Text style={s.headerTitle}>Αλλαγή Password</Text>
+        <Text style={s.headerTitle}>{t('profile.change_pass')}</Text>
         <TouchableOpacity onPress={() => router.push('/(tabs)/profile' as any)} style={s.backBtn} hitSlop={12}>
-          <Text style={s.backText}>Επιστροφή</Text>
+          <Text style={s.backText}>{t('pass.back')}</Text>
           <Ionicons name="arrow-forward" size={16} color="rgba(255,255,255,0.6)" />
         </TouchableOpacity>
       </View>
@@ -68,19 +70,19 @@ export default function ChangePasswordScreen() {
       <ScrollView contentContainerStyle={s.body}>
 
         <Text style={s.subtitle}>
-          Για λόγους ασφαλείας εισάγετε πρώτα τον τρέχοντα κωδικό σας.
+          {t('pass.subtitle')}
         </Text>
 
         <View style={s.card}>
           {/* Current password */}
           <View style={[s.field, s.fieldBorder]}>
-            <Text style={s.fieldLabel}>Τρέχων Κωδικός</Text>
+            <Text style={s.fieldLabel}>{t('pass.current')}</Text>
             <View style={s.inputRow}>
               <TextInput
                 style={s.fieldInput}
                 value={form.currentPassword}
                 onChangeText={set('currentPassword')}
-                placeholder="Εισάγετε τρέχοντα κωδικό"
+                placeholder={t('pass.current_ph')}
                 placeholderTextColor="rgba(255,255,255,0.25)"
                 secureTextEntry={!showCurrent}
                 autoCapitalize="none"
@@ -94,13 +96,13 @@ export default function ChangePasswordScreen() {
 
           {/* New password */}
           <View style={[s.field, s.fieldBorder]}>
-            <Text style={s.fieldLabel}>Νέος Κωδικός</Text>
+            <Text style={s.fieldLabel}>{t('pass.new')}</Text>
             <View style={s.inputRow}>
               <TextInput
                 style={s.fieldInput}
                 value={form.newPassword}
                 onChangeText={set('newPassword')}
-                placeholder="Τουλάχιστον 8 χαρακτήρες"
+                placeholder={t('pass.hint')}
                 placeholderTextColor="rgba(255,255,255,0.25)"
                 secureTextEntry={!showNew}
                 autoCapitalize="none"
@@ -110,18 +112,18 @@ export default function ChangePasswordScreen() {
                 <Ionicons name={showNew ? 'eye-off-outline' : 'eye-outline'} size={18} color="rgba(255,255,255,0.4)" />
               </TouchableOpacity>
             </View>
-            <Text style={s.hint}>Τουλάχιστον 8 χαρακτήρες</Text>
+            <Text style={s.hint}>{t('pass.hint')}</Text>
           </View>
 
           {/* Confirm password */}
           <View style={s.field}>
-            <Text style={s.fieldLabel}>Επιβεβαίωση Νέου Κωδικού</Text>
+            <Text style={s.fieldLabel}>{t('pass.confirm')}</Text>
             <View style={s.inputRow}>
               <TextInput
                 style={s.fieldInput}
                 value={form.confirmPassword}
                 onChangeText={set('confirmPassword')}
-                placeholder="Επαναλάβετε τον νέο κωδικό"
+                placeholder={t('pass.confirm_ph')}
                 placeholderTextColor="rgba(255,255,255,0.25)"
                 secureTextEntry={!showConfirm}
                 autoCapitalize="none"
@@ -142,7 +144,7 @@ export default function ChangePasswordScreen() {
         ) : null}
         {saved ? (
           <View style={s.successBox}>
-            <Text style={s.successText}>✓ Ο κωδικός άλλαξε επιτυχώς</Text>
+            <Text style={s.successText}>{t('pass.success')}</Text>
           </View>
         ) : null}
 
@@ -154,7 +156,7 @@ export default function ChangePasswordScreen() {
         >
           {saving
             ? <ActivityIndicator size="small" color="#000" />
-            : <Text style={s.saveBtnText}>Αποθήκευση Αλλαγών</Text>
+            : <Text style={s.saveBtnText}>{t('pass.save')}</Text>
           }
         </TouchableOpacity>
 

@@ -8,6 +8,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
 import { shipmentsApi, offersApi, Offer } from '@/lib/api'
 import { LoadingScreen } from '@/components/ui/LoadingScreen'
+import { useI18n } from '@/lib/i18n'
 import { Colors } from '@/constants/colors'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -16,15 +17,15 @@ const VEHICLE_ICON: Record<string, string> = {
   VAN: '🚐', TRUCK: '🚛', SHIP: '🚢', AIRPLANE: '✈️', TRAIN: '🚂',
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  REQUEST:          'Αίτηση',
-  PENDING:          'Σε αναμονή',
-  AWAITING_SENDER:  'Αναμ. Αποστολέα',
-  AWAITING_CARRIER: 'Αναμ. Μεταφορέα',
-  ACCEPTED:         'Αποδεκτή',
-  REJECTED:         'Απορρίφθηκε',
-  WITHDRAWN:        'Ανακλήθηκε',
-  COMPLETED:        'Ολοκληρώθηκε',
+const OFFER_STATUS_KEY: Record<string, any> = {
+  REQUEST:          'dash.offer.status.request',
+  PENDING:          'dash.offer.status.pending',
+  AWAITING_SENDER:  'dash.offer.status.awaiting_sender',
+  AWAITING_CARRIER: 'dash.offer.status.awaiting_carrier',
+  ACCEPTED:         'dash.offer.status.accepted',
+  REJECTED:         'dash.offer.status.rejected',
+  WITHDRAWN:        'dash.offer.status.withdrawn',
+  COMPLETED:        'dash.offer.status.completed',
 }
 
 const STATUS_COLOR: Record<string, string> = {
@@ -79,6 +80,7 @@ function OfferCard({
   onView: (o: Offer) => void
 }) {
   const qc = useQueryClient()
+  const { t } = useI18n()
 
   const acceptMut = useMutation({
     mutationFn: () => offersApi.accept(offer.id),
@@ -86,13 +88,13 @@ function OfferCard({
       qc.invalidateQueries({ queryKey: ['shipment', shipmentId] })
       qc.invalidateQueries({ queryKey: ['dashboard-sender'] })
     },
-    onError: () => Alert.alert('Σφάλμα', 'Δεν ήταν δυνατή η αποδοχή'),
+    onError: () => Alert.alert(t('common.error'), t('ship.error.accept')),
   })
 
   const rejectMut = useMutation({
     mutationFn: () => offersApi.reject(offer.id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['shipment', shipmentId] }),
-    onError: () => Alert.alert('Σφάλμα', 'Δεν ήταν δυνατή η απόρριψη'),
+    onError: () => Alert.alert(t('common.error'), t('ship.error.reject')),
   })
 
   const icon        = '🚛'
@@ -115,11 +117,11 @@ function OfferCard({
 
   function confirmAccept() {
     Alert.alert(
-      'Αποδοχή Προσφοράς',
-      `Αποδέχεσαι την προσφορά από ${companyName};`,
+      t('ship.alert.accept_title'),
+      `${t('ship.alert.accept_msg_1')} ${companyName};`,
       [
-        { text: 'Ακύρωση', style: 'cancel' },
-        { text: 'Αποδοχή', onPress: () => acceptMut.mutate() },
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('ship.btn.accept'), onPress: () => acceptMut.mutate() },
       ]
     )
   }
@@ -138,11 +140,11 @@ function OfferCard({
         <View style={{ alignItems: 'flex-end', gap: 2 }}>
           <View style={[styles.statusBadge, { backgroundColor: statusColor + '22' }]}>
             <Text style={[styles.statusText, { color: statusColor }]}>
-              {STATUS_LABEL[offer.status] ?? offer.status}
+              {OFFER_STATUS_KEY[offer.status] ? t(OFFER_STATUS_KEY[offer.status]) : offer.status}
             </Text>
           </View>
           {isRequest && (
-            <Text style={styles.awaitingText}>Αναμένεται απάντηση</Text>
+            <Text style={styles.awaitingText}>{t('ship.awaiting')}</Text>
           )}
           {!isRequest && offer.price != null && offer.price > 0 && (
             <Text style={styles.priceText}>€{offer.price}</Text>
@@ -152,7 +154,7 @@ function OfferCard({
 
       {/* Row 2: Μεταφορέας */}
       <Text style={styles.carrierRow} numberOfLines={2}>
-        <Text style={styles.muted}>Μεταφορέας: </Text>
+        <Text style={styles.muted}>{t('ship.carrier')} </Text>
         <Text style={styles.bold}>{companyName}</Text>
         <Text style={styles.muted}>{` (${email}${phone ? ` - ${phone}` : ''})`}</Text>
       </Text>
@@ -169,7 +171,18 @@ function OfferCard({
       {/* Mid stops */}
       {midStops.length > 0 && (
         <Text style={styles.stopsText} numberOfLines={1}>
-          Στάσεις: {midStops.map(s => s.city ?? '—').join(' · ')}
+          {t('ship.stops')}{' '}
+          {midStops.map((s, i) => {
+            let loc = s.city ?? '—'
+            const country = (s as any).country
+            if (country && !loc.includes(country)) {
+              loc = `${country} / ${loc}`
+            } else if ((s as any).place?.name && (s as any).place.name.includes('/')) {
+              loc = (s as any).place.name
+            }
+            const d = s.estimatedDate ? ` (${new Date(s.estimatedDate).toLocaleDateString('el-GR')})` : ''
+            return `${loc}${d}`
+          }).join(' · ')}
         </Text>
       )}
 
@@ -178,7 +191,7 @@ function OfferCard({
       {/* Buttons */}
       <View style={[styles.row, { flexWrap: 'wrap', gap: 6 }]}>
         <TouchableOpacity style={styles.btnView} onPress={() => onView(offer)}>
-          <Text style={styles.btnViewText}>Προβολή</Text>
+          <Text style={styles.btnViewText}>{t('ship.btn.view')}</Text>
         </TouchableOpacity>
 
         {isPending && (
@@ -190,14 +203,14 @@ function OfferCard({
             >
               {acceptMut.isPending
                 ? <ActivityIndicator size="small" color="#fff" />
-                : <Text style={styles.btnAcceptText}>Αποδοχή</Text>}
+                : <Text style={styles.btnAcceptText}>{t('ship.btn.accept')}</Text>}
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.btnReject}
               onPress={() => rejectMut.mutate()}
               disabled={rejectMut.isPending}
             >
-              <Text style={styles.btnRejectText}>Απόρριψη</Text>
+              <Text style={styles.btnRejectText}>{t('ship.btn.reject')}</Text>
             </TouchableOpacity>
           </>
         )}
@@ -205,7 +218,7 @@ function OfferCard({
         {isAccepted && (
           <View style={styles.acceptedBadge}>
             <Ionicons name="checkmark-circle" size={13} color={Colors.success} />
-            <Text style={styles.acceptedText}>Αποδεκτή</Text>
+            <Text style={styles.acceptedText}>{t('dash.offer.status.accepted')}</Text>
           </View>
         )}
 
@@ -216,14 +229,14 @@ function OfferCard({
               `/(tabs)/messages?shipmentId=${shipmentId}&returnTo=${encodeURIComponent(`/(tabs)/shipments/${shipmentId}`)}` as any
             )}
           >
-            <Text style={styles.btnMessageText}>✉️ Μηνύματα</Text>
+            <Text style={styles.btnMessageText}>{t('match.btn_messages')}</Text>
             <View style={styles.msgBadge}>
               <Text style={styles.msgBadgeText}>{msgCount}</Text>
             </View>
           </TouchableOpacity>
         ) : (
           <View style={styles.btnMessageOff}>
-            <Text style={styles.btnMessageOffText}>✉️ Μηνύματα</Text>
+            <Text style={styles.btnMessageOffText}>{t('match.btn_messages')}</Text>
             <View style={styles.msgBadgeOff}>
               <Text style={styles.msgBadgeOffText}>0</Text>
             </View>
@@ -243,6 +256,7 @@ function ViewOfferModal({
   shipmentTitle?: string
   onClose: () => void
 }) {
+  const { t } = useI18n()
   if (!offer) return null
   const companyName = offer.carrier?.company?.name ?? offer.carrier?.name ?? offer.carrier?.email ?? '—'
   const statusColor = STATUS_COLOR[offer.status] ?? Colors.textMuted
@@ -254,7 +268,7 @@ function ViewOfferModal({
           <View style={[styles.row, { justifyContent: 'space-between', marginBottom: 16 }]}>
             <View style={[styles.statusBadge, { backgroundColor: statusColor + '22' }]}>
               <Text style={[styles.statusText, { color: statusColor }]}>
-                {STATUS_LABEL[offer.status] ?? offer.status}
+                {OFFER_STATUS_KEY[offer.status] ? t(OFFER_STATUS_KEY[offer.status]) : offer.status}
               </Text>
             </View>
             <TouchableOpacity onPress={onClose} hitSlop={12}>
@@ -266,26 +280,26 @@ function ViewOfferModal({
 
           {shipmentTitle && (
             <View style={styles.modalRow}>
-              <Text style={styles.modalLabel}>ΑΠΟΣΤΟΛΗ</Text>
+              <Text style={styles.modalLabel}>{t('ship.modal.shipment')}</Text>
               <Text style={styles.modalValue}>{shipmentTitle}</Text>
             </View>
           )}
 
           <View style={styles.modalRow}>
-            <Text style={styles.modalLabel}>ΤΙΜΗ</Text>
+            <Text style={styles.modalLabel}>{t('ship.modal.price')}</Text>
             {offer.price != null && offer.price > 0
               ? <Text style={styles.modalPrice}>€{offer.price}</Text>
-              : <Text style={styles.muted}>Δεν έχει οριστεί ακόμα</Text>}
+              : <Text style={styles.muted}>{t('ship.modal.price_none')}</Text>}
           </View>
 
           <View style={styles.modalRow}>
-            <Text style={styles.modalLabel}>ΜΕΤΑΦΟΡΕΑΣ</Text>
+            <Text style={styles.modalLabel}>{t('ship.modal.carrier')}</Text>
             <Text style={styles.modalValue}>{companyName}</Text>
           </View>
 
           {offer.deliveryDate && (
             <View style={styles.modalRow}>
-              <Text style={styles.modalLabel}>ΠΑΡΑΔΟΣΗ</Text>
+              <Text style={styles.modalLabel}>{t('ship.modal.delivery')}</Text>
               <Text style={styles.modalValue}>
                 {new Date(offer.deliveryDate).toLocaleDateString('el-GR', { day: 'numeric', month: 'long', year: 'numeric' })}
               </Text>
@@ -293,7 +307,7 @@ function ViewOfferModal({
           )}
 
           <TouchableOpacity style={styles.btnClose} onPress={onClose}>
-            <Text style={styles.btnCloseText}>Κλείσιμο</Text>
+            <Text style={styles.btnCloseText}>{t('common.close')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -307,6 +321,7 @@ export default function ShipmentDetailScreen() {
   const { id, returnTo } = useLocalSearchParams<{ id: string; returnTo?: string }>()
   const goBack = () => router.replace((returnTo ? decodeURIComponent(returnTo) : '/(tabs)') as any)
   const [viewOffer, setViewOffer] = useState<Offer | null>(null)
+  const { t } = useI18n()
 
   const { data, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['shipment', id],
@@ -314,11 +329,11 @@ export default function ShipmentDetailScreen() {
     enabled: !!id,
   })
 
-  if (isLoading) return <LoadingScreen message="Φόρτωση..." />
+  if (isLoading) return <LoadingScreen message={t('ship.loading')} />
   if (!data) return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0a0a0a' }}>
       <Ionicons name="alert-circle-outline" size={40} color="rgba(255,255,255,0.3)" />
-      <Text style={{ color: 'rgba(255,255,255,0.3)', marginTop: 12 }}>Η αποστολή δεν βρέθηκε</Text>
+      <Text style={{ color: 'rgba(255,255,255,0.3)', marginTop: 12 }}>{t('ship.not_found')}</Text>
     </View>
   )
 
@@ -337,7 +352,7 @@ export default function ShipmentDetailScreen() {
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Αιτήσεις και Προσφορές Μεταφορέων</Text>
+          <Text style={styles.headerTitle}>{t('ship.title')}</Text>
           <Text style={styles.headerSub} numberOfLines={1}>{data.title}</Text>
         </View>
       </View>
@@ -350,20 +365,20 @@ export default function ShipmentDetailScreen() {
         {totalActive === 0 ? (
           <View style={styles.emptyState}>
             <Text style={{ fontSize: 48, marginBottom: 12 }}>📭</Text>
-            <Text style={styles.emptyTitle}>Δεν υπάρχουν αιτήματα</Text>
-            <Text style={styles.emptySubtitle}>Βρες διαθέσιμα δρομολόγια και στείλε αίτημα.</Text>
+            <Text style={styles.emptyTitle}>{t('ship.empty.title')}</Text>
+            <Text style={styles.emptySubtitle}>{t('ship.empty.sub')}</Text>
             <TouchableOpacity
               style={styles.routesBtn}
               onPress={() => router.push(`/(tabs)/shipments/matches/${id}?returnTo=${encodeURIComponent(`/(tabs)/shipments/${id}${returnTo ? `?returnTo=${returnTo}` : ''}`)}` as any)}
             >
-              <Text style={styles.routesBtnText}>Εμφάν. Δρομολογίων</Text>
+              <Text style={styles.routesBtnText}>{t('ship.empty.btn')}</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <>
             {requestOffers.length > 0 && (
               <View style={{ marginBottom: 24 }}>
-                <SectionHeader title="Αιτήσεις μου Για Προσφορά" count={requestOffers.length} />
+                <SectionHeader title={t('ship.sec.requests')} count={requestOffers.length} />
                 {requestOffers.map(o => (
                   <OfferCard key={o.id} offer={o} shipmentId={id!} onView={setViewOffer} />
                 ))}
@@ -372,7 +387,7 @@ export default function ShipmentDetailScreen() {
 
             {carrierOffers.length > 0 && (
               <View>
-                <SectionHeader title="Προσφορές Μεταφορέων" count={carrierOffers.length} />
+                <SectionHeader title={t('ship.sec.offers')} count={carrierOffers.length} />
                 {carrierOffers.map(o => (
                   <OfferCard key={o.id} offer={o} shipmentId={id!} onView={setViewOffer} />
                 ))}

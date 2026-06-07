@@ -8,6 +8,7 @@ import { useLocalSearchParams, router, Stack } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
 import { shipmentsApi, matchesApi, messagesApi, RouteMatch } from '@/lib/api'
+import { useI18n } from '@/lib/i18n'
 import { Colors } from '@/constants/colors'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -43,8 +44,9 @@ type RouteCardProps = {
 }
 
 function RouteCard({ route, isSent, onRequest, onMessage }: RouteCardProps) {
+  const { t } = useI18n()
   const icon = VEHICLE_ICON[route.vehicle?.type ?? ''] ?? '🚛'
-  const carrier = route.company?.name ?? 'Μεταφορέας'
+  const carrier = route.company?.name ?? t('match.carrier_fallback')
   const rating = route.company?.rating
   const depDate = fDate(route.departureDate)
   const arrDate = fDate(route.estimatedArrival ?? route.departureDate)
@@ -53,16 +55,21 @@ function RouteCard({ route, isSent, onRequest, onMessage }: RouteCardProps) {
 
   return (
     <View style={styles.card}>
-      {/* Row 1: vehicle icon + company name */}
-      <View style={[styles.row, { gap: 8, marginBottom: 4 }]}>
+      {/* Row 1: vehicle icon + company name + status */}
+      <View style={[styles.row, { gap: 8, marginBottom: 4, flexWrap: 'wrap' }]}>
         <Text style={{ fontSize: 20 }}>{icon}</Text>
         <Text style={styles.carrierName}>{carrier}</Text>
+        {!!route.status && (
+          <Text style={{ color: '#FBBF24', fontSize: 12, fontWeight: '700' }}>
+            {route.status}
+          </Text>
+        )}
       </View>
 
       {/* Row 2: Επαναλαμβανόμενο (μόνο αν ισχύει) */}
       {route.isRecurring && (
         <View style={[styles.recurringChip, { alignSelf: 'flex-start', marginBottom: 8 }]}>
-          <Text style={styles.recurringText}>Επαναλαμβανόμενο</Text>
+          <Text style={styles.recurringText}>{t('match.recurring')}</Text>
         </View>
       )}
 
@@ -77,14 +84,24 @@ function RouteCard({ route, isSent, onRequest, onMessage }: RouteCardProps) {
 
       {/* Mid stops */}
       {midStops.length > 0 && (
-        <Text style={styles.stopsText} numberOfLines={1}>
-          {midStops.map(s => s.city ?? '—').join(', ')}
+        <Text style={styles.stopsText} numberOfLines={2}>
+          {midStops.map(s => {
+            let loc = s.city ?? '—'
+            const country = (s as any).country
+            if (country && !loc.includes(country)) {
+              loc = `${country} / ${loc}`
+            } else if (s.place?.name && s.place.name.includes('/')) {
+              loc = s.place.name
+            }
+            const d = s.estimatedDate ? ` (${fDate(s.estimatedDate)})` : ''
+            return `${loc}${d}`
+          }).join(' → ')}
         </Text>
       )}
 
-      {/* Price + CTA */}
-      <View style={[styles.row, { marginTop: 10, justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }]}>
-        <View>
+      {/* Price */}
+      {(route.pricePerKg != null || route.pricePerM3 != null) && (
+        <View style={{ marginTop: 10, marginBottom: 4 }}>
           {route.pricePerKg != null && (
             <Text style={styles.priceText}>€{route.pricePerKg}/kg</Text>
           )}
@@ -92,27 +109,28 @@ function RouteCard({ route, isSent, onRequest, onMessage }: RouteCardProps) {
             <Text style={styles.priceSubText}>€{route.pricePerM3}/m³</Text>
           )}
         </View>
+      )}
 
-        <View style={[styles.row, { gap: 8, flexWrap: 'wrap' }]}>
-          {isSent ? (
-            <View style={styles.sentBadge}>
-              <Ionicons name="checkmark-circle" size={14} color={Colors.success} />
-              <Text style={styles.sentText}>Έχει Σταλεί Αίτημα</Text>
-            </View>
-          ) : (
-            <TouchableOpacity style={styles.requestBtn} onPress={onRequest} activeOpacity={0.85}>
-              <Text style={styles.requestBtnText}>Αίτημα Προσφοράς</Text>
-            </TouchableOpacity>
-          )}
-
-          {/* Μηνύματα */}
-          <TouchableOpacity style={styles.msgBtn} onPress={onMessage} activeOpacity={0.85}>
-            <Text style={styles.msgBtnText}>Μηνύματα</Text>
-            <View style={styles.msgBadge}>
-              <Text style={styles.msgBadgeText}>{route.messageCount ?? 0}</Text>
-            </View>
+      {/* CTA */}
+      <View style={[styles.row, { gap: 8, flexWrap: 'wrap', marginTop: 10, justifyContent: 'flex-start' }]}>
+        {isSent ? (
+          <View style={styles.sentBadge}>
+            <Ionicons name="checkmark-circle" size={14} color="#4ADE80" />
+            <Text style={styles.sentText}>{t('match.btn_sent')}</Text>
+          </View>
+        ) : (
+          <TouchableOpacity style={styles.requestBtn} onPress={onRequest} activeOpacity={0.85}>
+            <Text style={styles.requestBtnText}>{t('match.btn_request')}</Text>
           </TouchableOpacity>
-        </View>
+        )}
+
+        {/* Μηνύματα */}
+        <TouchableOpacity style={[styles.msgBtn, (route.messageCount ?? 0) > 0 ? styles.msgBtnActive : styles.msgBtnOff]} onPress={onMessage} activeOpacity={0.85}>
+          <Text style={(route.messageCount ?? 0) > 0 ? styles.msgBtnActiveText : styles.msgBtnOffText}>{t('match.btn_messages')}</Text>
+          <View style={(route.messageCount ?? 0) > 0 ? styles.msgBadge : styles.msgBadgeOff}>
+            <Text style={(route.messageCount ?? 0) > 0 ? styles.msgBadgeText : styles.msgBadgeOffText}>{route.messageCount ?? 0}</Text>
+          </View>
+        </TouchableOpacity>
       </View>
     </View>
   )
@@ -124,6 +142,7 @@ export default function MatchesScreen() {
   const { id: shipmentId, title: titleParam, returnTo } = useLocalSearchParams<{ id: string; title?: string; returnTo?: string }>()
   const goBack = () => router.replace((returnTo ? decodeURIComponent(returnTo) : '/(tabs)') as any)
   const queryClient = useQueryClient()
+  const { t } = useI18n()
 
   const [modalRoute, setModalRoute] = useState<RouteMatch | null>(null)
   const [messageText, setMessageText] = useState('')
@@ -208,35 +227,35 @@ export default function MatchesScreen() {
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, backgroundColor: Colors.surface }}>
+      <View style={{ flex: 1, backgroundColor: '#0a0a0a' }}>
         <View style={styles.header}>
           <TouchableOpacity onPress={goBack} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="arrow-back" size={22} color="#fff" />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
-            <Text style={styles.headerTitle}>Διαθέσιμα Δρομολόγια</Text>
+            <Text style={styles.headerTitle}>{t('match.title')}</Text>
             {titleParam ? (
               <Text style={styles.headerSub} numberOfLines={1}>{decodeURIComponent(titleParam)}</Text>
             ) : null}
           </View>
         </View>
         <View style={styles.center}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={styles.loadingText}>Αναζήτηση δρομολογίων…</Text>
+          <ActivityIndicator size="large" color="#FBBF24" />
+          <Text style={styles.loadingText}>{t('match.loading')}</Text>
         </View>
       </View>
     )
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.surface }}>
+    <View style={{ flex: 1, backgroundColor: '#0a0a0a' }}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={goBack} style={styles.backBtn} hitSlop={12}>
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Διαθέσιμα Δρομολόγια</Text>
+          <Text style={styles.headerTitle}>{t('match.title')}</Text>
           {(shipmentData?.title || titleParam) ? (
             <Text style={styles.headerSub} numberOfLines={1}>
               {shipmentData?.title ?? decodeURIComponent(titleParam ?? '')}
@@ -256,9 +275,9 @@ export default function MatchesScreen() {
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text style={{ fontSize: 40, marginBottom: 12 }}>🔍</Text>
-            <Text style={styles.emptyTitle}>Δεν βρέθηκαν δρομολόγια</Text>
+            <Text style={styles.emptyTitle}>{t('match.empty_title')}</Text>
             <Text style={styles.emptySubtitle}>
-              Δοκίμασε να επεξεργαστείς την αποστολή και να επιλέξεις πόλεις από τη λίστα προτάσεων.
+              {t('match.empty_sub')}
             </Text>
           </View>
         }
@@ -282,11 +301,11 @@ export default function MatchesScreen() {
             {/* Modal header */}
             <View style={[styles.row, { justifyContent: 'space-between', marginBottom: 16 }]}>
               <View>
-                <Text style={styles.modalLabel}>ΑΙΤΗΜΑ</Text>
-                <Text style={styles.modalTitle}>Αίτημα Προσφοράς</Text>
+                <Text style={styles.modalLabel}>{t('match.modal.req_label')}</Text>
+                <Text style={styles.modalTitle}>{t('match.modal.req_title')}</Text>
               </View>
               <TouchableOpacity onPress={closeModal} hitSlop={12}>
-                <Ionicons name="close" size={22} color={Colors.textMuted} />
+                <Ionicons name="close" size={22} color="rgba(255,255,255,0.4)" />
               </TouchableOpacity>
             </View>
 
@@ -299,7 +318,7 @@ export default function MatchesScreen() {
                   </Text>
                   <Text style={styles.modalRouteNum}>#{routeNumber(modalRoute)}</Text>
                   <Text style={styles.modalCarrierName}>
-                    {modalRoute.company?.name ?? 'Μεταφορέας'}
+                    {modalRoute.company?.name ?? t('match.carrier_fallback')}
                   </Text>
                 </View>
                 <View style={[styles.row, { gap: 6, flexWrap: 'wrap' }]}>
@@ -314,8 +333,8 @@ export default function MatchesScreen() {
             <TextInput
               value={messageText}
               onChangeText={setMessageText}
-              placeholder="Γράψε το μήνυμά σου στον μεταφορέα (προαιρετικό)…"
-              placeholderTextColor={Colors.textMuted}
+              placeholder={t('match.modal.req_placeholder')}
+              placeholderTextColor="rgba(255,255,255,0.4)"
               multiline
               numberOfLines={4}
               style={styles.messageInput}
@@ -325,7 +344,7 @@ export default function MatchesScreen() {
             {/* Buttons */}
             <View style={[styles.row, { gap: 10, marginTop: 16 }]}>
               <TouchableOpacity style={styles.cancelBtn} onPress={closeModal}>
-                <Text style={styles.cancelBtnText}>Ακύρωση</Text>
+                <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.sendBtn, sending && { opacity: 0.6 }]}
@@ -334,7 +353,7 @@ export default function MatchesScreen() {
               >
                 {sending
                   ? <ActivityIndicator size="small" color="#000" />
-                  : <Text style={styles.sendBtnText}>Αποστολή</Text>
+                  : <Text style={styles.sendBtnText}>{t('common.send')}</Text>
                 }
               </TouchableOpacity>
             </View>
@@ -351,11 +370,11 @@ export default function MatchesScreen() {
           <View style={styles.modalCard}>
             <View style={[styles.row, { justifyContent: 'space-between', marginBottom: 16 }]}>
               <View>
-                <Text style={styles.modalLabel}>ΜΗΝΥΜΑ</Text>
-                <Text style={styles.modalTitle}>Αποστολή Μηνύματος</Text>
+                <Text style={styles.modalLabel}>{t('match.modal.msg_label')}</Text>
+                <Text style={styles.modalTitle}>{t('match.modal.msg_title')}</Text>
               </View>
               <TouchableOpacity onPress={() => setMsgModal(null)} hitSlop={12}>
-                <Ionicons name="close" size={22} color={Colors.textMuted} />
+                <Ionicons name="close" size={22} color="rgba(255,255,255,0.4)" />
               </TouchableOpacity>
             </View>
 
@@ -367,7 +386,7 @@ export default function MatchesScreen() {
                   </Text>
                   <Text style={styles.modalRouteNum}>#{routeNumber(msgModal)}</Text>
                   <Text style={styles.modalCarrierName}>
-                    {msgModal.company?.name ?? 'Μεταφορέας'}
+                    {msgModal.company?.name ?? t('match.carrier_fallback')}
                   </Text>
                 </View>
                 <View style={[styles.row, { gap: 6, flexWrap: 'wrap' }]}>
@@ -381,8 +400,8 @@ export default function MatchesScreen() {
             <TextInput
               value={msgText}
               onChangeText={setMsgText}
-              placeholder="Γράψε το μήνυμά σου…"
-              placeholderTextColor={Colors.textMuted}
+              placeholder={t('match.modal.msg_placeholder')}
+              placeholderTextColor="rgba(255,255,255,0.4)"
               multiline
               numberOfLines={4}
               style={styles.messageInput}
@@ -391,7 +410,7 @@ export default function MatchesScreen() {
 
             <View style={[styles.row, { gap: 10, marginTop: 16 }]}>
               <TouchableOpacity style={styles.cancelBtn} onPress={() => setMsgModal(null)}>
-                <Text style={styles.cancelBtnText}>Ακύρωση</Text>
+                <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.sendBtn, (sendingMsg || !msgText.trim()) && { opacity: 0.5 }]}
@@ -403,7 +422,7 @@ export default function MatchesScreen() {
               >
                 {sendingMsg
                   ? <ActivityIndicator size="small" color="#000" />
-                  : <Text style={styles.sendBtnText}>Αποστολή</Text>
+                  : <Text style={styles.sendBtnText}>{t('common.send')}</Text>
                 }
               </TouchableOpacity>
             </View>
@@ -419,129 +438,139 @@ export default function MatchesScreen() {
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  loadingText: { color: Colors.textMuted, fontSize: 14 },
+  loadingText: { color: 'rgba(255,255,255,0.4)', fontSize: 14 },
 
   // Header
   header: {
-    backgroundColor: Colors.primary,
+    backgroundColor: '#0a0a0a',
+    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)',
     paddingTop: 56, paddingBottom: 16, paddingHorizontal: 20,
     flexDirection: 'row', alignItems: 'center', gap: 12,
   },
   backBtn: { padding: 4 },
   headerTitle: { color: '#fff', fontSize: 18, fontWeight: '800' },
-  headerSub: { color: '#93C5FD', fontSize: 12, marginTop: 2 },
+  headerSub: { color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2 },
   countBadge: {
-    backgroundColor: Colors.accent, borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 14,
     minWidth: 28, height: 28, alignItems: 'center', justifyContent: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)'
   },
-  countText: { color: '#000', fontWeight: '800', fontSize: 13 },
+  countText: { color: '#fff', fontWeight: '800', fontSize: 13 },
 
   // Shipment summary
   shipmentCard: {
-    backgroundColor: '#FFFBEB', borderBottomWidth: 1, borderBottomColor: '#FDE68A',
+    backgroundColor: 'rgba(255,255,255,0.03)', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)',
     paddingHorizontal: 16, paddingVertical: 12,
   },
-  shipmentRoute: { fontSize: 14, fontWeight: '700', color: Colors.textPrimary, flex: 1 },
-  shipmentDetail: { fontSize: 13, color: Colors.textSecondary },
+  shipmentRoute: { fontSize: 14, fontWeight: '700', color: '#fff', flex: 1 },
+  shipmentDetail: { fontSize: 13, color: 'rgba(255,255,255,0.5)' },
 
   // Route card
   card: {
-    backgroundColor: '#fff', borderRadius: 16,
-    borderWidth: 1, borderColor: Colors.border,
+    backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
     padding: 14, marginBottom: 10,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05, shadowRadius: 3, elevation: 1,
   },
   row: { flexDirection: 'row', alignItems: 'center' },
-  routeNum: { fontSize: 12, fontWeight: '700', color: Colors.accent, fontVariant: ['tabular-nums'] },
+  routeNum: { fontSize: 12, fontWeight: '700', color: '#FBBF24', fontVariant: ['tabular-nums'] },
   carrierChip: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#F1F5F9', borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 20,
     paddingHorizontal: 8, paddingVertical: 3,
   },
-  carrierName: { fontSize: 15, fontWeight: '700', color: Colors.textPrimary },
-  carrierText: { fontSize: 12, color: Colors.textPrimary, fontWeight: '600' },
-  ratingText:  { fontSize: 11, color: Colors.accent, fontWeight: '700' },
+  carrierName: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  carrierText: { fontSize: 12, color: '#fff', fontWeight: '600' },
+  ratingText:  { fontSize: 11, color: '#FBBF24', fontWeight: '700' },
   recurringChip: {
-    backgroundColor: '#FEF3C7', borderRadius: 20,
+    backgroundColor: 'rgba(251,191,36,0.1)', borderRadius: 20,
     paddingHorizontal: 8, paddingVertical: 3,
   },
-  recurringText: { fontSize: 11, color: '#D97706', fontWeight: '600' },
+  recurringText: { fontSize: 11, color: '#FBBF24', fontWeight: '600' },
   distChip: {
     flexDirection: 'row', alignItems: 'center', gap: 3,
-    backgroundColor: '#EFF6FF', borderRadius: 20,
+    backgroundColor: 'rgba(96,165,250,0.1)', borderRadius: 20,
     paddingHorizontal: 8, paddingVertical: 3,
   },
-  distText: { fontSize: 11, color: Colors.primary, fontWeight: '600' },
-  cityText:  { fontSize: 13, fontWeight: '700', color: Colors.textPrimary },
-  dateText:  { fontSize: 12, color: Colors.textMuted },
-  arrow:     { fontSize: 12, color: Colors.textMuted },
-  stopsText: { fontSize: 11, color: Colors.textMuted, marginTop: 2, marginLeft: 2 },
-  capacityText: { fontSize: 12, color: Colors.textSecondary },
-  priceText:    { fontSize: 16, fontWeight: '800', color: Colors.accent },
-  priceSubText: { fontSize: 12, color: Colors.textMuted },
+  distText: { fontSize: 11, color: '#60A5FA', fontWeight: '600' },
+  cityText:  { fontSize: 13, fontWeight: '700', color: '#fff' },
+  dateText:  { fontSize: 12, color: 'rgba(255,255,255,0.4)' },
+  arrow:     { fontSize: 12, color: 'rgba(255,255,255,0.4)' },
+  stopsText: { fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2, marginLeft: 2 },
+  capacityText: { fontSize: 12, color: 'rgba(255,255,255,0.4)' },
+  priceText:    { fontSize: 16, fontWeight: '800', color: '#FBBF24' },
+  priceSubText: { fontSize: 12, color: 'rgba(255,255,255,0.4)' },
   sentBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: '#F0FDF4', borderRadius: 10,
+    backgroundColor: 'rgba(74,222,128,0.1)', borderRadius: 10,
     paddingHorizontal: 12, paddingVertical: 7,
   },
-  sentText: { fontSize: 12, fontWeight: '700', color: Colors.success },
+  sentText: { fontSize: 12, fontWeight: '700', color: '#4ADE80' },
   requestBtn: {
-    backgroundColor: Colors.accent, borderRadius: 10,
+    backgroundColor: '#FBBF24', borderRadius: 10,
     paddingHorizontal: 14, paddingVertical: 9,
   },
   requestBtnText: { fontSize: 13, fontWeight: '700', color: '#000' },
+  
   msgBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: Colors.accent, borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 9,
+    borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9,
+    borderWidth: 1,
   },
-  msgBtnText: { fontSize: 13, fontWeight: '700', color: '#000' },
-  msgBadge: {
-    minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 4,
+  msgBtnOff: { backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.1)' },
+  msgBtnActive: { backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.1)' },
+  msgBtnOffText: { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.5)' },
+  msgBtnActiveText: { fontSize: 12, fontWeight: '600', color: '#60A5FA' },
+  msgBadgeOff: {
+    minWidth: 17, height: 17, borderRadius: 9, paddingHorizontal: 3,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.2)',
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
-  msgBadgeText: { fontSize: 11, fontWeight: '800', color: '#000' },
+  msgBadgeOffText: { fontSize: 10, fontWeight: '700', color: 'rgba(255,255,255,0.35)' },
+  msgBadge: {
+    minWidth: 17, height: 17, borderRadius: 9, paddingHorizontal: 3,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  msgBadgeText: { fontSize: 10, fontWeight: '700', color: '#60A5FA' },
 
   // Empty
   empty: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 24 },
-  emptyTitle:    { fontSize: 16, fontWeight: '700', color: Colors.textPrimary, marginBottom: 8 },
-  emptySubtitle: { fontSize: 13, color: Colors.textMuted, textAlign: 'center', lineHeight: 20 },
+  emptyTitle:    { fontSize: 16, fontWeight: '700', color: '#fff', marginBottom: 8 },
+  emptySubtitle: { fontSize: 13, color: 'rgba(255,255,255,0.4)', textAlign: 'center', lineHeight: 20 },
 
   // Modal
   modalOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.5)',
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.8)',
     justifyContent: 'flex-end',
   },
   modalCard: {
-    backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    backgroundColor: '#111', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', borderBottomWidth: 0,
     paddingHorizontal: 20, paddingTop: 20, paddingBottom: 36,
   },
-  modalLabel: { fontSize: 10, fontWeight: '800', color: Colors.accent, letterSpacing: 1.5 },
-  modalTitle: { fontSize: 18, fontWeight: '800', color: Colors.textPrimary, marginTop: 2 },
+  modalLabel: { fontSize: 10, fontWeight: '800', color: '#FBBF24', letterSpacing: 1.5 },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginTop: 2 },
   modalRouteInfo: {
-    backgroundColor: '#F8FAFC', borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12,
     padding: 12, marginBottom: 14,
-    borderWidth: 1, borderColor: Colors.border,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
   },
-  modalRouteNum:    { fontSize: 12, fontWeight: '700', color: Colors.accent },
-  modalCarrierName: { fontSize: 13, fontWeight: '600', color: Colors.textPrimary },
-  modalCityText:    { fontSize: 14, fontWeight: '700', color: Colors.textPrimary },
+  modalRouteNum:    { fontSize: 12, fontWeight: '700', color: '#FBBF24' },
+  modalCarrierName: { fontSize: 13, fontWeight: '600', color: '#fff' },
+  modalCityText:    { fontSize: 14, fontWeight: '700', color: '#fff' },
   messageInput: {
-    borderWidth: 1, borderColor: Colors.border, borderRadius: 12,
-    padding: 12, fontSize: 14, color: Colors.textPrimary,
-    minHeight: 100, backgroundColor: '#FAFAFA',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', borderRadius: 12,
+    padding: 12, fontSize: 14, color: '#fff',
+    minHeight: 100, backgroundColor: 'rgba(255,255,255,0.04)',
   },
   cancelBtn: {
-    flex: 1, borderWidth: 1, borderColor: Colors.border, borderRadius: 12,
+    flex: 1, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', borderRadius: 12,
     paddingVertical: 13, alignItems: 'center',
   },
-  cancelBtnText: { fontSize: 14, color: Colors.textSecondary, fontWeight: '600' },
+  cancelBtnText: { fontSize: 14, color: '#fff', fontWeight: '600' },
   sendBtn: {
-    flex: 1, backgroundColor: Colors.accent, borderRadius: 12,
+    flex: 1, backgroundColor: '#FBBF24', borderRadius: 12,
     paddingVertical: 13, alignItems: 'center',
   },
-  sendBtnText: { fontSize: 14, fontWeight: '800', color: '#000' },
+  sendBtnText: { fontSize: 14, fontWeight: '800', color: '#000' }
 })

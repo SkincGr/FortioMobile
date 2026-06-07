@@ -118,8 +118,13 @@ export type DashboardData = {
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
 export const authApi = {
-  login: (data: { email: string; password: string }) =>
-    api.post<{ token: string; user: AuthUser }>('/api/auth/mobile/login', data),
+  login: (data: { identifier: string; password: string }) => {
+    const isEmail = data.identifier.includes('@')
+    const body = isEmail
+      ? { email: data.identifier, password: data.password }
+      : { username: data.identifier, password: data.password }
+    return api.post<{ token: string; user: AuthUser }>('/api/auth/mobile/login', body)
+  },
 
   register: (data: { name: string; email: string; password: string; phone?: string }) =>
     api.post<{ message: string }>('/api/register', data),

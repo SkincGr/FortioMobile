@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '@/lib/auth'
 import { api } from '@/lib/api'
 import { LoadingScreen } from '@/components/ui/LoadingScreen'
+import { useI18n, translateText } from '@/lib/i18n'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -53,6 +54,7 @@ function parseContent(content: string) {
 export default function ChatScreen() {
   const { offerId, returnTo } = useLocalSearchParams<{ offerId: string; returnTo?: string }>()
   const { user } = useAuth()
+  const { t, language, autoTranslate } = useI18n()
   const myId = user?.id
   const flatListRef = useRef<FlatList>(null)
 
@@ -67,12 +69,42 @@ export default function ChatScreen() {
   async function loadThread() {
     try {
       const r = await api.get<ThreadData>(`/api/messages?offerId=${offerId}`)
-      setData(r.data)
+      let d = r.data
+      if (autoTranslate && d.messages) {
+        const translatedMessages = await Promise.all(d.messages.map(async m => {
+          try {
+            const [trContent, trOrigin, trDest] = await Promise.all([
+              translateText(m.content, language),
+              m.route?.originCity ? translateText(m.route.originCity, language) : null,
+              m.route?.destCity ? translateText(m.route.destCity, language) : null,
+            ])
+            const trRoute = m.route ? { ...m.route } : null
+            if (trRoute && trOrigin) trRoute.originCity = trOrigin
+            if (trRoute && trDest) trRoute.destCity = trDest
+            return { ...m, content: trContent, route: trRoute }
+          } catch {
+            return m
+          }
+        }))
+        d = { ...d, messages: translatedMessages }
+        
+        if (d.shipment) {
+          const [trTitle, trOrigin, trDest] = await Promise.all([
+            d.shipment.title ? translateText(d.shipment.title, language) : null,
+            d.shipment.originCity ? translateText(d.shipment.originCity, language) : null,
+            d.shipment.destCity ? translateText(d.shipment.destCity, language) : null,
+          ])
+          if (trTitle) d.shipment.title = trTitle
+          if (trOrigin) d.shipment.originCity = trOrigin
+          if (trDest) d.shipment.destCity = trDest
+        }
+      }
+      setData(d)
     } catch {}
     setLoading(false)
   }
 
-  useEffect(() => { loadThread() }, [offerId])
+  useEffect(() => { loadThread() }, [offerId, autoTranslate, language])
 
   useEffect(() => {
     if ((data?.messages?.length ?? 0) > 0) {
@@ -113,16 +145,16 @@ export default function ChatScreen() {
       await loadThread()
       setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 200)
     } catch (e: any) {
-      Alert.alert('Σφάλμα', e?.response?.data?.error || 'Αποτυχία αποστολής')
+      Alert.alert(t('common.error'), e?.response?.data?.error || t('msg.error.send'))
     }
     setSending(false)
   }
 
-  if (loading) return <LoadingScreen message="Φόρτωση συνομιλίας..." />
+  if (loading) return <LoadingScreen message={t('msg.loading')} />
 
   const messages = data?.messages ?? []
   const thread = data
-  const carrierLabel = thread?.carrier?.company?.name ?? thread?.carrier?.name ?? 'Μεταφορέας'
+  const carrierLabel = thread?.carrier?.company?.name ?? thread?.carrier?.name ?? t('match.carrier_fallback')
   const route = thread?.route
   const routeNum = route?.routeNumber || (route?.id ? route.id.slice(-8).toUpperCase() : null)
 
@@ -136,12 +168,12 @@ export default function ChatScreen() {
           style={s.backBtn} hitSlop={10}
         >
           <Ionicons name="arrow-back" size={20} color="#fff" />
-          <Text style={s.backBtnText}>Επιστροφή</Text>
+          <Text style={s.backBtnText}>{t('msg.back')}</Text>
         </TouchableOpacity>
         <View style={s.sep} />
         <View style={{ flex: 1 }}>
           <Text style={s.headerTitle} numberOfLines={1}>
-            {thread?.shipment?.title ?? 'Συνομιλία'}
+            {thread?.shipment?.title ?? t('msg.tab_messages')}
           </Text>
           {routeNum && (
             <Text style={s.headerSub} numberOfLines={1}>
@@ -162,7 +194,7 @@ export default function ChatScreen() {
         ListEmptyComponent={
           <View style={s.empty}>
             <Ionicons name="chatbubbles-outline" size={48} color="rgba(255,255,255,0.15)" />
-            <Text style={s.emptyText}>Δεν υπάρχουν μηνύματα</Text>
+            <Text style={s.emptyText}>{t('msg.empty')}</Text>
           </View>
         }
         renderItem={({ item }) => (
@@ -183,7 +215,7 @@ export default function ChatScreen() {
         <TextInput
           ref={subjectRef}
           style={s.subjectInput}
-          placeholder="Θέμα..."
+          placeholder={t('msg.ph.subject')}
           placeholderTextColor="rgba(255,255,255,0.3)"
           value={subject}
           onChangeText={setSubject}
@@ -191,7 +223,7 @@ export default function ChatScreen() {
         <View style={s.replyRow}>
           <TextInput
             style={s.input}
-            placeholder="Γράψε απάντηση..."
+            placeholder={t('msg.ph.body')}
             placeholderTextColor="rgba(255,255,255,0.3)"
             value={text}
             onChangeText={setText}
@@ -205,14 +237,14 @@ export default function ChatScreen() {
             >
               {sending
                 ? <ActivityIndicator size="small" color="#000" />
-                : <Text style={s.sendBtnText}>Απάντηση</Text>
+                : <Text style={s.sendBtnText}>{t('msg.btn.reply')}</Text>
               }
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => { setText(''); setSubject(''); setReplyMsgType(null); subjectRef.current?.blur() }}
-              style={s.sendBtn}
+              style={[s.sendBtn, s.cancelBtn]}
             >
-              <Text style={s.sendBtnText}>Ακύρωση</Text>
+              <Text style={s.sendBtnText}>{t('common.cancel')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -232,6 +264,7 @@ function MessageRow({ msg, myId, carrierName, route, onToggleRead, onReply, onNe
   onReply: () => void
   onNew: () => void
 }) {
+  const { t } = useI18n()
   const isOutgoing = msg.sender?.id === myId
   const { subject, body } = parseContent(msg.content)
   const displaySubject = subject || msg.subject || msg.category || ''
@@ -246,13 +279,13 @@ function MessageRow({ msg, myId, carrierName, route, onToggleRead, onReply, onNe
         <View style={s.senderRow}>
           {isOutgoing ? (
             <>
-              <Text style={s.dirLabel}>Προς: </Text>
+              <Text style={s.dirLabel}>{t('msg.to')} </Text>
               <Text style={[s.senderName, s.senderOut]}>{carrierName}</Text>
               <View style={[s.dirDiamond, { backgroundColor: '#60A5FA' }]} />
             </>
           ) : (
             <>
-              <Text style={s.dirLabel}>Από: </Text>
+              <Text style={s.dirLabel}>{t('msg.from')} </Text>
               <Text style={[s.senderName, s.senderIn]}>{senderName}</Text>
               <View style={[s.dirDiamond, { backgroundColor: '#4ADE80' }]} />
             </>
@@ -261,7 +294,7 @@ function MessageRow({ msg, myId, carrierName, route, onToggleRead, onReply, onNe
         </View>
         <View style={[s.readBadge, msg.isRead ? s.readBadgeRead : s.readBadgeUnread]}>
           <Text style={[s.readBadgeText, msg.isRead ? s.readBadgeReadText : s.readBadgeUnreadText]}>
-            {msg.isRead ? '✓ Διαβάστηκε' : 'Αδιάβαστο'}
+            {msg.isRead ? t('msg.read') : t('msg.unread')}
           </Text>
         </View>
       </View>
@@ -291,16 +324,16 @@ function MessageRow({ msg, myId, carrierName, route, onToggleRead, onReply, onNe
       <View style={s.actionsRow}>
         {!isOutgoing && (
           <TouchableOpacity onPress={onToggleRead} style={s.actionBtn}>
-            <Text style={s.actionBtnText}>{msg.isRead ? '✓ Διαβάστηκε' : 'Διαβάστηκε'}</Text>
+            <Text style={s.actionBtnText}>{msg.isRead ? t('msg.read') : t('msg.mark_read')}</Text>
           </TouchableOpacity>
         )}
         {!isOutgoing && (
           <TouchableOpacity onPress={onReply} style={s.actionBtn}>
-            <Text style={s.actionBtnText}>Απάντηση</Text>
+            <Text style={s.actionBtnText}>{t('msg.btn.reply')}</Text>
           </TouchableOpacity>
         )}
         <TouchableOpacity onPress={onNew} style={s.actionBtn}>
-          <Text style={s.actionBtnText}>Νέο</Text>
+          <Text style={s.actionBtnText}>{t('msg.btn.new')}</Text>
         </TouchableOpacity>
       </View>
     </View>

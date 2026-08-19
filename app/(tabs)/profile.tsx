@@ -32,6 +32,7 @@ export default function ProfileScreen() {
         { icon: 'person-outline',             label: t('profile.personal_info') || 'Προσωπικά Στοιχεία',  onPress: () => router.push('/(tabs)/profile-personal' as any) },
         { icon: 'key-outline',                label: t('profile.change_pass'),     onPress: () => router.push('/(tabs)/profile-password' as any) },
         { icon: 'lock-closed-outline',        label: t('profile.forgot_pass'), onPress: () => router.push('/(auth)/forgot-password') },
+        { icon: 'copy-outline',               label: 'Πρότυπα Μηνυμάτων & Email', onPress: () => router.push('/(tabs)/templates' as any) },
         { icon: 'notifications-outline',      label: t('profile.notifications'), onPress: () => {} },
         { icon: 'help-circle-outline',        label: t('profile.help'),     onPress: () => {} },
         { icon: 'information-circle-outline', label: t('profile.about'),    onPress: () => {} },

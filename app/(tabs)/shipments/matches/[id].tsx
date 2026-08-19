@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { shipmentsApi, matchesApi, messagesApi, RouteMatch } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
 import { Colors } from '@/constants/colors'
-import { DEFAULT_TEMPLATES, renderTemplate } from '@/lib/templates'
+import { SENDER_TEMPLATES, renderTemplate } from '@/lib/templates'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -336,7 +336,7 @@ export default function MatchesScreen() {
                 📋 {t('templates.quick_select')}
               </Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-                {DEFAULT_TEMPLATES.map(tpl => (
+                {SENDER_TEMPLATES.map(tpl => (
                   <TouchableOpacity
                     key={tpl.id}
                     style={styles.templateChip}
@@ -429,7 +429,7 @@ export default function MatchesScreen() {
                 📋 {t('templates.quick_select')}
               </Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-                {DEFAULT_TEMPLATES.map(tpl => (
+                {SENDER_TEMPLATES.map(tpl => (
                   <TouchableOpacity
                     key={tpl.id}
                     style={styles.templateChip}

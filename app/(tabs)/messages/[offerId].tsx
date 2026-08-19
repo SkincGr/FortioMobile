@@ -10,7 +10,7 @@ import { useAuth } from '@/lib/auth'
 import { api } from '@/lib/api'
 import { LoadingScreen } from '@/components/ui/LoadingScreen'
 import { useI18n, translateText } from '@/lib/i18n'
-import { DEFAULT_TEMPLATES, renderTemplate } from '@/lib/templates'
+import { getTemplatesForRole, renderTemplate } from '@/lib/templates'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -216,7 +216,7 @@ export default function ChatScreen() {
         {/* Quick Template Chips */}
         <View style={{ marginBottom: 4 }}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-            {DEFAULT_TEMPLATES.map(tpl => (
+            {getTemplatesForRole(user?.role).map(tpl => (
               <TouchableOpacity
                 key={tpl.id}
                 style={s.templateChip}

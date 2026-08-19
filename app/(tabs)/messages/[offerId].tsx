@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import {
   View, Text, FlatList, TouchableOpacity, TextInput,
   KeyboardAvoidingView, Platform, ActivityIndicator,
-  Alert, StyleSheet,
+  Alert, StyleSheet, ScrollView,
 } from 'react-native'
 import { useLocalSearchParams, router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
@@ -10,6 +10,7 @@ import { useAuth } from '@/lib/auth'
 import { api } from '@/lib/api'
 import { LoadingScreen } from '@/components/ui/LoadingScreen'
 import { useI18n, translateText } from '@/lib/i18n'
+import { DEFAULT_TEMPLATES, renderTemplate } from '@/lib/templates'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -212,6 +213,30 @@ export default function ChatScreen() {
 
       {/* ── Reply footer ── */}
       <View style={s.footer}>
+        {/* Quick Template Chips */}
+        <View style={{ marginBottom: 4 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+            {DEFAULT_TEMPLATES.map(tpl => (
+              <TouchableOpacity
+                key={tpl.id}
+                style={s.templateChip}
+                onPress={() => {
+                  const rendered = renderTemplate(tpl.content, {
+                    shipment_title: data?.shipment?.title,
+                    origin_city: data?.shipment?.originCity,
+                    dest_city: data?.shipment?.destCity,
+                    carrier_name: carrierLabel,
+                  })
+                  setText(rendered)
+                  if (!subject) setSubject(tpl.title)
+                }}
+              >
+                <Text style={s.templateChipText}>{tpl.icon ? `${tpl.icon} ` : ''}{tpl.title}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
         <TextInput
           ref={subjectRef}
           style={s.subjectInput}
@@ -417,4 +442,10 @@ const s = StyleSheet.create({
   sendBtnText:     { color: '#000', fontWeight: '700', fontSize: 12 },
   cancelBtn:       { backgroundColor: 'rgba(255,255,255,0.08)' },
   cancelBtnText:   { color: '#fff', fontWeight: '600', fontSize: 12 },
+  templateChip: {
+    backgroundColor: 'rgba(245,158,11,0.1)',
+    borderWidth: 1, borderColor: 'rgba(245,158,11,0.25)',
+    borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5,
+  },
+  templateChipText: { fontSize: 11, fontWeight: '600', color: '#F59E0B' },
 })

@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { shipmentsApi, matchesApi, messagesApi, RouteMatch } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
 import { Colors } from '@/constants/colors'
+import { DEFAULT_TEMPLATES, renderTemplate } from '@/lib/templates'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -457,6 +458,31 @@ export default function RouteSearchScreen() {
               </View>
             )}
 
+            {/* Quick Template Selector */}
+            <View style={{ marginBottom: 10 }}>
+              <Text style={styles.templateHeaderLabel}>
+                📋 {t('templates.quick_select')}
+              </Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+                {DEFAULT_TEMPLATES.map(tpl => (
+                  <TouchableOpacity
+                    key={tpl.id}
+                    style={styles.templateChip}
+                    onPress={() => {
+                      const rendered = renderTemplate(tpl.content, {
+                        shipment_title: shipmentData?.title,
+                        origin_city: shipmentData?.originCity,
+                        dest_city: shipmentData?.destCity,
+                      })
+                      setMessageText(rendered)
+                    }}
+                  >
+                    <Text style={styles.templateChipText}>{tpl.icon ? `${tpl.icon} ` : ''}{tpl.title}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
             <TextInput
               value={messageText}
               onChangeText={setMessageText}
@@ -522,6 +548,31 @@ export default function RouteSearchScreen() {
                 </View>
               </View>
             )}
+
+            {/* Quick Template Selector */}
+            <View style={{ marginBottom: 10 }}>
+              <Text style={styles.templateHeaderLabel}>
+                📋 {t('templates.quick_select')}
+              </Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+                {DEFAULT_TEMPLATES.map(tpl => (
+                  <TouchableOpacity
+                    key={tpl.id}
+                    style={styles.templateChip}
+                    onPress={() => {
+                      const rendered = renderTemplate(tpl.content, {
+                        shipment_title: shipmentData?.title,
+                        origin_city: shipmentData?.originCity,
+                        dest_city: shipmentData?.destCity,
+                      })
+                      setMsgText(rendered)
+                    }}
+                  >
+                    <Text style={styles.templateChipText}>{tpl.icon ? `${tpl.icon} ` : ''}{tpl.title}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
 
             <TextInput
               value={msgText}
@@ -740,5 +791,15 @@ const styles = StyleSheet.create({
     flex: 1, backgroundColor: '#FBBF24', borderRadius: 12,
     paddingVertical: 13, alignItems: 'center',
   },
-  sendBtnText: { fontSize: 14, fontWeight: '800', color: '#000' }
+  sendBtnText: { fontSize: 14, fontWeight: '800', color: '#000' },
+  templateHeaderLabel: {
+    fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.4)',
+    textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6,
+  },
+  templateChip: {
+    backgroundColor: 'rgba(251,191,36,0.1)',
+    borderWidth: 1, borderColor: 'rgba(251,191,36,0.3)',
+    borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6,
+  },
+  templateChipText: { fontSize: 12, fontWeight: '600', color: '#FBBF24' },
 })

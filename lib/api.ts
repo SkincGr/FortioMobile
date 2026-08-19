@@ -118,12 +118,55 @@ export type DashboardData = {
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
 export const authApi = {
-  login: (data: { identifier: string; password: string }) => {
+  login: async (data: { identifier: string; password: string }) => {
     const isEmail = data.identifier.includes('@')
     const body = isEmail
       ? { email: data.identifier, password: data.password }
       : { username: data.identifier, password: data.password }
-    return api.post<{ token: string; user: AuthUser }>('/api/auth/mobile/login', body)
+
+    // Use the native Fetch implementation for login. Some standalone Android
+    // builds report an Axios "Network Error" even though the request reaches
+    // the server successfully.
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 15000)
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/mobile/login`, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      })
+
+      const payload = await response.json().catch(() => ({})) as {
+        token?: string
+        user?: AuthUser
+        error?: string
+      }
+
+      if (!response.ok) {
+        throw Object.assign(
+          new Error(payload.error || `Σφάλμα σύνδεσης (${response.status})`),
+          { response: { status: response.status, data: payload } }
+        )
+      }
+
+      if (!payload.token || !payload.user) {
+        throw new Error('Μη έγκυρη απάντηση από τον server')
+      }
+
+      return { data: { token: payload.token, user: payload.user } }
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('Ο server δεν απάντησε εγκαίρως. Δοκίμασε ξανά.')
+      }
+      throw error
+    } finally {
+      clearTimeout(timeout)
+    }
   },
 
   register: (data: { name: string; email: string; password: string; phone?: string }) =>

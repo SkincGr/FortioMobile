@@ -214,6 +214,7 @@ const el = {
   'common.cancel':       'Ακύρωση',
   'common.accept':       'Αποδοχή',
   'common.reject':       'Απόρριψη',
+  'templates.quick_select': 'Γρήγορα Πρότυπα',
 } as const
 
 const en: Record<keyof typeof el, string> = {
@@ -417,6 +418,7 @@ const en: Record<keyof typeof el, string> = {
   'common.cancel':       'Cancel',
   'common.accept':       'Accept',
   'common.reject':       'Reject',
+  'templates.quick_select': 'Quick Templates',
 }
 
 const fr: Record<keyof typeof el, string> = {
@@ -617,6 +619,7 @@ const fr: Record<keyof typeof el, string> = {
   'common.cancel':       'Annuler',
   'common.accept':       'Accepter',
   'common.reject':       'Rejeter',
+  'templates.quick_select': 'Modèles Rapides',
 }
 
 const translations: Record<Language, Record<string, string>> = { el, en, fr }

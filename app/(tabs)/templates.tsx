@@ -9,7 +9,6 @@ import {
   MessageTemplate,
   SENDER_TEMPLATES,
   CARRIER_TEMPLATES,
-  renderTemplate,
 } from '@/lib/templates'
 import { useI18n } from '@/lib/i18n'
 import { api } from '@/lib/api'
@@ -18,8 +17,10 @@ import { useAuth } from '@/lib/auth'
 export default function TemplatesScreen() {
   const { t } = useI18n()
   const { user } = useAuth()
-  const defaultTab = user?.role === 'CARRIER' ? 'carrier' : 'sender'
-  const [tab, setTab] = useState<'sender' | 'carrier' | 'custom'>(defaultTab)
+  const isCarrier = user?.role === 'CARRIER'
+  const systemTemplates = isCarrier ? CARRIER_TEMPLATES : SENDER_TEMPLATES
+
+  const [tab, setTab] = useState<'system' | 'custom'>('system')
   const [customList, setCustomList] = useState<MessageTemplate[]>([])
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
@@ -27,8 +28,10 @@ export default function TemplatesScreen() {
   // Form
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
-  const [category, setCategory] = useState<'OFFER' | 'CLARIFICATION' | 'REQUEST' | 'GENERAL'>('OFFER')
-  const [icon, setIcon] = useState('📋')
+  const [category, setCategory] = useState<'OFFER' | 'CLARIFICATION' | 'REQUEST' | 'GENERAL'>(
+    isCarrier ? 'OFFER' : 'REQUEST'
+  )
+  const [icon, setIcon] = useState(isCarrier ? '🚛' : '📋')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -38,7 +41,9 @@ export default function TemplatesScreen() {
   async function loadTemplates() {
     try {
       setLoading(true)
-      const res = await api.get<{ system: MessageTemplate[]; custom: MessageTemplate[] }>('/api/templates')
+      const res = await api.get<{ system: MessageTemplate[]; custom: MessageTemplate[] }>(
+        `/api/templates?role=${isCarrier ? 'CARRIER' : 'SENDER'}`
+      )
       if (res.data?.custom) setCustomList(res.data.custom)
     } catch (e) {
       console.log('Failed to fetch templates:', e)
@@ -93,23 +98,25 @@ export default function TemplatesScreen() {
     ])
   }
 
-  const list =
-    tab === 'sender'
-      ? SENDER_TEMPLATES
-      : tab === 'carrier'
-      ? CARRIER_TEMPLATES
-      : customList
+  const list = tab === 'system' ? systemTemplates : customList
 
   return (
     <View style={s.root}>
-      <Stack.Screen options={{ title: 'Πρότυπα Μηνυμάτων', headerBackTitle: 'Πίσω' }} />
+      <Stack.Screen
+        options={{
+          title: isCarrier ? 'Πρότυπα Μεταφορέα' : 'Πρότυπα Αποστολέα',
+          headerBackTitle: 'Πίσω',
+        }}
+      />
 
       {/* Header */}
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
-        <Text style={s.headerTitle}>Πρότυπα Μηνυμάτων</Text>
+        <Text style={s.headerTitle}>
+          {isCarrier ? '🚛 Πρότυπα Μεταφορέα' : '👤 Πρότυπα Αποστολέα'}
+        </Text>
         <TouchableOpacity onPress={() => setModalOpen(true)} style={s.addBtn}>
           <Ionicons name="add" size={22} color="#000" />
         </TouchableOpacity>
@@ -118,19 +125,11 @@ export default function TemplatesScreen() {
       {/* Segment tabs */}
       <View style={s.tabRow}>
         <TouchableOpacity
-          style={[s.tabBtn, tab === 'sender' && s.tabBtnActive]}
-          onPress={() => setTab('sender')}
+          style={[s.tabBtn, tab === 'system' && s.tabBtnActive]}
+          onPress={() => setTab('system')}
         >
-          <Text style={[s.tabText, tab === 'sender' && s.tabTextActive]}>
-            👤 Αποστολέα ({SENDER_TEMPLATES.length})
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[s.tabBtn, tab === 'carrier' && s.tabBtnActive]}
-          onPress={() => setTab('carrier')}
-        >
-          <Text style={[s.tabText, tab === 'carrier' && s.tabTextActive]}>
-            🚛 Μεταφορέα ({CARRIER_TEMPLATES.length})
+          <Text style={[s.tabText, tab === 'system' && s.tabTextActive]}>
+            {isCarrier ? '🚛 Έτοιμα Πρότυπα' : '📋 Έτοιμα Πρότυπα'} ({systemTemplates.length})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -138,7 +137,7 @@ export default function TemplatesScreen() {
           onPress={() => setTab('custom')}
         >
           <Text style={[s.tabText, tab === 'custom' && s.tabTextActive]}>
-            ⭐ Δικά μου ({customList.length})
+            ⭐ Τα Δικά μου ({customList.length})
           </Text>
         </TouchableOpacity>
       </View>
@@ -170,7 +169,7 @@ export default function TemplatesScreen() {
             <View key={item.id} style={s.card}>
               <View style={s.cardHeader}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
-                  <Text style={{ fontSize: 20 }}>{item.icon || '📋'}</Text>
+                  <Text style={{ fontSize: 20 }}>{item.icon || (isCarrier ? '🚛' : '📋')}</Text>
                   <Text style={s.cardTitle}>{item.title}</Text>
                 </View>
                 {tab === 'custom' && (
@@ -193,7 +192,9 @@ export default function TemplatesScreen() {
         >
           <View style={s.modalCard}>
             <View style={s.modalHeader}>
-              <Text style={s.modalTitle}>Νέο Πρότυπο</Text>
+              <Text style={s.modalTitle}>
+                {isCarrier ? 'Νέο Πρότυπο Μεταφορέα' : 'Νέο Πρότυπο Αποστολέα'}
+              </Text>
               <TouchableOpacity onPress={() => setModalOpen(false)}>
                 <Ionicons name="close" size={24} color="rgba(255,255,255,0.6)" />
               </TouchableOpacity>
@@ -202,7 +203,7 @@ export default function TemplatesScreen() {
             <Text style={s.inputLabel}>Τίτλος Προτύπου</Text>
             <TextInput
               style={s.input}
-              placeholder="π.χ. Προσφορά με Εργατικά"
+              placeholder={isCarrier ? 'π.χ. Προσφορά με Εργατικά' : 'π.χ. Αίτημα για Δρομολόγιο'}
               placeholderTextColor="rgba(255,255,255,0.3)"
               value={title}
               onChangeText={setTitle}
@@ -267,15 +268,15 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   tabRow: {
-    flexDirection: 'row', paddingHorizontal: 16, paddingTop: 14, gap: 8,
+    flexDirection: 'row', paddingHorizontal: 16, paddingTop: 14, gap: 10,
   },
   tabBtn: {
-    flex: 1, paddingVertical: 8, borderRadius: 10,
+    flex: 1, paddingVertical: 10, borderRadius: 10,
     backgroundColor: 'rgba(255,255,255,0.04)',
     alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
   },
   tabBtnActive: { backgroundColor: 'rgba(251,191,36,0.15)', borderColor: '#FBBF24' },
-  tabText: { color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: '700' },
+  tabText: { color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: '700' },
   tabTextActive: { color: '#FBBF24' },
   placeholderBanner: {
     marginHorizontal: 16, marginTop: 12, padding: 10,

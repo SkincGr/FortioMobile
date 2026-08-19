@@ -468,6 +468,14 @@ function ShipmentCard({ item, filter, matchCount, matchCountsLoading, onDelete, 
               <View style={styles.btnBadgeAmber}><Text style={styles.btnBadgeAmberText}>{matchCount}</Text></View>
             </TouchableOpacity>
           )}
+
+          <TouchableOpacity
+            style={[styles.actionBtn, styles.actionBtnEdit]}
+            activeOpacity={0.75}
+            onPress={e => { e.stopPropagation?.(); router.push(`/(tabs)/shipments/route-search/${item.id}?title=${encodeURIComponent(item.title)}&returnTo=${encodeURIComponent('/(tabs)')}` as any) }}
+          >
+            <Text style={styles.actionBtnEditText}>{t('dash.btn.route_search')}</Text>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -897,7 +905,7 @@ export default function DashboardScreen() {
                       <Text style={styles.offerModalKey}>Κατάσταση</Text>
                       <View style={[styles.offerStatusPill, { backgroundColor: OFFER_STATUS_BG[o.status] ?? '#F1F5F9' }]}>
                         <Text style={[styles.offerStatusPillText, { color: OFFER_STATUS_COLOR[o.status] ?? Colors.textMuted }]}>
-                          {OFFER_STATUS_LABEL[o.status] ?? o.status}
+                          {OFFER_STATUS_KEY[o.status] ? t(OFFER_STATUS_KEY[o.status]) : o.status}
                         </Text>
                       </View>
                     </View>

@@ -244,7 +244,7 @@ export default function ChatScreen() {
               onPress={() => { setText(''); setSubject(''); setReplyMsgType(null); subjectRef.current?.blur() }}
               style={[s.sendBtn, s.cancelBtn]}
             >
-              <Text style={s.sendBtnText}>{t('common.cancel')}</Text>
+              <Text style={s.cancelBtnText}>{t('common.cancel')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -415,4 +415,6 @@ const s = StyleSheet.create({
   sendBtn:         { backgroundColor: '#F59E0B', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9, alignItems: 'center' },
   sendBtnDisabled: { backgroundColor: 'rgba(245,158,11,0.25)' },
   sendBtnText:     { color: '#000', fontWeight: '700', fontSize: 12 },
+  cancelBtn:       { backgroundColor: 'rgba(255,255,255,0.08)' },
+  cancelBtnText:   { color: '#fff', fontWeight: '600', fontSize: 12 },
 })

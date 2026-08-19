@@ -224,7 +224,7 @@ export default function MessagesScreen() {
 
       if (autoTranslate) {
         data = await Promise.all(data.map(async c => {
-          const tC = { ...c }
+          const tC: any = { ...c }
           try {
             const [trLast, trMsg, trCond, trShipTitle, trShipOrigin, trShipDest] = await Promise.all([
               tC.lastMessage ? translateText(tC.lastMessage, language) : null,

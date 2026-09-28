@@ -18,25 +18,19 @@ const VEHICLE_ICON: Record<string, string> = {
 }
 
 const OFFER_STATUS_KEY: Record<string, any> = {
-  REQUEST:          'dash.offer.status.request',
-  PENDING:          'dash.offer.status.pending',
-  AWAITING_SENDER:  'dash.offer.status.awaiting_sender',
-  AWAITING_CARRIER: 'dash.offer.status.awaiting_carrier',
-  ACCEPTED:         'dash.offer.status.accepted',
-  REJECTED:         'dash.offer.status.rejected',
-  WITHDRAWN:        'dash.offer.status.withdrawn',
-  COMPLETED:        'dash.offer.status.completed',
+  REQUEST:             'dash.offer.status.request',
+  OFFERED:             'dash.offer.status.awaiting_sender',
+  ACCEPTED:            'dash.offer.status.accepted',
+  REJECTED_BY_SENDER:  'dash.offer.status.rejected',
+  REJECTED_BY_CARRIER: 'dash.offer.status.withdrawn',
 }
 
 const STATUS_COLOR: Record<string, string> = {
-  REQUEST:          Colors.textMuted,
-  PENDING:          '#D97706',
-  AWAITING_SENDER:  Colors.primary,
-  AWAITING_CARRIER: Colors.primary,
-  ACCEPTED:         Colors.success,
-  REJECTED:         '#EF4444',
-  WITHDRAWN:        Colors.textMuted,
-  COMPLETED:        Colors.primary,
+  REQUEST:             Colors.textMuted,
+  OFFERED:             Colors.primary,
+  ACCEPTED:            Colors.success,
+  REJECTED_BY_SENDER:  '#EF4444',
+  REJECTED_BY_CARRIER: Colors.textMuted,
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -109,9 +103,9 @@ function OfferCard({
   const midStops    = (offer.route?.stops ?? []).slice(1, -1)
 
   const isRequest  = offer.status === 'REQUEST'
-  const isPending  = offer.status === 'PENDING'
+  const isPending  = offer.status === 'OFFERED'
   const isAccepted = offer.status === 'ACCEPTED'
-  const isRejected = ['REJECTED', 'WITHDRAWN'].includes(offer.status)
+  const isRejected = ['REJECTED_BY_SENDER', 'REJECTED_BY_CARRIER'].includes(offer.status)
 
   const statusColor = STATUS_COLOR[offer.status] ?? Colors.textMuted
 
@@ -339,7 +333,7 @@ export default function ShipmentDetailScreen() {
 
   const allOffers     = data.offers ?? []
   const requestOffers = allOffers.filter(o => o.status === 'REQUEST')
-  const carrierOffers = allOffers.filter(o => !['REQUEST', 'WITHDRAWN'].includes(o.status))
+  const carrierOffers = allOffers.filter(o => !['REQUEST', 'REJECTED_BY_CARRIER'].includes(o.status))
   const totalActive   = requestOffers.length + carrierOffers.length
 
   return (

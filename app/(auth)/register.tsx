@@ -4,10 +4,12 @@ import { router } from 'expo-router'
 import { authApi } from '@/lib/api'
 import { Ionicons } from '@expo/vector-icons'
 
+const USERNAME_RE = /^[a-zA-Z0-9._-]{3,30}$/
+
 export default function RegisterScreen() {
+  const [username, setUsername] = useState('')
   const [name, setName]       = useState('')
   const [email, setEmail]     = useState('')
-  const [phone, setPhone]     = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm]   = useState('')
   const [loading, setLoading]   = useState(false)
@@ -17,12 +19,13 @@ export default function RegisterScreen() {
   const [showCf, setShowCf]     = useState(false)
 
   async function handleRegister() {
-    if (!name.trim() || !email.trim() || !password) { setError('Συμπλήρωσε όνομα, email και κωδικό'); return }
+    if (!username.trim() || !name.trim() || !email.trim() || !password) { setError('Συμπλήρωσε όνομα χρήστη, όνομα, email και κωδικό'); return }
+    if (!USERNAME_RE.test(username.trim())) { setError('Το όνομα χρήστη πρέπει να έχει 3-30 χαρακτήρες (γράμματα, αριθμοί, . _ -)'); return }
     if (password !== confirm) { setError('Οι κωδικοί δεν ταιριάζουν'); return }
-    if (password.length < 6) { setError('Ο κωδικός πρέπει να είναι τουλάχιστον 6 χαρακτήρες'); return }
+    if (password.length < 8) { setError('Ο κωδικός πρέπει να είναι τουλάχιστον 8 χαρακτήρες'); return }
     setLoading(true); setError('')
     try {
-      await authApi.register({ name: name.trim(), email: email.trim(), password, phone: phone.trim() || undefined })
+      await authApi.register({ username: username.trim().toLowerCase(), name: name.trim(), email: email.trim(), password })
       setSuccess(true)
     } catch (e: any) {
       setError(e?.response?.data?.error || 'Σφάλμα εγγραφής')
@@ -59,13 +62,13 @@ export default function RegisterScreen() {
 
           {error ? <View style={s.errorBox}><Text style={s.errorTxt}>{error}</Text></View> : null}
 
+          <Field label="Όνομα Χρήστη" value={username} onChangeText={setUsername} placeholder="giannis.p" />
           <Field label="Ονοματεπώνυμο" value={name} onChangeText={setName} placeholder="Γιάννης Παπαδόπουλος" autoCapitalize="words" />
           <Field label="Email" value={email} onChangeText={setEmail} placeholder="you@example.com" keyboardType="email-address" />
-          <Field label="Τηλέφωνο (προαιρετικό)" value={phone} onChangeText={setPhone} placeholder="+30 69X XXX XXXX" keyboardType="phone-pad" />
 
           <Text style={s.label}>Κωδικός</Text>
           <View style={[s.pwRow, { marginBottom: 16 }]}>
-            <TextInput style={s.pwInput} placeholder="Τουλάχιστον 6 χαρακτήρες" placeholderTextColor="rgba(255,255,255,0.25)" secureTextEntry={!showPw} value={password} onChangeText={setPassword} />
+            <TextInput style={s.pwInput} placeholder="Τουλάχιστον 8 χαρακτήρες" placeholderTextColor="rgba(255,255,255,0.25)" secureTextEntry={!showPw} value={password} onChangeText={setPassword} />
             <TouchableOpacity onPress={() => setShowPw(v => !v)} style={s.eyeBtn} hitSlop={8}>
               <Ionicons name={showPw ? 'eye-off-outline' : 'eye-outline'} size={18} color="rgba(255,255,255,0.4)" />
             </TouchableOpacity>

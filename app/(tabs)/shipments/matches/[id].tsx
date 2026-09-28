@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { shipmentsApi, matchesApi, messagesApi, RouteMatch } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
 import { Colors } from '@/constants/colors'
-import { SENDER_TEMPLATES, renderTemplate } from '@/lib/templates'
+import { useMessageTemplates, renderTemplate } from '@/lib/templates'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -39,13 +39,16 @@ function routeNumber(route: RouteMatch) {
 
 type RouteCardProps = {
   route: RouteMatch
-  isSent: boolean
+  offerStatus?: string
   onRequest: () => void
   onMessage: () => void
+  onViewOffer: () => void
 }
 
-function RouteCard({ route, isSent, onRequest, onMessage }: RouteCardProps) {
+function RouteCard({ route, offerStatus, onRequest, onMessage, onViewOffer }: RouteCardProps) {
   const { t } = useI18n()
+  const isRequestOnly = offerStatus === 'REQUEST'
+  const hasQuote = Boolean(offerStatus) && !isRequestOnly
   const icon = VEHICLE_ICON[route.vehicle?.type ?? ''] ?? '🚛'
   const carrier = route.company?.name ?? t('match.carrier_fallback')
   const rating = route.company?.rating
@@ -60,6 +63,14 @@ function RouteCard({ route, isSent, onRequest, onMessage }: RouteCardProps) {
       <View style={[styles.row, { gap: 8, marginBottom: 4, flexWrap: 'wrap' }]}>
         <Text style={{ fontSize: 20 }}>{icon}</Text>
         <Text style={styles.carrierName}>{carrier}</Text>
+        {!!rating && rating > 0 && (
+          <View style={[styles.row, { gap: 2 }]}>
+            <Ionicons name="star" size={12} color="#FBBF24" />
+            <Text style={styles.ratingText}>
+              {rating.toFixed(1)}{route.company?.totalTrips ? ` (${route.company.totalTrips})` : ''}
+            </Text>
+          </View>
+        )}
         {!!route.status && (
           <Text style={{ color: '#FBBF24', fontSize: 12, fontWeight: '700' }}>
             {route.status}
@@ -114,7 +125,11 @@ function RouteCard({ route, isSent, onRequest, onMessage }: RouteCardProps) {
 
       {/* CTA */}
       <View style={[styles.row, { gap: 8, flexWrap: 'wrap', marginTop: 10, justifyContent: 'flex-start' }]}>
-        {isSent ? (
+        {hasQuote ? (
+          <TouchableOpacity style={styles.viewOfferBtn} onPress={onViewOffer} activeOpacity={0.85}>
+            <Text style={styles.viewOfferBtnText}>{t('match.btn_view_offer')}</Text>
+          </TouchableOpacity>
+        ) : isRequestOnly ? (
           <View style={styles.sentBadge}>
             <Ionicons name="checkmark-circle" size={14} color="#4ADE80" />
             <Text style={styles.sentText}>{t('match.btn_sent')}</Text>
@@ -152,6 +167,8 @@ export default function MatchesScreen() {
   const [msgModal, setMsgModal] = useState<RouteMatch | null>(null)
   const [msgText, setMsgText] = useState('')
 
+  const { all: templates } = useMessageTemplates('SENDER')
+
   const { data: shipmentData, isLoading: loadingShipment } = useQuery({
     queryKey: ['shipment', shipmentId],
     queryFn: () => shipmentsApi.get(shipmentId!).then(r => r.data),
@@ -164,15 +181,18 @@ export default function MatchesScreen() {
     enabled: !!shipmentId,
   })
 
-  const sentFromOffers = useMemo(() => {
-    const ids = new Set<string>()
+  // routeId → offer status ('REQUEST' while awaiting the carrier, anything
+  // else not closed by the carrier once the carrier has actually responded with a quote).
+  const offerStatusByRoute = useMemo(() => {
+    const map = new Map<string, string>()
     for (const offer of shipmentData?.offers ?? []) {
-      if (offer.routeId && offer.status !== 'WITHDRAWN') ids.add(offer.routeId)
+      if (offer.routeId && offer.status !== 'REJECTED_BY_CARRIER') map.set(offer.routeId, offer.status)
     }
-    return ids
-  }, [shipmentData])
-
-  const allSent = useMemo(() => new Set([...sentFromOffers, ...sentIds]), [sentFromOffers, sentIds])
+    for (const routeId of sentIds) {
+      if (!map.has(routeId)) map.set(routeId, 'REQUEST')
+    }
+    return map
+  }, [shipmentData, sentIds])
 
   const { mutate: sendRequest, isPending: sending } = useMutation({
     mutationFn: (vars: { shipmentId: string; routeId: string; content: string }) =>
@@ -285,9 +305,10 @@ export default function MatchesScreen() {
         renderItem={({ item }) => (
           <RouteCard
             route={item}
-            isSent={allSent.has(item.id)}
+            offerStatus={offerStatusByRoute.get(item.id)}
             onRequest={() => openModal(item)}
             onMessage={() => handleMessage(item)}
+            onViewOffer={() => router.push(`/(tabs)/shipments/${shipmentId}?returnTo=${encodeURIComponent(`/(tabs)/shipments/matches/${shipmentId}?title=${encodeURIComponent(shipmentData?.title ?? '')}&returnTo=${encodeURIComponent(returnTo ?? '/(tabs)')}`)}` as any)}
           />
         )}
       />
@@ -336,7 +357,7 @@ export default function MatchesScreen() {
                 📋 {t('templates.quick_select')}
               </Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-                {SENDER_TEMPLATES.map(tpl => (
+                {templates.map(tpl => (
                   <TouchableOpacity
                     key={tpl.id}
                     style={styles.templateChip}
@@ -429,7 +450,7 @@ export default function MatchesScreen() {
                 📋 {t('templates.quick_select')}
               </Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-                {SENDER_TEMPLATES.map(tpl => (
+                {templates.map(tpl => (
                   <TouchableOpacity
                     key={tpl.id}
                     style={styles.templateChip}
@@ -561,7 +582,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 9,
   },
   requestBtnText: { fontSize: 13, fontWeight: '700', color: '#000' },
-  
+  viewOfferBtn: {
+    backgroundColor: 'rgba(96,165,250,0.1)', borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 9,
+  },
+  viewOfferBtnText: { fontSize: 13, fontWeight: '700', color: '#60A5FA' },
+
   msgBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9,

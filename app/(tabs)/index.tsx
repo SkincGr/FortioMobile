@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react'
 import {
   View, Text, ScrollView, TouchableOpacity, RefreshControl,
-  FlatList, StyleSheet, Modal, Pressable, Alert,
+  FlatList, StyleSheet, Modal, Pressable, Alert, TouchableWithoutFeedback,
 } from 'react-native'
 import { router } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -23,29 +23,26 @@ const CATEGORY_ICON: Record<string, string> = {
 }
 
 const OFFER_STATUS_KEY: Record<string, any> = {
-  REQUEST: 'dash.offer.status.request', PENDING: 'dash.offer.status.pending',
-  AWAITING_SENDER: 'dash.offer.status.awaiting_sender', AWAITING_CARRIER: 'dash.offer.status.awaiting_carrier',
+  REQUEST: 'dash.offer.status.request', OFFERED: 'dash.offer.status.awaiting_sender',
   ACCEPTED: 'dash.offer.status.accepted',
 }
 const OFFER_STATUS_BG: Record<string, string> = {
-  REQUEST: '#EFF6FF', PENDING: '#FFFBEB',
-  AWAITING_SENDER: '#F5F3FF', AWAITING_CARRIER: '#FFF7ED', ACCEPTED: '#F0FDF4',
+  REQUEST: '#EFF6FF', OFFERED: '#F5F3FF', ACCEPTED: '#F0FDF4',
 }
 const OFFER_STATUS_COLOR: Record<string, string> = {
-  REQUEST: '#3B82F6', PENDING: '#D97706',
-  AWAITING_SENDER: '#7C3AED', AWAITING_CARRIER: '#EA580C', ACCEPTED: '#166534',
+  REQUEST: '#3B82F6', OFFERED: '#7C3AED', ACCEPTED: '#166534',
 }
 
 const ROUTE_STATUS_KEY: Record<string, any> = {
-  ACTIVE: 'dash.route.status.active', FULL: 'dash.route.status.full', IN_TRANSIT: 'dash.route.status.in_transit',
+  ACTIVE: 'dash.route.status.active', IN_TRANSIT: 'dash.route.status.in_transit',
   COMPLETED: 'dash.route.status.completed', CANCELLED: 'dash.route.status.cancelled',
 }
 const ROUTE_STATUS_BG: Record<string, string> = {
-  ACTIVE: '#F0FDF4', FULL: '#FFFBEB', IN_TRANSIT: '#F0F9FF',
+  ACTIVE: '#F0FDF4', IN_TRANSIT: '#F0F9FF',
   COMPLETED: '#F8FAFC', CANCELLED: '#FEF2F2',
 }
 const ROUTE_STATUS_COLOR: Record<string, string> = {
-  ACTIVE: '#166534', FULL: '#D97706', IN_TRANSIT: '#0369A1',
+  ACTIVE: '#166534', IN_TRANSIT: '#0369A1',
   COMPLETED: '#64748B', CANCELLED: '#DC2626',
 }
 
@@ -58,9 +55,15 @@ type SortKey = typeof SORT_OPTIONS[number]['id']
 
 type Filter = 'shipments' | 'offer_requests' | 'carrier_offers' | 'to_transport' | 'in_transit'
 
-const SHIPMENTS_STATUSES: ShipmentStatus[]    = ['PENDING', 'OFFERED']
-const TO_TRANSPORT_STATUSES: ShipmentStatus[] = ['ACCEPTED', 'LOADED']
-const IN_TRANSIT_STATUSES: ShipmentStatus[]   = ['IN_TRANSIT', 'DELIVERED']
+const SHIPMENTS_STATUSES: ShipmentStatus[]    = ['PENDING', 'REQUEST', 'OFFERED']
+// ACCEPTED = the sender still has to get the shipment to the carrier
+// (matches web's "Παράδωση στη Μεταφορική" split — see Fortio dashboard).
+const TO_TRANSPORT_STATUSES: ShipmentStatus[] = ['ACCEPTED']
+// LOADED merged in here (not with TO_TRANSPORT above): once the carrier has
+// it loaded, it's in the transport pipeline, not waiting on the sender.
+// DELIVERED deliberately excluded — that's "Αρχείο Αποστολών"'s territory
+// now (its own burger-menu screen), not shown here too.
+const IN_TRANSIT_STATUSES: ShipmentStatus[]   = ['LOADED', 'IN_TRANSIT', 'IN_STORE']
 
 type OfferGroup = { shipment: Shipment; offers: Offer[] }
 
@@ -324,10 +327,10 @@ function ShipmentCard({ item, filter, matchCount, matchCountsLoading, onDelete, 
   const roadInfo   = formatRoad(item.roadDistanceKm, item.roadDurationMinutes)
   const offerCount = item._count?.offers ?? 0
   const requestCount      = (item.offers ?? []).filter(o => o.status === 'REQUEST').length
-  const pendingOfferCount = (item.offers ?? []).filter(o => ['PENDING', 'AWAITING_SENDER', 'AWAITING_CARRIER'].includes(o.status)).length
+  const pendingOfferCount = (item.offers ?? []).filter(o => o.status === 'OFFERED').length
   const hasAccepted       = (item.offers ?? []).some(o => o.status === 'ACCEPTED')
 
-  const acceptedOffer = (item.offers ?? []).find(o => ['ACCEPTED', 'COMPLETED'].includes(o.status))
+  const acceptedOffer = (item.offers ?? []).find(o => o.status === 'ACCEPTED')
   const carrierName   = acceptedOffer?.carrier?.company?.name
     ?? acceptedOffer?.carrier?.name ?? null
   const deliveryDate  = acceptedOffer?.deliveryDate
@@ -657,10 +660,7 @@ export default function DashboardScreen() {
 
   const allShipments   = useMemo(() => (data?.shipments ?? []).filter(s => SHIPMENTS_STATUSES.includes(s.status)), [data])
   const allToTransport = useMemo(() => (data?.shipments ?? []).filter(s => TO_TRANSPORT_STATUSES.includes(s.status)), [data])
-  const allInTransit   = useMemo(() => [
-    ...(data?.shipments ?? []).filter(s => IN_TRANSIT_STATUSES.includes(s.status)),
-    ...(data?.completedShipments ?? []),
-  ], [data])
+  const allInTransit   = useMemo(() => (data?.shipments ?? []).filter(s => IN_TRANSIT_STATUSES.includes(s.status)), [data])
 
   const offerRequestGroups = useMemo<OfferGroup[]>(() =>
     (data?.shipments ?? [])
@@ -670,30 +670,32 @@ export default function DashboardScreen() {
 
   const carrierOfferGroups = useMemo<OfferGroup[]>(() =>
     (data?.shipments ?? [])
-      .map(s => ({ shipment: s, offers: (s.offers ?? []).filter(o => ['PENDING', 'AWAITING_SENDER', 'AWAITING_CARRIER'].includes(o.status)) }))
+      .map(s => ({ shipment: s, offers: (s.offers ?? []).filter(o => o.status === 'OFFERED') }))
       .filter(g => g.offers.length > 0)
   , [data])
 
+  // Every shipment in the bucket gets a card, with or without a matching
+  // offer — a shipment with no resolvable offer still needs to show up
+  // (count and list must agree), it just renders with no offer row below
+  // its header, same as web's ShipmentContainer/acceptedOffer split.
   const toTransportGroups = useMemo<OfferGroup[]>(() =>
     allToTransport
       .map(s => {
         const offer = (s.offers ?? []).find(o =>
-          ['ACCEPTED', 'LOADED', 'AWAITING_SENDER', 'AWAITING_CARRIER'].includes(o.status)
+          ['ACCEPTED', 'OFFERED'].includes(o.status)
         )
-        return offer ? { shipment: s, offers: [offer] } : null
+        return { shipment: s, offers: offer ? [offer] : [] }
       })
-      .filter((g): g is OfferGroup => g !== null)
   , [allToTransport])
 
   const inTransitGroups = useMemo<OfferGroup[]>(() =>
     allInTransit
       .map(s => {
         const offer = (s.offers ?? []).find(o =>
-          ['ACCEPTED', 'COMPLETED', 'LOADED', 'AWAITING_SENDER', 'AWAITING_CARRIER'].includes(o.status)
+          ['ACCEPTED', 'OFFERED'].includes(o.status)
         )
-        return offer ? { shipment: s, offers: [offer] } : null
+        return { shipment: s, offers: offer ? [offer] : [] }
       })
-      .filter((g): g is OfferGroup => g !== null)
   , [allInTransit])
 
   const activeIds = useMemo(() => allShipments.map(s => s.id), [allShipments])
@@ -763,6 +765,14 @@ export default function DashboardScreen() {
                 </View>
               </TouchableOpacity>
             ))}
+            <View style={styles.burgerDivider} />
+            <TouchableOpacity
+              style={styles.burgerItem}
+              onPress={() => { setBurgerOpen(false); router.push('/(tabs)/shipments-archive' as any) }}
+            >
+              <Text style={styles.burgerItemText}>{t('dash.menu.archive')}</Text>
+              <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.3)" />
+            </TouchableOpacity>
           </Pressable>
         </Pressable>
       </Modal>
@@ -866,8 +876,13 @@ export default function DashboardScreen() {
 
       {/* ── Offer Detail Modal ── */}
       <Modal visible={!!offerModal} transparent animationType="fade" onRequestClose={() => setOfferModal(null)}>
-        <Pressable style={styles.burgerOverlay} onPress={() => setOfferModal(null)}>
-          <Pressable style={styles.offerModalCard} onPress={e => e.stopPropagation()}>
+        <View style={styles.burgerOverlay}>
+          <TouchableWithoutFeedback onPress={() => setOfferModal(null)}>
+            <View style={{ flex: 1 }} />
+          </TouchableWithoutFeedback>
+          {/* Plain View (not Pressable) so the ScrollView below gets normal touch/scroll gestures — */}
+          {/* nesting it inside a Pressable was swallowing the pan gesture and blocking scrolling. */}
+          <View style={styles.offerModalCard}>
             {offerModal && (() => {
               const { offer: o, shipmentTitle } = offerModal
               const midStops = (o.route?.stops ?? []).slice(1, -1)
@@ -968,7 +983,7 @@ export default function DashboardScreen() {
 
                   {/* Footer buttons */}
                   <View style={[styles.row, { gap: 8, marginTop: 16 }]}>
-                    {!['ACCEPTED', 'COMPLETED'].includes(o.status) && ['AWAITING_SENDER', 'PENDING'].includes(o.status) && (
+                    {o.status === 'OFFERED' && (
                       <TouchableOpacity
                         style={[styles.actionBtn, { flex: 1, justifyContent: 'center', backgroundColor: '#DCFCE7', paddingVertical: 12 }]}
                         onPress={() => { setOfferModal(null); handleAccept(o.id) }}
@@ -976,7 +991,7 @@ export default function DashboardScreen() {
                         <Text style={[styles.actionBtnEditText, { color: '#166534' }]}>Αποδοχή</Text>
                       </TouchableOpacity>
                     )}
-                    {!['ACCEPTED', 'COMPLETED'].includes(o.status) && (
+                    {['REQUEST', 'OFFERED'].includes(o.status) && (
                       <TouchableOpacity
                         style={[styles.actionBtn, styles.actionBtnDanger, { flex: 1, justifyContent: 'center', paddingVertical: 12 }]}
                         onPress={() => { setOfferModal(null); handleReject(o.id) }}
@@ -994,8 +1009,8 @@ export default function DashboardScreen() {
                 </>
               )
             })()}
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
 
       {/* ── FAB ── */}
@@ -1072,6 +1087,7 @@ const styles = StyleSheet.create({
   },
   burgerLogo: { color: '#fff', fontSize: 20, fontWeight: '900', letterSpacing: -0.5 },
   burgerUser: { color: 'rgba(255,255,255,0.55)', fontSize: 13, marginTop: 4 },
+  burgerDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.1)', marginVertical: 8, marginHorizontal: 20 },
   burgerItem: { paddingHorizontal: 20, paddingVertical: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   burgerItemText: { color: 'rgba(255,255,255,0.7)', fontSize: 15, flex: 1 },
   burgerBadge: {

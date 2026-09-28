@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   View, Text, FlatList, TouchableOpacity, TextInput,
   ActivityIndicator, ScrollView, Alert, KeyboardAvoidingView,
-  Platform, RefreshControl, StyleSheet,
+  Platform, RefreshControl, StyleSheet, Modal,
 } from 'react-native'
 import { useLocalSearchParams, router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
@@ -11,6 +11,7 @@ import { useAuth } from '@/lib/auth'
 import { api } from '@/lib/api'
 import { LoadingScreen } from '@/components/ui/LoadingScreen'
 import { useI18n, translateText } from '@/lib/i18n'
+import { useMessageTemplates, renderTemplate } from '@/lib/templates'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -107,10 +108,12 @@ export default function MessagesScreen() {
   const [subject, setSubject]             = useState('')
   const [sending, setSending]             = useState(false)
   const [replyMsgType, setReplyMsgType]   = useState<number | null>(null)
+  const [composeOpen, setComposeOpen]     = useState(false)
+  const [pickerOpen, setPickerOpen]       = useState(false)
   const flatListRef                       = useRef<FlatList>(null)
-  const subjectRef                        = useRef<TextInput>(null)
   const chipsScrollRef                    = useRef<ScrollView>(null)
   const chipOffsets                       = useRef<Record<string, number>>({})
+  const { all: templates }                = useMessageTemplates(user?.role)
 
   // ── Groups ──────────────────────────────────────────────────────────────────
 
@@ -341,31 +344,42 @@ export default function MessagesScreen() {
     } catch {}
   }
 
-  function replyTo(msg: Msg) {
-    const { subject: s } = parseContent(msg.content)
-    setSubject(s ? (s.startsWith('Re: ') ? s : `Re: ${s}`) : '')
-    setReplyMsgType((msg as any).messageType ?? null)
-    setText(`> ${msg.content}\n\n`)
+  function openCompose(msg?: Msg) {
+    setPickerOpen(false)
+    if (msg) {
+      const { subject: s } = parseContent(msg.content)
+      setSubject(s ? (s.startsWith('Re: ') ? s : `Re: ${s}`) : '')
+      setReplyMsgType((msg as any).messageType ?? null)
+      setText('')
+    } else {
+      setSubject('')
+      setReplyMsgType(null)
+      setText('')
+    }
+    setComposeOpen(true)
   }
 
-  function handleNew() {
+  function closeCompose() {
+    setComposeOpen(false)
+    setPickerOpen(false)
     setText('')
     setSubject('')
     setReplyMsgType(null)
-    setTimeout(() => subjectRef.current?.focus(), 50)
   }
 
-  function handleCancel() {
-    setText('')
-    setSubject('')
-    setReplyMsgType(null)
-    subjectRef.current?.blur()
-    // scroll chips to show selected shipment
-    const x = chipOffsets.current[selectedShipId] ?? 0
-    chipsScrollRef.current?.scrollTo({ x: Math.max(0, x - 16), animated: true })
+  function selectTemplate(tpl: (typeof templates)[number]) {
+    const rendered = renderTemplate(tpl.content, {
+      shipment_title: selectedGroup?.shipment.title,
+      origin_city: selectedGroup?.shipment.originCity,
+      dest_city: selectedGroup?.shipment.destCity,
+      carrier_name: carrierName(selectedConv),
+    })
+    setText(rendered)
+    setSubject(tpl.subject || tpl.title)
+    setPickerOpen(false)
   }
 
-  async function sendReply() {
+  async function sendCompose() {
     if (!selectedConv || !text.trim() || sending) return
     setSending(true)
     try {
@@ -384,9 +398,7 @@ export default function MessagesScreen() {
             ...(replyMsgType != null && { messageType: replyMsgType }),
           }
       await api.post('/api/messages', body)
-      setText('')
-      setSubject('')
-      setReplyMsgType(null)
+      closeCompose()
       await loadThreads(visible)
       await loadConversations()
       setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 200)
@@ -418,7 +430,12 @@ export default function MessagesScreen() {
           <Text style={s.logo}>FORTIO</Text>
         )}
         <View style={s.sep} />
-        <Text style={s.headerTitle}>{t('msg.title')}</Text>
+        <Text style={[s.headerTitle, { flex: 1 }]}>{t('msg.title')}</Text>
+        {selectedConv && (
+          <TouchableOpacity onPress={() => openCompose()} style={s.headerAddBtn} hitSlop={10}>
+            <Ionicons name="add" size={20} color="#000" />
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* ── Shipment chips ── */}
@@ -516,50 +533,77 @@ export default function MessagesScreen() {
             myId={myId}
             carrierName={carrierName(selectedConv)}
             onToggleRead={() => toggleRead(item)}
-            onReply={() => replyTo(item)}
-            onNew={handleNew}
+            onReply={() => openCompose(item)}
+            onNew={() => openCompose()}
           />
         )}
       />
 
-      {/* ── Reply footer ── */}
-      {selectedConv && (
-        <View style={s.footer}>
-          <TextInput
-            ref={subjectRef}
-            style={s.subjectInput}
-            placeholder={t('msg.ph.subject')}
-            placeholderTextColor="rgba(255,255,255,0.3)"
-            value={subject}
-            onChangeText={setSubject}
-          />
-          <View style={s.replyRow}>
-            <TextInput
-              style={s.input}
-              placeholder={t('msg.ph.body')}
-              placeholderTextColor="rgba(255,255,255,0.3)"
-              value={text}
-              onChangeText={setText}
-              multiline
-            />
-            <View style={s.replyBtns}>
+      {/* ── Compose / Reply popup ── */}
+      <Modal visible={composeOpen} transparent animationType="slide" onRequestClose={closeCompose}>
+        <KeyboardAvoidingView behavior="padding" style={s.composeOverlay}>
+          <View style={s.composeCard}>
+
+            {/* Πρότυπο + θέμα (σταθερά) */}
+            <View style={s.composeRow1}>
+              <TouchableOpacity style={s.comboButton} onPress={() => setPickerOpen(v => !v)}>
+                <Text style={s.comboButtonText} numberOfLines={1}>📋 {t('templates.quick_select')}</Text>
+                <Ionicons name={pickerOpen ? 'chevron-up' : 'chevron-down'} size={16} color="rgba(255,255,255,0.5)" />
+              </TouchableOpacity>
+              {pickerOpen && (
+                <View style={s.comboDropdown}>
+                  <ScrollView nestedScrollEnabled style={{ maxHeight: 180 }}>
+                    {templates.length === 0 ? (
+                      <Text style={s.comboEmptyText}>—</Text>
+                    ) : templates.map(tpl => (
+                      <TouchableOpacity key={tpl.id} style={s.comboOption} onPress={() => selectTemplate(tpl)}>
+                        <Text style={s.comboOptionText} numberOfLines={1}>{tpl.icon ? `${tpl.icon} ` : ''}{tpl.title}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+              <TextInput
+                style={s.composeSubjectInput}
+                placeholder={t('msg.ph.subject')}
+                placeholderTextColor="rgba(255,255,255,0.3)"
+                value={subject}
+                onChangeText={setSubject}
+              />
+            </View>
+
+            {/* Κείμενο — scrollable */}
+            <ScrollView style={s.composeBodyScroll} keyboardShouldPersistTaps="handled">
+              <TextInput
+                style={s.composeBodyInput}
+                placeholder={t('msg.ph.body')}
+                placeholderTextColor="rgba(255,255,255,0.3)"
+                value={text}
+                onChangeText={setText}
+                multiline
+                textAlignVertical="top"
+              />
+            </ScrollView>
+
+            {/* Footer — σταθερό */}
+            <View style={s.composeFooter}>
+              <TouchableOpacity onPress={closeCompose} style={s.composeCancelBtn} disabled={sending}>
+                <Text style={s.composeCancelText}>{t('common.cancel')}</Text>
+              </TouchableOpacity>
               <TouchableOpacity
-                onPress={sendReply}
+                onPress={sendCompose}
                 disabled={sending || !text.trim()}
-                style={[s.sendBtn, (!text.trim() || sending) && s.sendBtnDisabled]}
+                style={[s.composeSendBtn, (!text.trim() || sending) && s.composeSendBtnDisabled]}
               >
                 {sending
                   ? <ActivityIndicator size="small" color="#000" />
-                  : <Text style={s.sendBtnText}>{t('msg.btn.reply')}</Text>
+                  : <Text style={s.composeSendText}>{t('common.send')}</Text>
                 }
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handleCancel} style={[s.sendBtn, s.cancelBtn]}>
-                <Text style={s.sendBtnText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
             </View>
           </View>
-        </View>
-      )}
+        </KeyboardAvoidingView>
+      </Modal>
     </KeyboardAvoidingView>
   )
 }
@@ -745,28 +789,67 @@ const s = StyleSheet.create({
   actionBtn:     { backgroundColor: '#F59E0B', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
   actionBtnText: { fontSize: 11, fontWeight: '700', color: '#000' },
 
-  // Reply footer
-  footer: {
-    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)',
-    backgroundColor: '#111', padding: 12, gap: 8,
+  // Header "+" button
+  headerAddBtn: {
+    width: 30, height: 30, borderRadius: 15,
+    backgroundColor: '#F59E0B', alignItems: 'center', justifyContent: 'center',
   },
-  subjectInput: {
+
+  // ── Compose / Reply popup ──────────────────────────────────────────────────
+  composeOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' },
+  composeCard: {
+    backgroundColor: '#161616', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    // Σταθερό height (όχι μόνο min/maxHeight) — αλλιώς το flex:1 του composeBodyScroll
+    // δεν έχει determinate χώρο να υπολογίσει πάνω του και καταλήγει σχεδόν αόρατο.
+    height: '80%',
+    paddingTop: 16, paddingBottom: 24,
+  },
+
+  composeRow1: { paddingHorizontal: 16, gap: 8 },
+  comboButton: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10,
+  },
+  comboButtonText: { color: '#F59E0B', fontSize: 13, fontWeight: '700', flex: 1 },
+  comboDropdown: {
+    backgroundColor: '#111', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 10,
+  },
+  comboOption: {
+    paddingHorizontal: 14, paddingVertical: 10,
+    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)',
+  },
+  comboOptionText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  comboEmptyText: { color: 'rgba(255,255,255,0.3)', fontSize: 12, padding: 14, textAlign: 'center' },
+  composeSubjectInput: {
     backgroundColor: 'rgba(255,255,255,0.06)',
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
     borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8,
     color: '#fff', fontSize: 13,
   },
-  replyRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
-  input: {
-    flex: 1,
+
+  composeBodyScroll: { flex: 1, paddingHorizontal: 16, marginTop: 12 },
+  composeBodyInput: {
+    minHeight: 140,
     backgroundColor: 'rgba(255,255,255,0.06)',
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
     borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10,
-    color: '#fff', fontSize: 14, maxHeight: 100,
+    color: '#fff', fontSize: 14, lineHeight: 20,
   },
-  replyBtns:       { gap: 6 },
-  sendBtn:         { backgroundColor: '#F59E0B', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9, alignItems: 'center' },
-  sendBtnDisabled: { backgroundColor: 'rgba(245,158,11,0.25)' },
-  cancelBtn:       { backgroundColor: '#F59E0B' },
-  sendBtnText:     { color: '#000', fontWeight: '700', fontSize: 12 },
+
+  composeFooter: {
+    flexDirection: 'row', gap: 10,
+    paddingHorizontal: 16, paddingTop: 14,
+  },
+  composeCancelBtn: {
+    flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+  },
+  composeCancelText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  composeSendBtn: { flex: 1, backgroundColor: '#F59E0B', borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
+  composeSendBtnDisabled: { backgroundColor: 'rgba(245,158,11,0.25)' },
+  composeSendText: { color: '#000', fontSize: 14, fontWeight: '800' },
 })

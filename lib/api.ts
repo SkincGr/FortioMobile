@@ -18,11 +18,12 @@ api.interceptors.request.use(async (config) => {
 export type AuthUser = { id: string; name: string; email: string; role: string }
 
 export type ShipmentStatus =
-  | 'PENDING' | 'OFFERED' | 'ACCEPTED' | 'LOADED'
-  | 'IN_TRANSIT' | 'DELIVERED' | 'CANCELLED'
+  | 'PENDING' | 'REQUEST' | 'OFFERED' | 'ACCEPTED' | 'LOADED'
+  | 'IN_TRANSIT' | 'IN_STORE' | 'DELIVERED' | 'CANCELLED'
+  | 'DISPUTED' | 'PARTIAL_DAMAGE' | 'PARTIAL_DELIVERED' | 'FAIL_DELIVERED'
 
 export type OfferStatus =
-  | 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'WITHDRAWN' | 'COMPLETED' | 'REQUEST'
+  | 'REQUEST' | 'OFFERED' | 'ACCEPTED' | 'REJECTED_BY_SENDER' | 'REJECTED_BY_CARRIER'
 
 export type Shipment = {
   id: string
@@ -74,6 +75,7 @@ export type Offer = {
   message?: string
   conditions?: string
   pickupDate?: string
+  review?: { id: string; rating: number; comment?: string | null } | null
   _count?: { messages: number }
   unreadCount?: number
 }
@@ -169,8 +171,18 @@ export const authApi = {
     }
   },
 
-  register: (data: { name: string; email: string; password: string; phone?: string }) =>
-    api.post<{ message: string }>('/api/register', data),
+  // POST /api/register was retired server-side — registration now only
+  // happens through /api/register/company (Fortio commit "company
+  // registration hardening", 2026-09-11). That endpoint requires a
+  // `username` and a `role`/`entityType` pair; FortioMobile is sender-only
+  // (see CLAUDE.md), so this always registers an individual sender —
+  // there's no company-signup flow here.
+  register: (data: { username: string; name: string; email: string; password: string }) =>
+    api.post<{ ok: boolean }>('/api/register/company', {
+      ...data,
+      role: 'SENDER',
+      entityType: 'INDIVIDUAL',
+    }),
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
@@ -181,6 +193,36 @@ export const dashboardApi = {
 
   getCarrier: () =>
     api.get<{ shipments: Shipment[]; total: number; page: number; pageSize: number }>('/api/shipments'),
+}
+
+// ─── Shipment archive (Αρχείο Αποστολών) ───────────────────────────────────────
+
+export type ArchiveShipment = {
+  id: string
+  title: string
+  updatedAt: string
+  offers: {
+    id: string
+    deliveryDate?: string
+    carrier: { name?: string; email: string; company?: { name?: string } }
+    route?: { originCity?: string; destCity?: string; departureDate?: string; estimatedArrival?: string }
+    review?: { id: string; rating: number; comment?: string | null; reply?: string | null } | null
+  }[]
+}
+
+export const archiveApi = {
+  getSender: () =>
+    api.get<{ shipments: ArchiveShipment[] }>('/api/dashboard/sender/archive'),
+}
+
+// ─── Reviews ──────────────────────────────────────────────────────────────────
+
+export const reviewsApi = {
+  create: (data: { offerId: string; rating: number; comment?: string }) =>
+    api.post('/api/reviews', data),
+
+  update: (reviewId: string, data: { rating: number; comment?: string }) =>
+    api.patch(`/api/reviews/${reviewId}`, data),
 }
 
 // ─── Shipments ────────────────────────────────────────────────────────────────
@@ -216,10 +258,10 @@ export const shipmentsApi = {
 
 export const offersApi = {
   accept: (offerId: string) =>
-    api.patch(`/api/offers/${offerId}`, { action: 'accept' }),
+    api.patch(`/api/offers/${offerId}`, { action: 'ACCEPTED' }),
 
   reject: (offerId: string) =>
-    api.patch(`/api/offers/${offerId}`, { action: 'reject' }),
+    api.patch(`/api/offers/${offerId}`, { action: 'REJECTED' }),
 }
 
 // ─── Match counts (batch) ─────────────────────────────────────────────────────
@@ -254,7 +296,7 @@ export type RouteMatch = {
   availableVolume?: number
   pricePerKg?: number
   pricePerM3?: number
-  company?: { name: string; rating?: number } | null
+  company?: { name: string; rating?: number; totalTrips?: number } | null
   vehicle?: { type?: string } | null
   stops: RouteStop[]
   distanceKm?: number | null
@@ -263,9 +305,9 @@ export type RouteMatch = {
 }
 
 export const matchesApi = {
-  get: (shipmentId: string, maxDistance = 10) =>
+  get: (shipmentId: string, maxDistance = 10, dateWindowDays = 5) =>
     api.get<{ routes: RouteMatch[]; matchCount: number }>(
-      `/api/shipments/${shipmentId}/matches?maxDistance=${maxDistance}&proximity=true`
+      `/api/shipments/${shipmentId}/matches?maxDistance=${maxDistance}&dateWindowDays=${dateWindowDays}&proximity=true`
     ),
 }
 

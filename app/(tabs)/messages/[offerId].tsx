@@ -10,7 +10,7 @@ import { useAuth } from '@/lib/auth'
 import { api } from '@/lib/api'
 import { LoadingScreen } from '@/components/ui/LoadingScreen'
 import { useI18n, translateText } from '@/lib/i18n'
-import { getTemplatesForRole, renderTemplate } from '@/lib/templates'
+import { useMessageTemplates, renderTemplate } from '@/lib/templates'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -66,6 +66,7 @@ export default function ChatScreen() {
   const [sending, setSending] = useState(false)
   const [replyMsgType, setReplyMsgType] = useState<number | null>(null)
   const subjectRef            = useRef<TextInput>(null)
+  const { all: templates }    = useMessageTemplates(user?.role)
 
   async function loadThread() {
     try {
@@ -216,7 +217,7 @@ export default function ChatScreen() {
         {/* Quick Template Chips */}
         <View style={{ marginBottom: 4 }}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-            {getTemplatesForRole(user?.role).map(tpl => (
+            {templates.map(tpl => (
               <TouchableOpacity
                 key={tpl.id}
                 style={s.templateChip}
@@ -228,7 +229,7 @@ export default function ChatScreen() {
                     carrier_name: carrierLabel,
                   })
                   setText(rendered)
-                  if (!subject) setSubject(tpl.title)
+                  setSubject(tpl.subject || tpl.title)
                 }}
               >
                 <Text style={s.templateChipText}>{tpl.icon ? `${tpl.icon} ` : ''}{tpl.title}</Text>

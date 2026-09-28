@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { shipmentsApi, matchesApi, messagesApi, RouteMatch } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
 import { Colors } from '@/constants/colors'
-import { SENDER_TEMPLATES, renderTemplate } from '@/lib/templates'
+import { useMessageTemplates, renderTemplate } from '@/lib/templates'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -172,6 +172,8 @@ export default function RouteSearchScreen() {
 
   const [maxDistance, setMaxDistance] = useState(10)
   const [debouncedDistance, setDebouncedDistance] = useState(10)
+  const [dateWindowDays, setDateWindowDays] = useState(5)
+  const [debouncedDateWindow, setDebouncedDateWindow] = useState(5)
 
   const [modalRoute, setModalRoute] = useState<RouteMatch | null>(null)
   const [messageText, setMessageText] = useState('')
@@ -180,13 +182,22 @@ export default function RouteSearchScreen() {
   const [msgModal, setMsgModal] = useState<RouteMatch | null>(null)
   const [msgText, setMsgText] = useState('')
 
-  // Debounce distance changes for query
+  const { all: templates } = useMessageTemplates('SENDER')
+
+  // Debounce distance/date-window changes for query
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedDistance(maxDistance)
     }, 350)
     return () => clearTimeout(handler)
   }, [maxDistance])
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedDateWindow(dateWindowDays)
+    }, 350)
+    return () => clearTimeout(handler)
+  }, [dateWindowDays])
 
   const { data: shipmentData, isLoading: loadingShipment } = useQuery({
     queryKey: ['shipment', shipmentId],
@@ -195,15 +206,15 @@ export default function RouteSearchScreen() {
   })
 
   const { data: matchData, isLoading: loadingMatches, isFetching: fetchingMatches } = useQuery({
-    queryKey: ['route-search', shipmentId, debouncedDistance],
-    queryFn: () => matchesApi.get(shipmentId!, debouncedDistance).then(r => r.data),
+    queryKey: ['route-search', shipmentId, debouncedDistance, debouncedDateWindow],
+    queryFn: () => matchesApi.get(shipmentId!, debouncedDistance, debouncedDateWindow).then(r => r.data),
     enabled: !!shipmentId,
   })
 
   const sentFromOffers = useMemo(() => {
     const ids = new Set<string>()
     for (const offer of shipmentData?.offers ?? []) {
-      if (offer.routeId && offer.status !== 'WITHDRAWN') ids.add(offer.routeId)
+      if (offer.routeId && offer.status !== 'REJECTED_BY_CARRIER') ids.add(offer.routeId)
     }
     return ids
   }, [shipmentData])
@@ -224,7 +235,7 @@ export default function RouteSearchScreen() {
     mutationFn: (vars: { shipmentId: string; routeId: string; content: string }) =>
       messagesApi.sendPlainMessage(vars),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['route-search', shipmentId, debouncedDistance] })
+      queryClient.invalidateQueries({ queryKey: ['route-search', shipmentId, debouncedDistance, debouncedDateWindow] })
       setMsgModal(null)
       setMsgText('')
     },
@@ -392,6 +403,38 @@ export default function RouteSearchScreen() {
               </View>
             </View>
 
+            {/* Date Window Slider */}
+            <View style={styles.distanceCard}>
+              <View style={[styles.row, { justifyContent: 'space-between', marginBottom: 10 }]}>
+                <Text style={styles.distanceLabel}>{t('routeSearch.slider_label_date')}</Text>
+                <View style={styles.distanceBadge}>
+                  <Text style={styles.distanceBadgeText}>± {dateWindowDays} {t('routeSearch.days_unit')}</Text>
+                </View>
+              </View>
+
+              <View style={[styles.row, { gap: 12, alignItems: 'center' }]}>
+                <TouchableOpacity
+                  style={styles.stepperBtn}
+                  onPress={() => setDateWindowDays(d => Math.max(0, d - 1))}
+                  hitSlop={8}
+                >
+                  <Text style={styles.stepperBtnText}>-1</Text>
+                </TouchableOpacity>
+
+                <View style={styles.progressTrack}>
+                  <View style={[styles.progressFill, { width: `${Math.min(100, Math.max(0, (dateWindowDays / 30) * 100))}%` }]} />
+                </View>
+
+                <TouchableOpacity
+                  style={styles.stepperBtn}
+                  onPress={() => setDateWindowDays(d => Math.min(30, d + 1))}
+                  hitSlop={8}
+                >
+                  <Text style={styles.stepperBtnText}>+1</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
             {/* Results Header */}
             <View style={[styles.row, { justifyContent: 'space-between', marginTop: 8 }]}>
               <Text style={styles.sectionTitle}>
@@ -464,7 +507,7 @@ export default function RouteSearchScreen() {
                 📋 {t('templates.quick_select')}
               </Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-                {SENDER_TEMPLATES.map(tpl => (
+                {templates.map(tpl => (
                   <TouchableOpacity
                     key={tpl.id}
                     style={styles.templateChip}
@@ -555,7 +598,7 @@ export default function RouteSearchScreen() {
                 📋 {t('templates.quick_select')}
               </Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-                {SENDER_TEMPLATES.map(tpl => (
+                {templates.map(tpl => (
                   <TouchableOpacity
                     key={tpl.id}
                     style={styles.templateChip}

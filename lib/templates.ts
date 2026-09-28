@@ -1,4 +1,7 @@
-﻿export type TemplateRole = 'SENDER' | 'CARRIER' | 'ALL'
+﻿import { useEffect, useState } from 'react'
+import { api } from './api'
+
+export type TemplateRole = 'SENDER' | 'CARRIER' | 'ALL'
 
 export interface MessageTemplate {
   id: string
@@ -7,6 +10,8 @@ export interface MessageTemplate {
   content: string
   icon?: string
   role?: TemplateRole
+  /** Θέμα — μόνο στα πρότυπα που έρχονται από το API (email_templates) */
+  subject?: string
 }
 
 export const SENDER_TEMPLATES: MessageTemplate[] = [
@@ -103,21 +108,77 @@ export function getTemplatesForRole(role?: string | null): MessageTemplate[] {
   return DEFAULT_TEMPLATES
 }
 
-export function renderTemplate(
-  templateContent: string,
-  data: {
-    shipment_title?: string | null
-    origin_city?: string | null
-    dest_city?: string | null
-    sender_name?: string | null
-    carrier_name?: string | null
+export type TemplateData = Record<string, string | number | null | undefined>
+
+/** Παλιά ονόματα placeholder (τα τοπικά πρότυπα) → κλειδιά του API catalog (email_template_variables) */
+const KEY_ALIASES: Record<string, string> = {
+  origin_city: 'shipment_origin_city',
+  dest_city: 'shipment_dest_city',
+}
+
+const DEFAULTS: Record<string, string> = {
+  shipment_title: 'Αποστολή',
+  shipment_origin_city: 'Αφετηρία',
+  shipment_dest_city: 'Προορισμός',
+  sender_name: 'Αποστολέα',
+  carrier_name: 'Μεταφορέα',
+}
+
+/**
+ * Αντικαθιστά placeholders με πραγματικά δεδομένα — δέχεται και τα δύο
+ * συντακτικά: {{key}} (πρότυπα από το API) και {key} (τα τοπικά, legacy).
+ */
+export function renderTemplate(templateContent: string, data: TemplateData = {}): string {
+  const values: Record<string, string> = {}
+
+  for (const [key, value] of Object.entries(data)) {
+    if (value === null || value === undefined || value === '') continue
+    values[KEY_ALIASES[key] ?? key] = String(value)
   }
-): string {
-  let result = templateContent
-  result = result.replace(/\{shipment_title\}/g, data.shipment_title || 'Αποστολή')
-  result = result.replace(/\{origin_city\}/g, data.origin_city || 'Αφετηρία')
-  result = result.replace(/\{dest_city\}/g, data.dest_city || 'Προορισμός')
-  result = result.replace(/\{sender_name\}/g, data.sender_name || 'Αποστολέα')
-  result = result.replace(/\{carrier_name\}/g, data.carrier_name || 'Μεταφορέα')
-  return result
+
+  for (const [key, fallback] of Object.entries(DEFAULTS)) {
+    if (!values[key]) values[key] = fallback
+  }
+
+  for (const [legacy, canonical] of Object.entries(KEY_ALIASES)) {
+    if (values[canonical]) values[legacy] = values[canonical]
+  }
+
+  return templateContent.replace(
+    /\{\{\s*(\w+)\s*\}\}|\{\s*(\w+)\s*\}/g,
+    (match, doubleBrace, singleBrace) => values[doubleBrace ?? singleBrace] ?? match
+  )
+}
+
+/**
+ * Πρότυπα από το πραγματικό backend (/api/templates — έτοιμα + δικά μου),
+ * ίδια πηγή με τον browser. Δεν προσθέτει δημιουργία/διαγραφή — μόνο ανάγνωση/επιλογή.
+ */
+export function useMessageTemplates(role?: string | null, category?: string) {
+  const [system, setSystem] = useState<MessageTemplate[]>([])
+  const [custom, setCustom] = useState<MessageTemplate[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let active = true
+    setLoading(true)
+    const roleParam = role === 'CARRIER' ? 'CARRIER' : 'SENDER'
+    api.get<{ system: MessageTemplate[]; custom: MessageTemplate[] }>(`/api/templates?role=${roleParam}`)
+      .then(res => {
+        if (!active) return
+        const bySystem = category
+          ? (res.data?.system ?? []).filter(tpl => tpl.category === category)
+          : (res.data?.system ?? [])
+        const byCustom = category
+          ? (res.data?.custom ?? []).filter(tpl => tpl.category === category)
+          : (res.data?.custom ?? [])
+        setSystem(bySystem)
+        setCustom(byCustom)
+      })
+      .catch(() => { if (active) { setSystem([]); setCustom([]) } })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [role, category])
+
+  return { system, custom, all: [...system, ...custom], loading }
 }

@@ -778,9 +778,17 @@ const I18nContext = createContext<I18nContextType>({
   t: (key) => el[key],
 })
 
+// Mirrors the provider's language for plain formatting helpers (lib/cityDisplay.ts)
+// that run inside components already re-rendered by a language change.
+let activeLanguage: Language = 'el'
+export function currentLanguage(): Language {
+  return activeLanguage
+}
+
 export function I18nProvider({ children }: { children: React.ReactNode }) {
   const [language, setLang] = useState<Language>('el')
   const [autoTranslate, setAutoTrans] = useState(false)
+  activeLanguage = language
 
   useEffect(() => {
     SecureStore.getItemAsync(LANG_KEY).then(v => {

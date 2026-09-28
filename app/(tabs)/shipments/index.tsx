@@ -7,6 +7,7 @@ import { dashboardApi, Shipment } from '@/lib/api'
 import { useI18n, translateText } from '@/lib/i18n'
 import { ShipmentStatusBadge } from '@/components/ShipmentStatusBadge'
 import { LoadingScreen } from '@/components/ui/LoadingScreen'
+import { fCity } from '@/lib/cityDisplay'
 
 const CATEGORY_ICON: Record<string, string> = {
   FURNITURE: '🛋️', HOUSE_MOVE: '🏠', SMALL_PACKAGE: '📦', COURIER: '🛵',
@@ -14,10 +15,6 @@ const CATEGORY_ICON: Record<string, string> = {
   FOOD: '🥩', HAZARDOUS: '⚠️', OTHER: '🗃️',
 }
 
-function fCity(raw?: string | null) {
-  if (!raw) return '—'
-  return raw.split(' / ')[0]
-}
 
 export default function ShipmentsListScreen() {
   const { t, autoTranslate, language } = useI18n()
@@ -91,7 +88,7 @@ export default function ShipmentsListScreen() {
             <View style={[s.row, { marginBottom: 10, marginLeft: 28 }]}>
               <Ionicons name="navigate-outline" size={13} color="rgba(255,255,255,0.4)" />
               <Text style={s.route} numberOfLines={1}>
-                {fCity(item.originCity)} → {fCity(item.destCity)}
+                {fCity(item.originCity, item.originPlace)} → {fCity(item.destCity, item.destPlace)}
               </Text>
             </View>
             <View style={[s.row, { justifyContent: 'space-between', marginLeft: 28 }]}>

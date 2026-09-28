@@ -32,6 +32,8 @@ export type Shipment = {
   category: string
   originCity: string
   destCity: string
+  originPlace?: { name?: string; countryShortName?: string | null } | null
+  destPlace?: { name?: string; countryShortName?: string | null } | null
   originAddress?: string
   destAddress?: string
   originLat?: number; originLng?: number
@@ -74,6 +76,8 @@ export type Offer = {
     estimatedArrival?: string
     originCity?: string
     destCity?: string
+    originPlace?: { name?: string; countryShortName?: string | null } | null
+    destPlace?: { name?: string; countryShortName?: string | null } | null
     departureDate?: string
     stops?: { city?: string; estimatedDate?: string }[]
   }
@@ -211,7 +215,13 @@ export type ArchiveShipment = {
     id: string
     deliveryDate?: string
     carrier: { name?: string; email: string; company?: { name?: string } }
-    route?: { originCity?: string; destCity?: string; departureDate?: string; estimatedArrival?: string }
+    // The archive endpoint doesn't send the place objects today; fCity then
+    // falls back to the country embedded in the city text.
+    route?: {
+      originCity?: string; destCity?: string; departureDate?: string; estimatedArrival?: string
+      originPlace?: { name?: string; countryShortName?: string | null } | null
+      destPlace?: { name?: string; countryShortName?: string | null } | null
+    }
     review?: { id: string; rating: number; comment?: string | null; reply?: string | null } | null
   }[]
 }
@@ -297,6 +307,8 @@ export type RouteMatch = {
   status: string
   originCity?: string
   destCity?: string
+  originPlace?: { name?: string; countryShortName?: string | null } | null
+  destPlace?: { name?: string; countryShortName?: string | null } | null
   departureDate?: string
   estimatedArrival?: string
   isRecurring?: boolean

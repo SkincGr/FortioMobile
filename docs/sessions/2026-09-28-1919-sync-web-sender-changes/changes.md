@@ -33,3 +33,9 @@
 ## API contract
 
 No Fortio API changes required.
+
+## Follow-up: "Πόλη / Χώρα" everywhere (web commit 68dc074, 26/9)
+
+- `lib/cityDisplay.ts` (new) — `cityWithCountryFrom()` / `fCity()`: same rule as web (`Αθήνα/Ελλάδα`, `Athens/Greece`), country name from the place's `countryShortName` in the app language (el/en/fr); when an endpoint doesn't send the place (archive, some message payloads) it falls back to the country already in the city text.
+- `lib/i18n.tsx` — `currentLanguage()` getter so the plain `fCity` helper follows the selected language.
+- Replaced the city-only `fCity` (which cut the country off) in dashboard, shipments list, shipment detail, matches, route search, archive, and both message screens; `originPlace`/`destPlace` added to the relevant `lib/api.ts` types and passed at every call site.

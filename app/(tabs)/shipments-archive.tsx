@@ -9,16 +9,13 @@ import { Ionicons } from '@expo/vector-icons'
 import { archiveApi, reviewsApi, ArchiveShipment } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
 import { LoadingScreen } from '@/components/ui/LoadingScreen'
+import { fCity } from '@/lib/cityDisplay'
 
 function fDate(v?: string | null) {
   if (!v) return null
   return new Date(v).toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
-function fCity(raw?: string | null) {
-  if (!raw) return '—'
-  return raw.split(' / ')[0]
-}
 
 function Stars({ rating }: { rating: number }) {
   return (
@@ -61,7 +58,7 @@ function ArchiveCard({ item, onRate }: { item: ArchiveShipment; onRate: (t: Revi
           <Ionicons name="business-outline" size={13} color="rgba(255,255,255,0.4)" />
           <Text style={s.carrier}>{carrierName}</Text>
           <Text style={s.sub}>
-            {'  '}{fCity(offer.route?.originCity)}{originDate ? ` (${originDate})` : ''} — {fCity(offer.route?.destCity)}{destDate ? ` (${destDate})` : ''}
+            {'  '}{fCity(offer.route?.originCity, offer.route?.originPlace)}{originDate ? ` (${originDate})` : ''} — {fCity(offer.route?.destCity, offer.route?.destPlace)}{destDate ? ` (${destDate})` : ''}
           </Text>
         </View>
       )}

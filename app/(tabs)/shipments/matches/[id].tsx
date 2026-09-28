@@ -12,6 +12,7 @@ import { useI18n } from '@/lib/i18n'
 import { Colors } from '@/constants/colors'
 import { useMessageTemplates, renderTemplate } from '@/lib/templates'
 import { carrierRating, recurrenceNote } from '@/lib/display'
+import { fCity } from '@/lib/cityDisplay'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -26,10 +27,6 @@ function fDate(v?: string | null) {
   return new Date(v).toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
-function fCity(raw?: string | null) {
-  if (!raw) return '—'
-  return raw.split(' / ')[0]
-}
 
 function routeNumber(route: RouteMatch) {
   if (route.routeNumber) return String(route.routeNumber).padStart(6, '0')
@@ -80,10 +77,10 @@ function RouteCard({ route, offerStatus, onRequest, onMessage, onViewOffer }: Ro
 
       {/* Row 2: origin → dest */}
       <View style={[styles.row, { marginBottom: 4, flexWrap: 'wrap', gap: 4 }]}>
-        <Text style={styles.cityText}>{fCity(route.originCity)}</Text>
+        <Text style={styles.cityText}>{fCity(route.originCity, route.originPlace)}</Text>
         {depDate && <Text style={styles.dateText}>({depDate})</Text>}
         <Text style={styles.arrow}>→</Text>
-        <Text style={styles.cityText}>{fCity(route.destCity)}</Text>
+        <Text style={styles.cityText}>{fCity(route.destCity, route.destPlace)}</Text>
         {arrDate && <Text style={styles.dateText}>({arrDate})</Text>}
       </View>
 
@@ -295,7 +292,7 @@ export default function MatchesScreen() {
           <View style={styles.summaryCard}>
             <Text style={styles.summaryLabel}>{t('ship.info.title')}</Text>
             <Text style={styles.summaryRoute}>
-              {fCity(shipmentData.originCity)} → {fCity(shipmentData.destCity)}
+              {fCity(shipmentData.originCity, shipmentData.originPlace)} → {fCity(shipmentData.destCity, shipmentData.destPlace)}
             </Text>
             {!!shipmentData.description && <Text style={styles.summaryMuted}>{shipmentData.description}</Text>}
             {(shipmentData.isFragile || shipmentData.requiresCooling || shipmentData.isHazardous) && (
@@ -372,9 +369,9 @@ export default function MatchesScreen() {
                   </Text>
                 </View>
                 <View style={[styles.row, { gap: 6, flexWrap: 'wrap' }]}>
-                  <Text style={styles.modalCityText}>{fCity(modalRoute.originCity)}</Text>
+                  <Text style={styles.modalCityText}>{fCity(modalRoute.originCity, modalRoute.originPlace)}</Text>
                   <Text style={styles.arrow}>→</Text>
-                  <Text style={styles.modalCityText}>{fCity(modalRoute.destCity)}</Text>
+                  <Text style={styles.modalCityText}>{fCity(modalRoute.destCity, modalRoute.destPlace)}</Text>
                 </View>
               </View>
             )}
@@ -465,9 +462,9 @@ export default function MatchesScreen() {
                   </Text>
                 </View>
                 <View style={[styles.row, { gap: 6, flexWrap: 'wrap' }]}>
-                  <Text style={styles.modalCityText}>{fCity(msgModal.originCity)}</Text>
+                  <Text style={styles.modalCityText}>{fCity(msgModal.originCity, msgModal.originPlace)}</Text>
                   <Text style={styles.arrow}>→</Text>
-                  <Text style={styles.modalCityText}>{fCity(msgModal.destCity)}</Text>
+                  <Text style={styles.modalCityText}>{fCity(msgModal.destCity, msgModal.destPlace)}</Text>
                 </View>
               </View>
             )}

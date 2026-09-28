@@ -11,6 +11,7 @@ import { api } from '@/lib/api'
 import { LoadingScreen } from '@/components/ui/LoadingScreen'
 import { useI18n, translateText } from '@/lib/i18n'
 import { useMessageTemplates, renderTemplate } from '@/lib/templates'
+import { fCity } from '@/lib/cityDisplay'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -180,7 +181,7 @@ export default function ChatScreen() {
           {routeNum && (
             <Text style={s.headerSub} numberOfLines={1}>
               🚛 {carrierLabel}  ·  #{routeNum}
-              {route?.originCity ? `  ·  ${route.originCity.split(' / ')[0]} → ${route.destCity?.split(' / ')[0] ?? '—'}` : ''}
+              {route?.originCity ? `  ·  ${fCity(route.originCity, (route as any).originPlace)} → ${fCity(route.destCity, (route as any).destPlace)}` : ''}
             </Text>
           )}
         </View>
@@ -332,9 +333,9 @@ function MessageRow({ msg, myId, carrierName, route, onToggleRead, onReply, onNe
           {(r?.originCity || r?.destCity) && (
             <Text style={s.routeMeta}>
               {'  ·  '}
-              {r.originCity?.split(' / ')[0] ?? '—'}{r.departureDate ? ` (${fmtDate(r.departureDate)})` : ''}
+              {fCity(r.originCity, (r as any).originPlace)}{r.departureDate ? ` (${fmtDate(r.departureDate)})` : ''}
               {' → '}
-              {r.destCity?.split(' / ')[0] ?? '—'}{r.estimatedArrival ? ` (${fmtDate(r.estimatedArrival)})` : ''}
+              {fCity(r.destCity, (r as any).destPlace)}{r.estimatedArrival ? ` (${fmtDate(r.estimatedArrival)})` : ''}
             </Text>
           )}
         </Text>

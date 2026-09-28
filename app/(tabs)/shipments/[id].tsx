@@ -10,6 +10,7 @@ import { shipmentsApi, offersApi, Offer, Shipment } from '@/lib/api'
 import { LoadingScreen } from '@/components/ui/LoadingScreen'
 import { useI18n } from '@/lib/i18n'
 import { Colors } from '@/constants/colors'
+import { fCity } from '@/lib/cityDisplay'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -40,10 +41,6 @@ function fDate(v?: string | null) {
   return new Date(v).toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
-function fCity(raw?: string | null) {
-  if (!raw) return '—'
-  return raw.split(' / ')[0]
-}
 
 function fRouteNum(routeNumber?: string | null, routeId?: string | null) {
   if (routeNumber) return `#${String(routeNumber).padStart(6, '0')}`
@@ -98,8 +95,8 @@ function OfferCard({
   const msgCount    = offer.unreadCount ?? offer._count?.messages ?? 0
   const depDate     = fDate(offer.route?.departureDate)
   const arrDate     = fDate(offer.deliveryDate ?? offer.route?.estimatedArrival)
-  const origCity    = fCity(offer.route?.originCity)
-  const destCity    = fCity(offer.route?.destCity)
+  const origCity    = fCity(offer.route?.originCity, offer.route?.originPlace)
+  const destCity    = fCity(offer.route?.destCity, offer.route?.destPlace)
   const midStops    = (offer.route?.stops ?? []).slice(1, -1)
 
   const isRequest  = offer.status === 'REQUEST'
@@ -328,7 +325,7 @@ function ShipmentInfoCard({ s }: { s: Shipment }) {
   const rows: { label: string; value: string; accent?: boolean }[] = [
     { label: t('ship.info.category'),         value: CATEGORY_LABEL[s.category] ?? s.category ?? '-' },
     { label: t('ship.info.description'),      value: s.description || '-' },
-    { label: t('ship.info.route'),            value: `${fCity(s.originCity)} → ${fCity(s.destCity)}` },
+    { label: t('ship.info.route'),            value: `${fCity(s.originCity, s.originPlace)} → ${fCity(s.destCity, s.destPlace)}` },
     { label: t('ship.info.pickup_address'),   value: s.originAddress || '-' },
     { label: t('ship.info.delivery_address'), value: s.destAddress || '-' },
     { label: t('ship.info.recipient'),        value: recipient || '-' },

@@ -14,6 +14,7 @@ import { ShipmentStatusBadge } from '@/components/ShipmentStatusBadge'
 import { LoadingScreen } from '@/components/ui/LoadingScreen'
 import { Colors } from '@/constants/colors'
 import { carrierRating } from '@/lib/display'
+import { fCity } from '@/lib/cityDisplay'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -85,10 +86,6 @@ function formatRoad(distKm?: number | null, durMin?: number | null) {
   return dist ? `${dist} · ${dur}` : dur
 }
 
-function fCity(raw?: string | null) {
-  if (!raw) return '—'
-  return raw.split(' / ')[0]
-}
 
 // ─── OfferRow (single offer inside a group) ──────────────────────────────────
 
@@ -127,10 +124,10 @@ function OfferRow({ offer, mode, shipmentId, showMessages, onViewOffer }: {
           </View>
           {(offer.route?.originCity || offer.route?.destCity) && (
             <View style={[styles.row, { marginTop: 3, flexWrap: 'wrap', gap: 3 }]}>
-              <Text style={styles.sub}>{fCity(offer.route?.originCity)}</Text>
+              <Text style={styles.sub}>{fCity(offer.route?.originCity, offer.route?.originPlace)}</Text>
               {depDate && <Text style={styles.sub}>({depDate})</Text>}
               <Text style={styles.sub}>→</Text>
-              <Text style={styles.sub}>{fCity(offer.route?.destCity)}</Text>
+              <Text style={styles.sub}>{fCity(offer.route?.destCity, offer.route?.destPlace)}</Text>
             </View>
           )}
         </View>
@@ -184,10 +181,10 @@ function OfferRow({ offer, mode, shipmentId, showMessages, onViewOffer }: {
       {(offer.route?.originCity || offer.route?.destCity) && (
         <View style={[styles.row, { flexWrap: 'wrap', gap: 4, marginBottom: 4 }]}>
           <Ionicons name="navigate-outline" size={12} color={Colors.primary} />
-          <Text style={styles.offerRouteCity}>{fCity(offer.route?.originCity)}</Text>
+          <Text style={styles.offerRouteCity}>{fCity(offer.route?.originCity, offer.route?.originPlace)}</Text>
           {depDate && <Text style={styles.offerRouteDate}>({depDate})</Text>}
           <Text style={styles.offerRouteArrow}>→</Text>
-          <Text style={styles.offerRouteCity}>{fCity(offer.route?.destCity)}</Text>
+          <Text style={styles.offerRouteCity}>{fCity(offer.route?.destCity, offer.route?.destPlace)}</Text>
           {arrDate && <Text style={styles.offerRouteDate}>({arrDate})</Text>}
         </View>
       )}
@@ -278,7 +275,7 @@ function OfferGroupSection({ group, mode, showMessages, showCount, onViewOffer }
         <View style={[styles.row, { marginLeft: 32 }]}>
           <Ionicons name="navigate-outline" size={12} color={Colors.textMuted} />
           <Text style={styles.sub} numberOfLines={1}>
-            {fCity(shipment.originCity)} → {fCity(shipment.destCity)}
+            {fCity(shipment.originCity, shipment.originPlace)} → {fCity(shipment.destCity, shipment.destPlace)}
             {roadInfo ? ` (${roadInfo})` : ''}
           </Text>
         </View>
@@ -362,7 +359,7 @@ function ShipmentCard({ item, filter, matchCount, matchCountsLoading, onDelete, 
       <View style={[styles.row, { marginTop: 4, marginLeft: 32 }]}>
         <Ionicons name="navigate-outline" size={12} color={Colors.textMuted} />
         <Text style={styles.sub} numberOfLines={1}>
-          {fCity(item.originCity)} → {fCity(item.destCity)}
+          {fCity(item.originCity, item.originPlace)} → {fCity(item.destCity, item.destPlace)}
           {roadInfo ? ` (${roadInfo})` : ''}
         </Text>
       </View>
@@ -984,10 +981,10 @@ export default function DashboardScreen() {
                       <View style={[styles.offerModalSection]}>
                         <Text style={styles.offerModalSectionTitle}>Δρομολόγιο</Text>
                         <View style={[styles.row, { flexWrap: 'wrap', gap: 4 }]}>
-                          <Text style={styles.offerModalVal}>{fCity(o.route.originCity)}</Text>
+                          <Text style={styles.offerModalVal}>{fCity(o.route.originCity, o.route.originPlace)}</Text>
                           {o.route.departureDate && <Text style={styles.offerModalMuted}>({new Date(o.route.departureDate).toLocaleDateString('el-GR')})</Text>}
                           <Text style={styles.offerModalMuted}>→</Text>
-                          <Text style={styles.offerModalVal}>{fCity(o.route.destCity)}</Text>
+                          <Text style={styles.offerModalVal}>{fCity(o.route.destCity, o.route.destPlace)}</Text>
                           {o.route.estimatedArrival && <Text style={styles.offerModalMuted}>({new Date(o.route.estimatedArrival).toLocaleDateString('el-GR')})</Text>}
                         </View>
                         {midStops.length > 0 && (

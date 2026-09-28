@@ -12,6 +12,7 @@ import { api } from '@/lib/api'
 import { LoadingScreen } from '@/components/ui/LoadingScreen'
 import { useI18n, translateText } from '@/lib/i18n'
 import { useMessageTemplates, renderTemplate } from '@/lib/templates'
+import { fCity } from '@/lib/cityDisplay'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -625,8 +626,8 @@ function MessageRow({ msg, myId, carrierName, onToggleRead, onReply, onNew }: {
   const senderName = msg.sender?.company?.name ?? msg.sender?.name ?? '—'
 
   const routeNum = msg.route?.routeNumber || (msg.route?.id ? msg.route.id.slice(-8).toUpperCase() : null)
-  const routeOrigin = msg.route?.originCity?.split(' / ')[0]
-  const routeDest   = msg.route?.destCity?.split(' / ')[0]
+  const routeOrigin = msg.route?.originCity ? fCity(msg.route.originCity, (msg.route as any).originPlace) : undefined
+  const routeDest   = msg.route?.destCity ? fCity(msg.route.destCity, (msg.route as any).destPlace) : undefined
 
   return (
     <View style={[s.card, msg.isRead && s.cardRead]}>

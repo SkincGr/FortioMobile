@@ -6,7 +6,7 @@ import {
 import { useLocalSearchParams, router, Stack } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
-import { shipmentsApi, offersApi, Offer } from '@/lib/api'
+import { shipmentsApi, offersApi, Offer, Shipment } from '@/lib/api'
 import { LoadingScreen } from '@/components/ui/LoadingScreen'
 import { useI18n } from '@/lib/i18n'
 import { Colors } from '@/constants/colors'
@@ -309,6 +309,50 @@ function ViewOfferModal({
   )
 }
 
+// ─── Shipment info (every field, "-" when empty — same as web) ───────────────
+
+const CATEGORY_LABEL: Record<string, string> = {
+  FURNITURE: '🛋️ Έπιπλα', HOUSE_MOVE: '🏠 Μετακόμιση', SMALL_PACKAGE: '📦 Μικροδέματα', COURIER: '🛵 Ταχυμεταφορές',
+  ELECTRONICS: '💻 Ηλεκτρονικά', VEHICLE: '🚗 Όχημα', MACHINERY: '⚙️ Μηχανήματα', BOAT: '⛵ Σκάφος',
+  FOOD: '🥩 Τρόφιμα', HAZARDOUS: '⚠️ Επικίνδυνα', OTHER: '🗃️ Άλλο',
+}
+
+function ShipmentInfoCard({ s }: { s: Shipment }) {
+  const { t } = useI18n()
+  const recipient = [s.recipientName, s.recipientPhone, s.recipientEmail].filter(Boolean).join(' · ')
+  const properties = [
+    s.isFragile && t('ship.info.fragile'),
+    s.requiresCooling && t('ship.info.cooling'),
+    s.isHazardous && t('ship.info.hazardous'),
+  ].filter(Boolean).join(', ')
+  const rows: { label: string; value: string; accent?: boolean }[] = [
+    { label: t('ship.info.category'),         value: CATEGORY_LABEL[s.category] ?? s.category ?? '-' },
+    { label: t('ship.info.description'),      value: s.description || '-' },
+    { label: t('ship.info.route'),            value: `${fCity(s.originCity)} → ${fCity(s.destCity)}` },
+    { label: t('ship.info.pickup_address'),   value: s.originAddress || '-' },
+    { label: t('ship.info.delivery_address'), value: s.destAddress || '-' },
+    { label: t('ship.info.recipient'),        value: recipient || '-' },
+    { label: t('ship.info.desired_delivery'), value: fDate(s.desiredDelivery) ?? '-' },
+    { label: t('ship.info.loading'),          value: s.loadingInfo || '-' },
+    { label: t('ship.info.dimensions'),       value: (s.length && s.width && s.height) ? `${s.length} × ${s.width} × ${s.height} cm` : '-' },
+    { label: t('ship.info.weight'),           value: s.weight ? `${s.weight} kg` : '-' },
+    { label: t('ship.info.volume'),           value: s.volume ? `${s.volume} m³` : '-' },
+    { label: t('ship.info.properties'),       value: properties || '-' },
+    { label: t('ship.info.budget'),           value: s.maxBudget ? `${t('ship.info.up_to')} €${s.maxBudget}` : '-', accent: true },
+  ]
+  return (
+    <View style={[styles.card, { marginBottom: 20 }]}>
+      <Text style={[styles.sectionTitle, { marginBottom: 10 }]}>{t('ship.info.title')}</Text>
+      {rows.map(r => (
+        <View key={r.label} style={styles.infoRow}>
+          <Text style={styles.infoLabel}>{r.label}</Text>
+          <Text style={[styles.infoValue, r.accent && { color: '#F59E0B', fontWeight: '800' }]}>{r.value}</Text>
+        </View>
+      ))}
+    </View>
+  )
+}
+
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function ShipmentDetailScreen() {
@@ -356,6 +400,8 @@ export default function ShipmentDetailScreen() {
         contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#F59E0B" />}
       >
+        <ShipmentInfoCard s={data} />
+
         {totalActive === 0 ? (
           <View style={styles.emptyState}>
             <Text style={{ fontSize: 48, marginBottom: 12 }}>📭</Text>
@@ -461,7 +507,11 @@ const styles = StyleSheet.create({
   msgBadgeOff:  { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 9, minWidth: 17, height: 17, paddingHorizontal: 3, alignItems: 'center', justifyContent: 'center' },
   msgBadgeOffText: { fontSize: 10, fontWeight: '700', color: 'rgba(255,255,255,0.35)' },
 
-  emptyState:    { alignItems: 'center', paddingTop: 60 },
+  infoRow:   { flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginBottom: 7 },
+  infoLabel: { fontSize: 12, color: 'rgba(255,255,255,0.45)', flexShrink: 0 },
+  infoValue: { fontSize: 12, color: '#fff', fontWeight: '600', flex: 1, textAlign: 'right' },
+
+  emptyState:    { alignItems: 'center', paddingTop: 30 },
   emptyTitle:    { fontSize: 16, fontWeight: '700', color: '#fff', marginBottom: 8 },
   emptySubtitle: { fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 20, textAlign: 'center' },
   routesBtn:     { backgroundColor: '#F59E0B', borderRadius: 12, paddingHorizontal: 20, paddingVertical: 11 },

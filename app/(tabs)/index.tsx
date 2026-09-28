@@ -13,6 +13,7 @@ import { dashboardApi, matchCountsApi, shipmentsApi, offersApi, Shipment, Offer,
 import { ShipmentStatusBadge } from '@/components/ShipmentStatusBadge'
 import { LoadingScreen } from '@/components/ui/LoadingScreen'
 import { Colors } from '@/constants/colors'
+import { carrierRating } from '@/lib/display'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -107,6 +108,13 @@ function OfferRow({ offer, mode, shipmentId, showMessages, onViewOffer }: {
     ? new Date(offer.route.estimatedArrival).toLocaleDateString('el-GR') : null
   const midStops    = (offer.route?.stops ?? []).slice(1, -1)
 
+  const { rating, trips } = carrierRating(offer.carrier?.company, offer.carrier?.email)
+  const ratingBadge = (
+    <Text style={styles.ratingText}>
+      ★ {rating.toFixed(1)}{trips > 0 ? <Text style={styles.ratingTrips}> ({trips})</Text> : null}
+    </Text>
+  )
+
   /* ── REQUEST mode: simple row ── */
   if (mode === 'request') {
     return (
@@ -115,6 +123,7 @@ function OfferRow({ offer, mode, shipmentId, showMessages, onViewOffer }: {
           <View style={styles.row}>
             <Text style={{ fontSize: 14 }}>🚛</Text>
             <Text style={[styles.routeCity, { flex: 1 }]} numberOfLines={1}>{carrierName}</Text>
+            {ratingBadge}
           </View>
           {(offer.route?.originCity || offer.route?.destCity) && (
             <View style={[styles.row, { marginTop: 3, flexWrap: 'wrap', gap: 3 }]}>
@@ -129,7 +138,7 @@ function OfferRow({ offer, mode, shipmentId, showMessages, onViewOffer }: {
           <TouchableOpacity
             style={[styles.actionBtn, styles.actionBtnEdit]}
             activeOpacity={0.8}
-            onPress={() => router.push(`/(tabs)/shipments/${shipmentId}?returnTo=${encodeURIComponent('/(tabs)')}` as any)}
+            onPress={() => onViewOffer?.()}
           >
             <Text style={styles.actionBtnEditText}>{t('dash.btn.view_request')}</Text>
           </TouchableOpacity>
@@ -156,6 +165,7 @@ function OfferRow({ offer, mode, shipmentId, showMessages, onViewOffer }: {
       <View style={[styles.row, { flexWrap: 'wrap', gap: 6, marginBottom: 8 }]}>
         <Text style={{ fontSize: 16 }}>🚛</Text>
         <Text style={styles.offerCarrierName} numberOfLines={1}>{carrierName}</Text>
+        {ratingBadge}
         {(offer.price ?? 0) > 0 && (
           <View style={styles.offerPricePill}>
             <Text style={styles.offerPriceText}>€{offer.price}</Text>
@@ -205,30 +215,10 @@ function OfferRow({ offer, mode, shipmentId, showMessages, onViewOffer }: {
         </View>
       )}
 
-      {/* Row 4: carrier message */}
-      {offer.message ? (
-        <>
-          <View style={{ height: 12 }} />
-          <Text style={styles.offerDocTitle}>{t('dash.offer.offer_title')}</Text>
-          <Text style={styles.offerMessage} numberOfLines={3}>"{offer.message}"</Text>
-        </>
-      ) : null}
+      {/* Message and conditions live in the "Προβολή Προσφοράς" popup only —
+          repeating them inline made every card several screens long. */}
 
-      {/* Row 5: conditions */}
-      {offer.conditions ? (
-        <>
-          <View style={{ height: 12 }} />
-          <Text style={styles.offerDocTitle}>{t('dash.offer.conditions')}</Text>
-          <View style={styles.offerConditionsBox}>
-            {offer.conditions.split('\n').filter(Boolean).map((line, i) => (
-              <Text key={i} style={styles.offerConditionLine}>{line}</Text>
-            ))}
-          </View>
-          <Text style={styles.offerDocNote}>{t('dash.offer.note')}</Text>
-        </>
-      ) : null}
-
-      {/* Row 6: buttons */}
+      {/* Row 4: buttons */}
       <View style={[styles.actionsRow, { marginTop: 10 }]}>
         <TouchableOpacity
           style={[styles.actionBtn, styles.actionBtnEdit]}
@@ -258,10 +248,11 @@ function OfferRow({ offer, mode, shipmentId, showMessages, onViewOffer }: {
 
 // ─── OfferGroupSection (shipment header + offer rows) ─────────────────────────
 
-function OfferGroupSection({ group, mode, showMessages, onViewOffer }: {
+function OfferGroupSection({ group, mode, showMessages, showCount, onViewOffer }: {
   group: OfferGroup
   mode: 'request' | 'carrier_offer'
   showMessages?: boolean
+  showCount?: boolean
   onViewOffer?: (offer: Offer, shipmentTitle: string) => void
 }) {
   const { colors } = useTheme()
@@ -276,6 +267,13 @@ function OfferGroupSection({ group, mode, showMessages, onViewOffer }: {
         <View style={[styles.row, { marginBottom: 4 }]}>
           <Text style={styles.catIcon}>{CATEGORY_ICON[shipment.category] ?? '📦'}</Text>
           <Text style={[styles.title, { flex: 1 }]} numberOfLines={1}>{shipment.title}</Text>
+          {showCount && (
+            <View style={styles.offerCountPill}>
+              <Text style={styles.offerCountText}>
+                {offers.length} {offers.length === 1 ? t('dash.offers_one') : t('dash.offers_many')}
+              </Text>
+            </View>
+          )}
         </View>
         <View style={[styles.row, { marginLeft: 32 }]}>
           <Ionicons name="navigate-outline" size={12} color={Colors.textMuted} />
@@ -340,11 +338,24 @@ function ShipmentCard({ item, filter, matchCount, matchCountsLoading, onDelete, 
 
   return (
     <View style={styles.card}>
-      {/* Row 1: icon + title + status */}
+      {/* Row 1: icon + title + status (+ cancel, right-aligned, same as web) */}
       <View style={styles.row}>
         <Text style={styles.catIcon}>{icon}</Text>
         <Text style={[styles.title, { flex: 1 }]} numberOfLines={1}>{item.title}</Text>
         <ShipmentStatusBadge status={item.status} />
+        {filter === 'shipments' && (() => {
+          const cancellable = !hasAccepted && SHIPMENTS_STATUSES.includes(item.status)
+          return (
+            <TouchableOpacity
+              style={[styles.cancelBtn, !cancellable && { opacity: 0.35 }]}
+              activeOpacity={0.75}
+              disabled={!cancellable}
+              onPress={e => { e.stopPropagation?.(); onDelete?.(item.id, offerCount) }}
+            >
+              <Text style={styles.cancelBtnText}>{t('dash.btn.cancel_shipment')}</Text>
+            </TouchableOpacity>
+          )
+        })()}
       </View>
 
       {/* Row 2: route */}
@@ -441,14 +452,6 @@ function ShipmentCard({ item, filter, matchCount, matchCountsLoading, onDelete, 
             onPress={e => { e.stopPropagation?.(); router.push(`/(tabs)/shipments/new?editId=${item.id}&returnTo=${encodeURIComponent('/(tabs)')}` as any) }}
           >
             <Text style={styles.actionBtnEditText}>{t('dash.btn.edit')}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.actionBtn, styles.actionBtnEdit]}
-            activeOpacity={0.75}
-            onPress={e => { e.stopPropagation?.(); onDelete?.(item.id, offerCount) }}
-          >
-            <Text style={styles.actionBtnEditText}>{t('dash.btn.delete')}</Text>
           </TouchableOpacity>
 
           {(matchCountsLoading || matchCount === undefined) ? (
@@ -557,6 +560,7 @@ export default function DashboardScreen() {
   const [sortBy, setSortBy] = useState<SortKey>('date_desc')
   const [burgerOpen, setBurgerOpen] = useState(false)
   const [offerModal, setOfferModal] = useState<{ offer: Offer; shipmentTitle: string } | null>(null)
+  const [offerSort, setOfferSort] = useState<'price' | 'rating'>('price')
 
   const deleteMut = useMutation({
     mutationFn: (id: string) => shipmentsApi.delete(id),
@@ -576,15 +580,14 @@ export default function DashboardScreen() {
     onError: (e: any) => Alert.alert(t('common.error'), e?.response?.data?.error || 'Αποτυχία απόρριψης.'),
   })
 
-  function handleDelete(id: string, offerCount: number) {
+  // DELETE /api/shipments/[id] cancels (status CANCELLED, open offers rejected) — it never deletes the row.
+  function handleDelete(id: string, _offerCount: number) {
     Alert.alert(
-      t('dash.alert.delete_title'),
-      offerCount > 0
-        ? `${t('dash.alert.delete_msg_1')} ${offerCount} ${t('dash.alert.delete_msg_2')}`
-        : t('dash.alert.delete_msg_simple'),
+      t('dash.alert.cancel_title'),
+      t('dash.alert.cancel_msg'),
       [
-        { text: t('common.cancel'), style: 'cancel' },
-        { text: t('dash.btn.delete'), style: 'destructive', onPress: () => deleteMut.mutate(id) },
+        { text: t('common.close'), style: 'cancel' },
+        { text: t('dash.btn.cancel_shipment'), style: 'destructive', onPress: () => deleteMut.mutate(id) },
       ]
     )
   }
@@ -668,11 +671,22 @@ export default function DashboardScreen() {
       .filter(g => g.offers.length > 0)
   , [data])
 
+  // Cheapest (or best-rated) offer first within each shipment — same as web's offers tab.
   const carrierOfferGroups = useMemo<OfferGroup[]>(() =>
     (data?.shipments ?? [])
-      .map(s => ({ shipment: s, offers: (s.offers ?? []).filter(o => o.status === 'OFFERED') }))
+      .map(s => ({
+        shipment: s,
+        offers: (s.offers ?? []).filter(o => o.status === 'OFFERED').sort((a, b) => {
+          if (offerSort === 'rating') {
+            return carrierRating(b.carrier?.company, b.carrier?.email).rating - carrierRating(a.carrier?.company, a.carrier?.email).rating
+          }
+          const pa = (a.price ?? 0) > 0 ? a.price! : Infinity
+          const pb = (b.price ?? 0) > 0 ? b.price! : Infinity
+          return pa - pb
+        }),
+      }))
       .filter(g => g.offers.length > 0)
-  , [data])
+  , [data, offerSort])
 
   // Every shipment in the bucket gets a card, with or without a matching
   // offer — a shipment with no resolvable offer still needs to show up
@@ -768,9 +782,24 @@ export default function DashboardScreen() {
             <View style={styles.burgerDivider} />
             <TouchableOpacity
               style={styles.burgerItem}
+              onPress={() => { setBurgerOpen(false); router.push(`/(tabs)/shipments/new?returnTo=${encodeURIComponent('/(tabs)')}` as any) }}
+            >
+              <Text style={styles.burgerItemText}>{t('dash.menu.new_shipment')}</Text>
+              <Ionicons name="add" size={16} color="rgba(255,255,255,0.3)" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.burgerItem}
               onPress={() => { setBurgerOpen(false); router.push('/(tabs)/shipments-archive' as any) }}
             >
               <Text style={styles.burgerItemText}>{t('dash.menu.archive')}</Text>
+              <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.3)" />
+            </TouchableOpacity>
+            <View style={styles.burgerDivider} />
+            <TouchableOpacity
+              style={styles.burgerItem}
+              onPress={() => { setBurgerOpen(false); router.push('/(tabs)/templates' as any) }}
+            >
+              <Text style={styles.burgerItemText}>{t('dash.menu.templates')}</Text>
               <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.3)" />
             </TouchableOpacity>
           </Pressable>
@@ -821,6 +850,23 @@ export default function DashboardScreen() {
           keyExtractor={item => item.shipment.id}
           contentContainerStyle={{ padding: 16, paddingBottom: 96 }}
           refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#F59E0B" />}
+          ListHeaderComponent={filter === 'carrier_offers' && offerGroups.length > 0 ? (
+            <View style={[styles.row, { gap: 8, marginBottom: 12 }]}>
+              <Text style={styles.sortLabel}>{t('dash.sort.label')}</Text>
+              {(['price', 'rating'] as const).map(key => (
+                <TouchableOpacity
+                  key={key}
+                  onPress={() => setOfferSort(key)}
+                  style={[styles.sortChip, offerSort === key && styles.sortChipActive]}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.sortChipText, offerSort === key && styles.sortChipTextActive]}>
+                    {key === 'price' ? t('dash.sort.price') : t('dash.sort.rating')}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : null}
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text style={{ fontSize: 40, marginBottom: 12 }}>📋</Text>
@@ -837,6 +883,7 @@ export default function DashboardScreen() {
               group={item}
               mode={filter === 'offer_requests' ? 'request' : 'carrier_offer'}
               showMessages={filter === 'in_transit' || filter === 'carrier_offers' || filter === 'to_transport'}
+              showCount={filter === 'carrier_offers'}
               onViewOffer={(offer, title) => setOfferModal({ offer, shipmentTitle: title })}
             />
           )}
@@ -886,13 +933,13 @@ export default function DashboardScreen() {
             {offerModal && (() => {
               const { offer: o, shipmentTitle } = offerModal
               const midStops = (o.route?.stops ?? []).slice(1, -1)
-              const msgCount = o._count?.messages ?? 0
+              const isRequest = o.status === 'REQUEST'
               return (
                 <>
                   {/* Header */}
                   <View style={[styles.row, { justifyContent: 'space-between', marginBottom: 16 }]}>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.offerModalLabel}>ΠΡΟΣΦΟΡΑ ΜΕΤΑΦΟΡΕΑ</Text>
+                      <Text style={styles.offerModalLabel}>{isRequest ? t('dash.modal.request_label') : t('dash.modal.offer_label')}</Text>
                       <Text style={styles.offerModalTitle} numberOfLines={1}>{shipmentTitle}</Text>
                     </View>
                     <TouchableOpacity onPress={() => setOfferModal(null)} hitSlop={12}>
@@ -924,6 +971,13 @@ export default function DashboardScreen() {
                         </Text>
                       </View>
                     </View>
+
+                    {isRequest && o.createdAt && (
+                      <View style={styles.offerModalRow}>
+                        <Text style={styles.offerModalKey}>{t('dash.modal.sent_at')}</Text>
+                        <Text style={styles.offerModalVal}>{new Date(o.createdAt).toLocaleDateString('el-GR')}</Text>
+                      </View>
+                    )}
 
                     {/* Route */}
                     {o.route && (
@@ -965,7 +1019,9 @@ export default function DashboardScreen() {
                     {/* Carrier message */}
                     {o.message && (
                       <View style={styles.offerModalSection}>
-                        <Text style={styles.offerModalSectionTitle}>Μήνυμα Μεταφορέα</Text>
+                        <Text style={styles.offerModalSectionTitle}>
+                          {isRequest ? t('dash.modal.request_message') : 'Μήνυμα Μεταφορέα'}
+                        </Text>
                         <Text style={styles.offerModalBody}>"{o.message}"</Text>
                       </View>
                     )}
@@ -989,6 +1045,17 @@ export default function DashboardScreen() {
                         onPress={() => { setOfferModal(null); handleAccept(o.id) }}
                       >
                         <Text style={[styles.actionBtnEditText, { color: '#166534' }]}>Αποδοχή</Text>
+                      </TouchableOpacity>
+                    )}
+                    {['REQUEST', 'OFFERED'].includes(o.status) && (
+                      <TouchableOpacity
+                        style={[styles.actionBtn, { flex: 1, justifyContent: 'center', backgroundColor: '#DBEAFE', paddingVertical: 12 }]}
+                        onPress={() => {
+                          setOfferModal(null)
+                          router.push(`/(tabs)/messages/${o.id}?returnTo=${encodeURIComponent('/(tabs)')}` as any)
+                        }}
+                      >
+                        <Text style={[styles.actionBtnEditText, { color: '#1D4ED8' }]}>{t('dash.btn.reply')}</Text>
                       </TouchableOpacity>
                     )}
                     {['REQUEST', 'OFFERED'].includes(o.status) && (
@@ -1031,6 +1098,26 @@ export default function DashboardScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
+  ratingText:  { fontSize: 12, color: '#F87171', fontWeight: '800' },
+  ratingTrips: { color: 'rgba(248,113,113,0.6)', fontWeight: '600' },
+  cancelBtn: {
+    marginLeft: 8, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(248,113,113,0.35)',
+    paddingHorizontal: 10, paddingVertical: 4,
+  },
+  cancelBtnText: { fontSize: 11, fontWeight: '700', color: '#F87171' },
+  offerCountPill: {
+    backgroundColor: 'rgba(251,191,36,0.12)', borderRadius: 10,
+    paddingHorizontal: 8, paddingVertical: 2, marginLeft: 6,
+  },
+  offerCountText: { fontSize: 11, fontWeight: '700', color: '#FBBF24' },
+  sortLabel: { fontSize: 12, color: 'rgba(255,255,255,0.5)', fontWeight: '600' },
+  sortChip: {
+    borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+    paddingHorizontal: 12, paddingVertical: 5,
+  },
+  sortChipActive: { borderColor: '#FBBF24', backgroundColor: 'rgba(251,191,36,0.12)' },
+  sortChipText: { fontSize: 12, color: 'rgba(255,255,255,0.6)', fontWeight: '600' },
+  sortChipTextActive: { color: '#FBBF24', fontWeight: '800' },
   // Header
   header: {
     backgroundColor: '#0a0a0a',

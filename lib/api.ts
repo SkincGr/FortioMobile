@@ -43,6 +43,11 @@ export type Shipment = {
   loadingInfo?: string
   maxBudget?: number
   roadDistanceKm?: number; roadDurationMinutes?: number
+  // Owner-only (GET /api/shipments/[id] returns them to the sender only).
+  recipientName?: string | null
+  recipientPhone?: string | null
+  recipientEmail?: string | null
+  recipientSameAsSender?: boolean
   status: ShipmentStatus
   createdAt: string; updatedAt: string
   sender?: { id: string; name: string }
@@ -60,7 +65,7 @@ export type Offer = {
   routeId?: string | null
   carrier: {
     id?: string; name?: string; email: string; phone?: string
-    company?: { name?: string; rating?: number }
+    company?: { id?: string; name?: string; rating?: number; totalTrips?: number }
   }
   route?: {
     id?: string
@@ -75,6 +80,7 @@ export type Offer = {
   message?: string
   conditions?: string
   pickupDate?: string
+  createdAt?: string
   review?: { id: string; rating: number; comment?: string | null } | null
   _count?: { messages: number }
   unreadCount?: number
@@ -238,6 +244,8 @@ export type CreateShipmentPayload = {
   length?: number; width?: number; height?: number
   isFragile?: boolean; requiresCooling?: boolean; isHazardous?: boolean
   desiredDelivery?: string; maxBudget?: number; loadingInfo?: string
+  recipientName: string; recipientPhone: string; recipientEmail?: string
+  recipientSameAsSender?: boolean
 }
 
 export const shipmentsApi = {
@@ -292,11 +300,13 @@ export type RouteMatch = {
   departureDate?: string
   estimatedArrival?: string
   isRecurring?: boolean
+  recurrence?: { interval?: number; weekdays?: string[] } | null
+  recurrenceEndDate?: string | null
   availableWeight?: number
   availableVolume?: number
   pricePerKg?: number
   pricePerM3?: number
-  company?: { name: string; rating?: number; totalTrips?: number } | null
+  company?: { id?: string; name: string; rating?: number; totalTrips?: number } | null
   vehicle?: { type?: string } | null
   stops: RouteStop[]
   distanceKm?: number | null

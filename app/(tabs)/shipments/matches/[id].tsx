@@ -11,6 +11,7 @@ import { shipmentsApi, matchesApi, messagesApi, RouteMatch } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
 import { Colors } from '@/constants/colors'
 import { useMessageTemplates, renderTemplate } from '@/lib/templates'
+import { carrierRating, recurrenceNote } from '@/lib/display'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -46,12 +47,13 @@ type RouteCardProps = {
 }
 
 function RouteCard({ route, offerStatus, onRequest, onMessage, onViewOffer }: RouteCardProps) {
-  const { t } = useI18n()
+  const { t, language } = useI18n()
   const isRequestOnly = offerStatus === 'REQUEST'
   const hasQuote = Boolean(offerStatus) && !isRequestOnly
   const icon = VEHICLE_ICON[route.vehicle?.type ?? ''] ?? '🚛'
   const carrier = route.company?.name ?? t('match.carrier_fallback')
-  const rating = route.company?.rating
+  const { rating, trips } = carrierRating(route.company, route.id)
+  const recurrence = recurrenceNote(route, language)
   const depDate = fDate(route.departureDate)
   const arrDate = fDate(route.estimatedArrival ?? route.departureDate)
 
@@ -63,27 +65,18 @@ function RouteCard({ route, offerStatus, onRequest, onMessage, onViewOffer }: Ro
       <View style={[styles.row, { gap: 8, marginBottom: 4, flexWrap: 'wrap' }]}>
         <Text style={{ fontSize: 20 }}>{icon}</Text>
         <Text style={styles.carrierName}>{carrier}</Text>
-        {!!rating && rating > 0 && (
-          <View style={[styles.row, { gap: 2 }]}>
-            <Ionicons name="star" size={12} color="#FBBF24" />
-            <Text style={styles.ratingText}>
-              {rating.toFixed(1)}{route.company?.totalTrips ? ` (${route.company.totalTrips})` : ''}
-            </Text>
-          </View>
-        )}
-        {!!route.status && (
-          <Text style={{ color: '#FBBF24', fontSize: 12, fontWeight: '700' }}>
-            {route.status}
-          </Text>
-        )}
+        <Text style={styles.ratingText}>
+          ★ {rating.toFixed(1)}{trips > 0 ? <Text style={styles.ratingTrips}> ({trips})</Text> : null}
+        </Text>
       </View>
 
-      {/* Row 2: Επαναλαμβανόμενο (μόνο αν ισχύει) */}
+      {/* Row 2: Επαναλαμβανόμενο (μόνο αν ισχύει) + cadence line */}
       {route.isRecurring && (
-        <View style={[styles.recurringChip, { alignSelf: 'flex-start', marginBottom: 8 }]}>
+        <View style={[styles.recurringChip, { alignSelf: 'flex-start', marginBottom: 4 }]}>
           <Text style={styles.recurringText}>{t('match.recurring')}</Text>
         </View>
       )}
+      {recurrence && <Text style={styles.recurrenceNote}>{recurrence}</Text>}
 
       {/* Row 2: origin → dest */}
       <View style={[styles.row, { marginBottom: 4, flexWrap: 'wrap', gap: 4 }]}>
@@ -243,7 +236,12 @@ export default function MatchesScreen() {
     }
   }
 
-  const routes = matchData?.routes ?? []
+  // Best-rated carrier first — same order as web's matches page.
+  const routes = useMemo(
+    () => [...(matchData?.routes ?? [])].sort((a, b) =>
+      carrierRating(b.company, b.id).rating - carrierRating(a.company, a.id).rating),
+    [matchData],
+  )
   const isLoading = loadingShipment || loadingMatches
 
   if (isLoading) {
@@ -293,6 +291,36 @@ export default function MatchesScreen() {
         data={routes}
         keyExtractor={r => r.id}
         contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
+        ListHeaderComponent={shipmentData ? (
+          <View style={styles.summaryCard}>
+            <Text style={styles.summaryLabel}>{t('ship.info.title')}</Text>
+            <Text style={styles.summaryRoute}>
+              {fCity(shipmentData.originCity)} → {fCity(shipmentData.destCity)}
+            </Text>
+            {!!shipmentData.description && <Text style={styles.summaryMuted}>{shipmentData.description}</Text>}
+            {(shipmentData.isFragile || shipmentData.requiresCooling || shipmentData.isHazardous) && (
+              <View style={[styles.row, { gap: 6, marginTop: 6, flexWrap: 'wrap' }]}>
+                {shipmentData.isFragile && <Text style={[styles.flagPill, { color: '#FB923C', backgroundColor: 'rgba(251,146,60,0.12)' }]}>{t('ship.info.fragile')}</Text>}
+                {shipmentData.requiresCooling && <Text style={[styles.flagPill, { color: '#60A5FA', backgroundColor: 'rgba(96,165,250,0.12)' }]}>{t('ship.info.cooling')}</Text>}
+                {shipmentData.isHazardous && <Text style={[styles.flagPill, { color: '#F87171', backgroundColor: 'rgba(248,113,113,0.12)' }]}>{t('ship.info.hazardous')}</Text>}
+              </View>
+            )}
+            <View style={[styles.row, { gap: 12, marginTop: 8, flexWrap: 'wrap' }]}>
+              {!!(shipmentData.length && shipmentData.width && shipmentData.height) && (
+                <Text style={styles.summaryMuted}>📏 {shipmentData.length}×{shipmentData.width}×{shipmentData.height} cm</Text>
+              )}
+              {!!shipmentData.weight && <Text style={styles.summaryMuted}>⚖️ {shipmentData.weight} kg</Text>}
+              {!!shipmentData.volume && <Text style={styles.summaryMuted}>📦 {shipmentData.volume} m³</Text>}
+              {!!shipmentData.desiredDelivery && <Text style={styles.summaryMuted}>📅 {fDate(shipmentData.desiredDelivery)}</Text>}
+              {!!shipmentData.maxBudget && <Text style={[styles.summaryMuted, { color: '#FBBF24', fontWeight: '700' }]}>{t('ship.info.up_to')} €{shipmentData.maxBudget}</Text>}
+            </View>
+            {!!(shipmentData.recipientName || shipmentData.recipientPhone) && (
+              <Text style={[styles.summaryMuted, { marginTop: 6 }]}>
+                {t('ship.info.recipient')}: {[shipmentData.recipientName, shipmentData.recipientPhone, shipmentData.recipientEmail].filter(Boolean).join(' · ')}
+              </Text>
+            )}
+          </View>
+        ) : null}
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text style={{ fontSize: 40, marginBottom: 12 }}>🔍</Text>
@@ -394,9 +422,9 @@ export default function MatchesScreen() {
                 <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.sendBtn, sending && { opacity: 0.6 }]}
+                style={[styles.sendBtn, (sending || !messageText.trim()) && { opacity: 0.5 }]}
                 onPress={handleSend}
-                disabled={sending}
+                disabled={sending || !messageText.trim()}
               >
                 {sending
                   ? <ActivityIndicator size="small" color="#000" />
@@ -537,6 +565,16 @@ const styles = StyleSheet.create({
   shipmentRoute: { fontSize: 14, fontWeight: '700', color: '#fff', flex: 1 },
   shipmentDetail: { fontSize: 13, color: 'rgba(255,255,255,0.5)' },
 
+  summaryCard: {
+    backgroundColor: 'rgba(251,191,36,0.05)', borderRadius: 16,
+    borderWidth: 1, borderColor: 'rgba(251,191,36,0.2)',
+    padding: 14, marginBottom: 14,
+  },
+  summaryLabel: { fontSize: 10, fontWeight: '800', color: '#FBBF24', letterSpacing: 1.2, marginBottom: 4, textTransform: 'uppercase' },
+  summaryRoute: { fontSize: 15, fontWeight: '800', color: '#fff' },
+  summaryMuted: { fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 2 },
+  flagPill: { fontSize: 11, fontWeight: '700', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2, overflow: 'hidden' },
+
   // Route card
   card: {
     backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16,
@@ -552,7 +590,9 @@ const styles = StyleSheet.create({
   },
   carrierName: { fontSize: 15, fontWeight: '700', color: '#fff' },
   carrierText: { fontSize: 12, color: '#fff', fontWeight: '600' },
-  ratingText:  { fontSize: 11, color: '#FBBF24', fontWeight: '700' },
+  ratingText:  { fontSize: 12, color: '#F87171', fontWeight: '800' },
+  ratingTrips: { color: 'rgba(248,113,113,0.6)', fontWeight: '600' },
+  recurrenceNote: { fontSize: 12, color: '#60A5FA', marginBottom: 6 },
   recurringChip: {
     backgroundColor: 'rgba(251,191,36,0.1)', borderRadius: 20,
     paddingHorizontal: 8, paddingVertical: 3,

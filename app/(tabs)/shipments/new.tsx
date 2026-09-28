@@ -8,7 +8,7 @@ import DateTimePicker from '@react-native-community/datetimepicker'
 import { router, useLocalSearchParams, Stack, useFocusEffect } from 'expo-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
-import { shipmentsApi } from '@/lib/api'
+import { shipmentsApi, profileApi } from '@/lib/api'
 import { PlacesInput } from '@/components/PlacesInput'
 import { Colors } from '@/constants/colors'
 
@@ -53,6 +53,11 @@ type Form = {
   destLng: string
   desiredDelivery: Date | null
   loadingInfo: string
+  // Recipient
+  recipientName: string
+  recipientPhone: string
+  recipientEmail: string
+  recipientSameAsSender: boolean
   // Cargo
   length: string
   width: string
@@ -72,6 +77,7 @@ const INITIAL: Form = {
   destCity: '', destCityPlaceId: '', destAddress: '',
   destLat: '', destLng: '',
   desiredDelivery: null, loadingInfo: '',
+  recipientName: '', recipientPhone: '', recipientEmail: '', recipientSameAsSender: false,
   length: '', width: '', height: '', weight: '', volume: '', maxBudget: '',
   isFragile: false, requiresCooling: false, isHazardous: false,
 }
@@ -97,9 +103,9 @@ function Field({ label, optional, children }: { label: string; optional?: boolea
 
 function Row({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-      <Text style={{ fontSize: 13, color: '#64748B' }}>{label}</Text>
-      <Text style={{ fontSize: 13, fontWeight: '600', color: accent ? Colors.accent : '#1E293B' }}>{value}</Text>
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8, gap: 12 }}>
+      <Text style={{ fontSize: 13, color: '#64748B', flexShrink: 0 }}>{label}</Text>
+      <Text style={{ fontSize: 13, fontWeight: '600', color: accent ? Colors.accent : '#1E293B', flex: 1, textAlign: 'right' }}>{value}</Text>
     </View>
   )
 }
@@ -285,11 +291,30 @@ function CoordGroup({ locationLabel, latValue, lngValue, latPh, lngPh, onLatChan
 
 // ─── Step 2: Route ────────────────────────────────────────────────────────────
 
-function Step2({ form, update, onBack, onNext }: {
-  form: Form; update: (k: keyof Form, v: any) => void; onBack: () => void; onNext: () => void
+type SenderContact = { name: string; phone: string; email: string }
+
+function Step2({ form, update, setForm, sender, onBack, onNext }: {
+  form: Form; update: (k: keyof Form, v: any) => void
+  setForm: React.Dispatch<React.SetStateAction<Form>>
+  sender: SenderContact
+  onBack: () => void; onNext: () => void
 }) {
   const [showDatePicker, setShowDatePicker] = useState(false)
   const canContinue = !!form.originCity.trim() && !!form.destCity.trim()
+    && !!form.recipientName.trim() && !!form.recipientPhone.trim()
+
+  // Ticking copies the sender's own details; unticking clears them — never
+  // leaves the sender's data sitting in fields that now claim to be someone else's.
+  function toggleSameAsSender() {
+    const next = !form.recipientSameAsSender
+    setForm(f => ({
+      ...f,
+      recipientSameAsSender: next,
+      recipientName:  next ? sender.name  : '',
+      recipientPhone: next ? sender.phone : '',
+      recipientEmail: next ? sender.email : '',
+    }))
+  }
 
   return (
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 40 }}>
@@ -364,6 +389,61 @@ function Step2({ form, update, onBack, onNext }: {
           onLatChange={v => update('destLat', v)}
           onLngChange={v => update('destLng', v)}
         />
+      </View>
+
+      {/* Recipient */}
+      <View className="bg-white border border-slate-200 rounded-2xl p-4 mb-4">
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, gap: 8 }}>
+          <Text className="text-sm font-bold text-slate-700">👤 Παραλήπτης</Text>
+          <TouchableOpacity onPress={toggleSameAsSender} activeOpacity={0.8} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <View style={{
+              width: 18, height: 18, borderRadius: 4, borderWidth: 2,
+              alignItems: 'center', justifyContent: 'center',
+              borderColor: form.recipientSameAsSender ? Colors.accent : '#CBD5E1',
+              backgroundColor: form.recipientSameAsSender ? Colors.accent : 'transparent',
+            }}>
+              {form.recipientSameAsSender && <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>✓</Text>}
+            </View>
+            <Text style={{ fontSize: 13, color: '#334155', fontWeight: '600' }}>Ίδιος με τον Αποστολέα</Text>
+          </TouchableOpacity>
+        </View>
+
+        <Field label="Ονοματεπώνυμο *">
+          <TextInput
+            style={[inputStyle, form.recipientSameAsSender && { backgroundColor: '#F1F5F9', color: '#94A3B8' }]}
+            placeholder="π.χ. Μαρία Παπαδοπούλου"
+            placeholderTextColor="#94A3B8"
+            value={form.recipientName}
+            onChangeText={v => update('recipientName', v)}
+            editable={!form.recipientSameAsSender}
+          />
+        </Field>
+        <Field label="Τηλέφωνο *">
+          <TextInput
+            style={[inputStyle, form.recipientSameAsSender && { backgroundColor: '#F1F5F9', color: '#94A3B8' }]}
+            placeholder="π.χ. 6912345678"
+            placeholderTextColor="#94A3B8"
+            value={form.recipientPhone}
+            onChangeText={v => update('recipientPhone', v)}
+            keyboardType="phone-pad"
+            editable={!form.recipientSameAsSender}
+          />
+        </Field>
+        <Field label="Email" optional>
+          <TextInput
+            style={[inputStyle, form.recipientSameAsSender && { backgroundColor: '#F1F5F9', color: '#94A3B8' }]}
+            placeholder="π.χ. maria@example.com"
+            placeholderTextColor="#94A3B8"
+            value={form.recipientEmail}
+            onChangeText={v => update('recipientEmail', v)}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            editable={!form.recipientSameAsSender}
+          />
+        </Field>
+        <Text style={{ fontSize: 11, color: '#94A3B8', marginTop: -6 }}>
+          Ο παραλήπτης ενημερώνεται για την πορεία της αποστολής — δεν είναι ορατός στους μεταφορείς πριν την αποδοχή.
+        </Text>
       </View>
 
       {/* Desired delivery date */}
@@ -557,18 +637,36 @@ function Step3({ form, update, onBack, onSubmit, isSubmitting, error, isEditing 
         <Text style={{ fontSize: 11, fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
           Σύνοψη
         </Text>
-        <Row label="Τίτλος"      value={form.title} />
-        <Row label="Κατηγορία"   value={CATEGORIES.find(c => c.id === form.category)?.label ?? form.category} />
-        <Row label="Διαδρομή"    value={`${form.originCity} → ${form.destCity}`} />
-        {form.weight      ? <Row label="Βάρος"         value={`${form.weight} kg`} /> : null}
-        {displayVolume    ? <Row label="Όγκος"         value={`${displayVolume} m³`} /> : null}
-        {form.maxBudget   ? <Row label="Προϋπολογισμός" value={`έως €${form.maxBudget}`} accent /> : null}
-        {form.desiredDelivery ? (
-          <Row
-            label="Παράδοση έως"
-            value={form.desiredDelivery.toLocaleDateString('el-GR')}
-          />
-        ) : null}
+        {/* Every field the form holds, always shown (empty ones as "-"),
+            in the same order the fields appear across the 3 steps. */}
+        {(() => {
+          const cat = CATEGORIES.find(c => c.id === form.category)
+          const recipient = [form.recipientName, form.recipientPhone, form.recipientEmail].filter(Boolean).join(' · ')
+          const properties = [
+            form.isFragile && 'Εύθραυστο',
+            form.requiresCooling && 'Απαιτεί ψύξη',
+            form.isHazardous && 'Επικίνδυνο υλικό',
+          ].filter(Boolean).join(', ')
+          const rows: { label: string; value: string; accent?: boolean }[] = [
+            { label: 'Κατηγορία',          value: cat ? `${cat.icon} ${cat.label}` : '-' },
+            { label: 'Τίτλος',             value: form.title || '-' },
+            { label: 'Περιγραφή',          value: form.description || '-' },
+            { label: 'Διαδρομή',           value: (form.originCity || form.destCity) ? `${form.originCity || '-'} → ${form.destCity || '-'}` : '-' },
+            { label: 'Διεύθυνση παραλαβής', value: form.originAddress || '-' },
+            { label: 'Διεύθυνση παράδοσης', value: form.destAddress || '-' },
+            { label: 'Συντ. παραλαβής',    value: (form.originLat && form.originLng) ? `${form.originLat}, ${form.originLng}` : '-' },
+            { label: 'Συντ. παράδοσης',    value: (form.destLat && form.destLng) ? `${form.destLat}, ${form.destLng}` : '-' },
+            { label: 'Παραλήπτης',         value: recipient || '-' },
+            { label: 'Παράδοση έως',       value: form.desiredDelivery ? form.desiredDelivery.toLocaleDateString('el-GR') : '-' },
+            { label: 'Φόρτωση / εκφόρτωση', value: form.loadingInfo || '-' },
+            { label: 'Διαστάσεις',         value: dimsFilled ? `${form.length} × ${form.width} × ${form.height} cm` : '-' },
+            { label: 'Βάρος',              value: form.weight ? `${form.weight} kg` : '-' },
+            { label: 'Όγκος',              value: displayVolume ? `${displayVolume} m³` : '-' },
+            { label: 'Ιδιαιτερότητες',     value: properties || '-' },
+            { label: 'Προϋπολογισμός',     value: form.maxBudget ? `έως €${form.maxBudget}` : '-', accent: true },
+          ]
+          return rows.map(r => <Row key={r.label} label={r.label} value={r.value} accent={r.accent} />)
+        })()}
       </View>
 
       {error ? (
@@ -632,6 +730,25 @@ export default function NewShipmentScreen() {
     enabled: !!editId,
   })
 
+  const { data: profile } = useQuery({
+    queryKey: ['sender-profile'],
+    queryFn: () => profileApi.get().then(r => r.data),
+  })
+  const sender = {
+    name:  profile?.name  ?? '',
+    phone: profile?.phone ?? '',
+    email: profile?.email ?? '',
+  }
+
+  // Keep "same as sender" in sync once the profile arrives (and with the
+  // sender's *current* details when editing a shipment saved with it on).
+  useEffect(() => {
+    if (!profile) return
+    setForm(f => f.recipientSameAsSender
+      ? { ...f, recipientName: profile.name ?? '', recipientPhone: profile.phone ?? '', recipientEmail: profile.email ?? '' }
+      : f)
+  }, [profile, form.recipientSameAsSender])
+
   useEffect(() => {
     if (!existingShipment) return
     setForm({
@@ -650,6 +767,10 @@ export default function NewShipmentScreen() {
       destLng:          existingShipment.destLng?.toString() ?? '',
       desiredDelivery:  existingShipment.desiredDelivery ? new Date(existingShipment.desiredDelivery) : null,
       loadingInfo:      existingShipment.loadingInfo ?? '',
+      recipientName:    existingShipment.recipientName ?? '',
+      recipientPhone:   existingShipment.recipientPhone ?? '',
+      recipientEmail:   existingShipment.recipientEmail ?? '',
+      recipientSameAsSender: existingShipment.recipientSameAsSender ?? false,
       length:           existingShipment.length?.toString() ?? '',
       width:            existingShipment.width?.toString() ?? '',
       height:           existingShipment.height?.toString() ?? '',
@@ -693,6 +814,10 @@ export default function NewShipmentScreen() {
         destLng:           form.destLng ? parseFloat(form.destLng) : undefined,
         desiredDelivery:   desiredDeliveryISO,
         loadingInfo:       form.loadingInfo.trim() || undefined,
+        recipientName:     form.recipientName.trim(),
+        recipientPhone:    form.recipientPhone.trim(),
+        recipientEmail:    form.recipientEmail.trim() || undefined,
+        recipientSameAsSender: form.recipientSameAsSender,
         length:            form.length  ? parseFloat(form.length)  : undefined,
         width:             form.width   ? parseFloat(form.width)   : undefined,
         height:            form.height  ? parseFloat(form.height)  : undefined,
@@ -762,7 +887,10 @@ export default function NewShipmentScreen() {
           <Step1 form={form} update={update} onNext={() => setStep(2)} />
         )}
         {step === 2 && (
-          <Step2 form={form} update={update} onBack={() => setStep(1)} onNext={() => setStep(3)} />
+          <Step2
+            form={form} update={update} setForm={setForm} sender={sender}
+            onBack={() => setStep(1)} onNext={() => setStep(3)}
+          />
         )}
         {step === 3 && (
           <Step3

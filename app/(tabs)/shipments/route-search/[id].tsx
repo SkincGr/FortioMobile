@@ -168,6 +168,7 @@ export default function RouteSearchScreen() {
   const queryClient = useQueryClient()
   const { t } = useI18n()
 
+  const [tab, setTab] = useState<'search' | 'results'>('search')
   const [maxDistance, setMaxDistance] = useState(10)
   const [debouncedDistance, setDebouncedDistance] = useState(10)
   const [dateWindowDays, setDateWindowDays] = useState(5)
@@ -317,12 +318,28 @@ export default function RouteSearchScreen() {
         </View>
       </View>
 
+      {/* Tabs: Έρευνα / Αποτελέσματα */}
+      <View style={styles.tabRow}>
+        {(['search', 'results'] as const).map(k => (
+          <TouchableOpacity
+            key={k}
+            style={[styles.tabBtn, tab === k && styles.tabBtnActive]}
+            onPress={() => setTab(k)}
+          >
+            <Text style={[styles.tabText, tab === k && styles.tabTextActive]}>
+              {k === 'search' ? t('routeSearch.tab_search') : `${t('routeSearch.tab_results')} (${routes.length})`}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
       <FlatList
-        data={routes}
+        data={tab === 'results' ? routes : []}
         keyExtractor={r => r.id}
         contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
         ListHeaderComponent={
           <View style={{ marginBottom: 16 }}>
+            {tab === 'search' && (<>
             {/* Shipment Summary Card */}
             {shipmentData && (
               <View style={styles.shipmentSummaryCard}>
@@ -433,7 +450,10 @@ export default function RouteSearchScreen() {
               </View>
             </View>
 
+            </>)}
+
             {/* Results Header */}
+            {tab === 'results' && (
             <View style={[styles.row, { justifyContent: 'space-between', marginTop: 8 }]}>
               <Text style={styles.sectionTitle}>
                 {t('routeSearch.section_routes')}
@@ -442,9 +462,11 @@ export default function RouteSearchScreen() {
                 <ActivityIndicator size="small" color="#FBBF24" />
               )}
             </View>
+            )}
           </View>
         }
         ListEmptyComponent={
+          tab !== 'results' ? null : (
           <View style={styles.empty}>
             <Text style={{ fontSize: 40, marginBottom: 12 }}>🔍</Text>
             <Text style={styles.emptyTitle}>{t('routeSearch.no_routes_title')}</Text>
@@ -452,6 +474,7 @@ export default function RouteSearchScreen() {
               {t('routeSearch.no_routes_sub')}
             </Text>
           </View>
+          )
         }
         renderItem={({ item }) => (
           <RouteCard
@@ -655,6 +678,14 @@ export default function RouteSearchScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
+  tabRow: { flexDirection: 'row', paddingHorizontal: 16, paddingTop: 12, gap: 10 },
+  tabBtn: {
+    flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+  },
+  tabBtnActive: { backgroundColor: 'rgba(251,191,36,0.15)', borderColor: '#FBBF24' },
+  tabText: { color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: '700' },
+  tabTextActive: { color: '#FBBF24' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
   loadingText: { color: 'rgba(255,255,255,0.4)', fontSize: 14 },
 

@@ -72,6 +72,7 @@ export type Offer = {
   route?: {
     id?: string
     routeNumber?: string
+    routeCompanyId?: string
     status?: string
     estimatedArrival?: string
     originCity?: string
@@ -304,6 +305,7 @@ export type RouteStop = {
 export type RouteMatch = {
   id: string
   routeNumber?: string
+  routeCompanyId?: string
   status: string
   originCity?: string
   destCity?: string

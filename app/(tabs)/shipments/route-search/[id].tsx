@@ -30,6 +30,7 @@ function fDate(v?: string | null) {
 
 
 function routeNumber(route: RouteMatch) {
+  if (route.routeCompanyId) return route.routeCompanyId
   if (route.routeNumber) return String(route.routeNumber).padStart(6, '0')
   return route.id.slice(-8).toUpperCase()
 }

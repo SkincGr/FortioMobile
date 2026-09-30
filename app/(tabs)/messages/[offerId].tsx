@@ -25,7 +25,7 @@ type Msg = {
   messageType?: number
   sender?: { id: string; name?: string | null; company?: { name?: string } | null }
   shipment?: { id: string; title?: string | null; originCity?: string | null; destCity?: string | null } | null
-  route?: { id?: string; routeNumber?: string | null; originCity?: string | null; destCity?: string | null; departureDate?: string | null; estimatedArrival?: string | null } | null
+  route?: { id?: string; routeNumber?: string | null; routeCompanyId?: string | null; originCity?: string | null; destCity?: string | null; departureDate?: string | null; estimatedArrival?: string | null } | null
 }
 
 type ThreadData = {
@@ -34,7 +34,7 @@ type ThreadData = {
   price?: number | null
   carrier?: { name?: string | null; company?: { name?: string } | null } | null
   shipment?: { id: string; title?: string | null; originCity?: string | null; destCity?: string | null } | null
-  route?: { id?: string; routeNumber?: string | null; originCity?: string | null; destCity?: string | null; departureDate?: string | null; estimatedArrival?: string | null } | null
+  route?: { id?: string; routeNumber?: string | null; routeCompanyId?: string | null; originCity?: string | null; destCity?: string | null; departureDate?: string | null; estimatedArrival?: string | null } | null
 }
 
 function fmtDate(d?: string | null) {
@@ -159,7 +159,7 @@ export default function ChatScreen() {
   const thread = data
   const carrierLabel = thread?.carrier?.company?.name ?? thread?.carrier?.name ?? t('match.carrier_fallback')
   const route = thread?.route
-  const routeNum = route?.routeNumber || (route?.id ? route.id.slice(-8).toUpperCase() : null)
+  const routeNum = route?.routeCompanyId || route?.routeNumber || (route?.id ? route.id.slice(-8).toUpperCase() : null)
 
   return (
     <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -297,7 +297,7 @@ function MessageRow({ msg, myId, carrierName, route, onToggleRead, onReply, onNe
   const displaySubject = subject || msg.subject || msg.category || ''
   const senderName = msg.sender?.company?.name ?? msg.sender?.name ?? '—'
   const r = msg.route ?? route
-  const routeNum = r?.routeNumber || (r?.id ? r.id.slice(-8).toUpperCase() : null)
+  const routeNum = r?.routeCompanyId || r?.routeNumber || (r?.id ? r.id.slice(-8).toUpperCase() : null)
 
   return (
     <View style={[s.card, msg.isRead && s.cardRead]}>

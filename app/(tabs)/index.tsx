@@ -471,14 +471,6 @@ function ShipmentCard({ item, filter, matchCount, matchCountsLoading, onDelete, 
               <View style={styles.btnBadgeAmber}><Text style={styles.btnBadgeAmberText}>{matchCount}</Text></View>
             </TouchableOpacity>
           )}
-
-          <TouchableOpacity
-            style={[styles.actionBtn, styles.actionBtnEdit]}
-            activeOpacity={0.75}
-            onPress={e => { e.stopPropagation?.(); router.push(`/(tabs)/shipments/route-search/${item.id}?title=${encodeURIComponent(item.title)}&returnTo=${encodeURIComponent('/(tabs)')}` as any) }}
-          >
-            <Text style={styles.actionBtnEditText}>{t('dash.btn.route_search')}</Text>
-          </TouchableOpacity>
         </View>
       )}
 
@@ -583,8 +575,8 @@ export default function DashboardScreen() {
       t('dash.alert.cancel_title'),
       t('dash.alert.cancel_msg'),
       [
-        { text: t('common.close'), style: 'cancel' },
-        { text: t('dash.btn.cancel_shipment'), style: 'destructive', onPress: () => deleteMut.mutate(id) },
+        { text: t('common.no'), style: 'cancel' },
+        { text: t('common.yes'), style: 'destructive', onPress: () => deleteMut.mutate(id) },
       ]
     )
   }
@@ -598,8 +590,8 @@ export default function DashboardScreen() {
 
   function handleReject(offerId: string) {
     Alert.alert(t('dash.alert.reject_title'), t('dash.alert.reject_msg'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      { text: t('common.reject'), style: 'destructive', onPress: () => rejectMut.mutate(offerId) },
+      { text: t('common.no'), style: 'cancel' },
+      { text: t('common.yes'), style: 'destructive', onPress: () => rejectMut.mutate(offerId) },
     ])
   }
 

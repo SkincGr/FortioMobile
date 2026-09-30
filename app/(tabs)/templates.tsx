@@ -262,9 +262,12 @@ export default function TemplatesScreen() {
                         </TouchableOpacity>
                       )
                   )}
-                  <TouchableOpacity onPress={() => openEdit(item)} hitSlop={8}>
-                    <Text style={s.actionMuted}>✏️ Επεξεργασία</Text>
-                  </TouchableOpacity>
+                  {/* Τα κοινά «Έτοιμα» αλλάζουν μόνο από admin· οι υπόλοιποι τα αντιγράφουν στα Δικά μου */}
+                  {(tab === 'custom' || user?.role === 'ADMIN') && (
+                    <TouchableOpacity onPress={() => openEdit(item)} hitSlop={8}>
+                      <Text style={s.actionMuted}>✏️ Επεξεργασία</Text>
+                    </TouchableOpacity>
+                  )}
                   {tab === 'custom' && (
                     <TouchableOpacity onPress={() => handleDelete(item.id)} hitSlop={10}>
                       <Ionicons name="trash-outline" size={18} color="#F87171" />

@@ -42,7 +42,8 @@ function fDate(v?: string | null) {
 }
 
 
-function fRouteNum(routeNumber?: string | null, routeId?: string | null) {
+function fRouteNum(routeNumber?: string | null, routeId?: string | null, companyId?: string | null) {
+  if (companyId) return `#${companyId}`
   if (routeNumber) return `#${String(routeNumber).padStart(6, '0')}`
   if (routeId) return `#${routeId.slice(-8).toUpperCase()}`
   return '—'
@@ -125,7 +126,7 @@ function OfferCard({
         <View style={styles.row}>
           <Text style={{ fontSize: 18, marginRight: 6 }}>{icon}</Text>
           <Text style={styles.routeNum}>
-            {fRouteNum(offer.route?.routeNumber, offer.routeId)}
+            {fRouteNum(offer.route?.routeNumber, offer.routeId, offer.route?.routeCompanyId)}
           </Text>
         </View>
         <View style={{ alignItems: 'flex-end', gap: 2 }}>

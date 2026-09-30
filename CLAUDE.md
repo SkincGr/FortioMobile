@@ -1,10 +1,10 @@
 # FortioMobile — Expo Mobile App (Sender-Only)
 
-Expo SDK 56 / React Native mobile application.  
+Expo SDK 57 / React Native 0.86 mobile application.  
 **Scope: SENDER role only.** Carrier and Admin functionality are web-only (see Fortio).
 
 > **Before writing any code**, read the exact versioned Expo docs:
-> https://docs.expo.dev/versions/v56.0.0/
+> https://docs.expo.dev/versions/v57.0.0/
 
 ---
 
@@ -15,7 +15,7 @@ FortioMobile and Fortio are **two separate Git repositories** that share the **s
 | Concern | Fortio (web) | FortioMobile |
 |---|---|---|
 | Repo | `C:\Users\CSKIN\Fortio` | `C:\Users\CSKIN\FortioMobile` |
-| Runtime | Next.js 14 (App Router) | Expo SDK 56 / React Native |
+| Runtime | Next.js 14 (App Router) | Expo SDK 57 / React Native 0.86 |
 | Roles served | SENDER + CARRIER + ADMIN | **SENDER only** |
 | Backend/API | Owns it | Consumes it |
 | Database schema | Owns it (Prisma) | Read-only consumer |

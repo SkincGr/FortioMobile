@@ -5,32 +5,40 @@ import {
 } from 'react-native'
 import { router, Stack } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
-import {
-  MessageTemplate,
-  SENDER_TEMPLATES,
-  CARRIER_TEMPLATES,
-} from '@/lib/templates'
+import { MessageTemplate } from '@/lib/templates'
 import { useI18n } from '@/lib/i18n'
 import { api } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
+
+const REST = '__REST__'
+const CATEGORY_LABELS: Record<string, string> = {
+  OFFER: 'Προσφορά',
+  CLARIFICATION: 'Διευκρίνιση',
+  REQUEST: 'Αίτημα',
+  GENERAL: 'Γενικό',
+}
+const catLabel = (c: string) => CATEGORY_LABELS[c] ?? c
 
 export default function TemplatesScreen() {
   const { t } = useI18n()
   const { user } = useAuth()
   const isCarrier = user?.role === 'CARRIER'
-  const systemTemplates = isCarrier ? CARRIER_TEMPLATES : SENDER_TEMPLATES
+  const role = isCarrier ? 'CARRIER' : 'SENDER'
 
   const [tab, setTab] = useState<'system' | 'custom'>('system')
+  const [systemList, setSystemList] = useState<MessageTemplate[]>([])
   const [customList, setCustomList] = useState<MessageTemplate[]>([])
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
+  const [categoryFilter, setCategoryFilter] = useState<string>('ALL')
+  const [comboOpen, setComboOpen] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   // Form
   const [title, setTitle] = useState('')
+  const [subject, setSubject] = useState('')
   const [content, setContent] = useState('')
-  const [category, setCategory] = useState<'OFFER' | 'CLARIFICATION' | 'REQUEST' | 'GENERAL'>(
-    isCarrier ? 'OFFER' : 'REQUEST'
-  )
+  const [category, setCategory] = useState<string>(isCarrier ? 'OFFER' : 'REQUEST')
   const [icon, setIcon] = useState(isCarrier ? '🚛' : '📋')
   const [saving, setSaving] = useState(false)
 
@@ -41,10 +49,12 @@ export default function TemplatesScreen() {
   async function loadTemplates() {
     try {
       setLoading(true)
+      // raw=1: τα «Έτοιμα» έρχονται αναλλοίωτα (όπως είναι τα κοινά)
       const res = await api.get<{ system: MessageTemplate[]; custom: MessageTemplate[] }>(
-        `/api/templates?role=${isCarrier ? 'CARRIER' : 'SENDER'}`
+        `/api/templates?role=${role}&raw=1`
       )
-      if (res.data?.custom) setCustomList(res.data.custom)
+      setSystemList(res.data?.system ?? [])
+      setCustomList(res.data?.custom ?? [])
     } catch (e) {
       console.log('Failed to fetch templates:', e)
     } finally {
@@ -52,39 +62,85 @@ export default function TemplatesScreen() {
     }
   }
 
-  async function handleCreate() {
+  // Οι κατηγορίες του combo προέρχονται από το πεδίο category των προτύπων
+  const categoryOptions = Array.from(new Set(
+    [...systemList, ...customList].map(tpl => (tpl.category ?? '').trim()).filter(Boolean),
+  )).sort()
+  const baseList = tab === 'system' ? systemList : customList
+  const list = categoryFilter === 'ALL'
+    ? baseList
+    : categoryFilter === REST
+      ? baseList.filter(tpl => !categoryOptions.includes((tpl.category ?? '').trim()))
+      : baseList.filter(tpl => (tpl.category ?? '').trim() === categoryFilter)
+  const filterLabel = categoryFilter === 'ALL' ? 'Όλες οι κατηγορίες' : categoryFilter === REST ? 'Ρεστ' : catLabel(categoryFilter)
+
+  // Η κατηγορία κλειδώνει: σε επεξεργασία στην υπάρχουσα, σε νέο πρότυπο στην τιμή του combo
+  const categoryLocked = Boolean(editingId) || (categoryFilter !== 'ALL' && categoryFilter !== REST)
+
+  function openNew() {
+    setEditingId(null)
+    setTitle(''); setSubject(''); setContent(''); setIcon(isCarrier ? '🚛' : '📋')
+    if (categoryFilter !== 'ALL' && categoryFilter !== REST) setCategory(categoryFilter)
+    setModalOpen(true)
+  }
+
+  function openEdit(item: MessageTemplate) {
+    setEditingId(item.id)
+    setTitle(item.title)
+    setSubject(item.subject ?? '')
+    setContent(item.content)
+    setCategory(item.category || 'GENERAL')
+    setIcon(item.icon || (isCarrier ? '🚛' : '📋'))
+    setModalOpen(true)
+  }
+
+  async function handleSave() {
     if (!title.trim() || !content.trim()) {
       Alert.alert('Σφάλμα', 'Συμπληρώστε τίτλο και κείμενο')
       return
     }
-
     try {
       setSaving(true)
-      const res = await api.post<MessageTemplate>('/api/templates', {
-        title: title.trim(),
-        content: content.trim(),
-        category,
-        icon,
-      })
-      if (res.data) {
-        setCustomList(prev => [res.data, ...prev])
-        setTab('custom')
-        setModalOpen(false)
-        setTitle('')
-        setContent('')
+      const body = { title: title.trim(), content: content.trim(), subject: subject.trim() || undefined, category, icon }
+      if (editingId) {
+        // Επεξεργασία στη θέση του (και στα «Έτοιμα» — δεν δημιουργεί αντίγραφο)
+        const res = await api.patch<MessageTemplate>(`/api/templates?id=${encodeURIComponent(editingId)}`, body)
+        const patch = (l: MessageTemplate[]) => l.map(tpl => tpl.id === editingId ? { ...tpl, ...res.data } : tpl)
+        setSystemList(patch)
+        setCustomList(patch)
+      } else {
+        const res = await api.post<MessageTemplate>('/api/templates', body)
+        if (res.data) {
+          setCustomList(prev => [res.data, ...prev])
+          setTab('custom')
+        }
       }
-    } catch (e) {
-      Alert.alert('Σφάλμα', 'Δεν ήταν δυνατή η αποθήκευση του προτύπου')
+      setModalOpen(false)
+      setEditingId(null)
+    } catch (e: any) {
+      Alert.alert('Σφάλμα', e?.response?.data?.error || 'Δεν ήταν δυνατή η αποθήκευση του προτύπου')
     } finally {
       setSaving(false)
     }
   }
 
+  async function handleCopyToMine(item: MessageTemplate) {
+    try {
+      const res = await api.post<MessageTemplate>(`/api/templates/copy?id=${encodeURIComponent(item.id)}`)
+      if (res.data) {
+        setCustomList(prev => prev.some(tpl => tpl.id === res.data.id) ? prev : [res.data, ...prev])
+        setTab('custom')
+      }
+    } catch (e: any) {
+      Alert.alert('Σφάλμα', e?.response?.data?.error || 'Η αντιγραφή απέτυχε')
+    }
+  }
+
   async function handleDelete(id: string) {
     Alert.alert('Διαγραφή', 'Θέλετε να διαγράψετε αυτό το πρότυπο;', [
-      { text: 'Ακύρωση', style: 'cancel' },
+      { text: t('common.no'), style: 'cancel' },
       {
-        text: 'Διαγραφή',
+        text: t('common.yes'),
         style: 'destructive',
         onPress: async () => {
           try {
@@ -97,8 +153,6 @@ export default function TemplatesScreen() {
       },
     ])
   }
-
-  const list = tab === 'system' ? systemTemplates : customList
 
   return (
     <View style={s.root}>
@@ -117,7 +171,7 @@ export default function TemplatesScreen() {
         <Text style={s.headerTitle}>
           {isCarrier ? '🚛 Πρότυπα Μεταφορέα' : '👤 Πρότυπα Αποστολέα'}
         </Text>
-        <TouchableOpacity onPress={() => setModalOpen(true)} style={s.addBtn}>
+        <TouchableOpacity onPress={openNew} style={s.addBtn}>
           <Ionicons name="add" size={22} color="#000" />
         </TouchableOpacity>
       </View>
@@ -129,7 +183,7 @@ export default function TemplatesScreen() {
           onPress={() => setTab('system')}
         >
           <Text style={[s.tabText, tab === 'system' && s.tabTextActive]}>
-            {isCarrier ? '🚛 Έτοιμα Πρότυπα' : '📋 Έτοιμα Πρότυπα'} ({systemTemplates.length})
+            {isCarrier ? '🚛 Έτοιμα Πρότυπα' : '📋 Έτοιμα Πρότυπα'} ({systemList.length})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -142,49 +196,88 @@ export default function TemplatesScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Placeholders note */}
-      <View style={s.placeholderBanner}>
-        <Text style={s.placeholderTitle}>💡 Διαθέσιμες μεταβλητές:</Text>
-        <Text style={s.placeholderText}>
-          {'{shipment_title}'} • {'{origin_city}'} • {'{dest_city}'}
-        </Text>
+      {/* Combo κατηγοριών */}
+      <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
+        <TouchableOpacity style={s.combo} onPress={() => setComboOpen(o => !o)} activeOpacity={0.8}>
+          <Text style={s.comboText} numberOfLines={1}>🏷️ {filterLabel}</Text>
+          <Ionicons name={comboOpen ? 'chevron-up' : 'chevron-down'} size={18} color="rgba(255,255,255,0.6)" />
+        </TouchableOpacity>
+        {comboOpen && (
+          <View style={s.comboList}>
+            {['ALL', ...categoryOptions, REST].map(opt => (
+              <TouchableOpacity
+                key={opt}
+                style={s.comboItem}
+                onPress={() => { setCategoryFilter(opt); setComboOpen(false) }}
+              >
+                <Text style={[s.comboItemText, opt === categoryFilter && { color: '#FBBF24' }]}>
+                  {opt === 'ALL' ? 'Όλες οι κατηγορίες' : opt === REST ? 'Ρεστ' : catLabel(opt)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
       </View>
 
       {/* List */}
-      {loading && tab === 'custom' ? (
+      {loading ? (
         <View style={s.center}>
           <ActivityIndicator size="large" color="#FBBF24" />
         </View>
       ) : list.length === 0 ? (
         <View style={s.center}>
           <Text style={{ fontSize: 32, marginBottom: 8 }}>📋</Text>
-          <Text style={s.emptyText}>Δεν έχετε αποθηκεύσει δικά σας πρότυπα</Text>
-          <TouchableOpacity style={s.createBtn} onPress={() => setModalOpen(true)}>
+          <Text style={s.emptyText}>
+            {tab === 'system' ? 'Δεν υπάρχουν πρότυπα σε αυτή την κατηγορία' : 'Δεν έχετε αποθηκεύσει δικά σας πρότυπα'}
+          </Text>
+          <TouchableOpacity style={s.createBtn} onPress={openNew}>
             <Text style={s.createBtnText}>+ Δημιουργία Προτύπου</Text>
           </TouchableOpacity>
         </View>
       ) : (
         <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
-          {list.map(item => (
-            <View key={item.id} style={s.card}>
-              <View style={s.cardHeader}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
-                  <Text style={{ fontSize: 20 }}>{item.icon || (isCarrier ? '🚛' : '📋')}</Text>
-                  <Text style={s.cardTitle}>{item.title}</Text>
+          {list.map(item => {
+            const copied = customList.some(c => c.parentId === item.id)
+            return (
+              <View key={item.id} style={s.card}>
+                <View style={s.cardHeader}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                    <Text style={{ fontSize: 20 }}>{item.icon || (isCarrier ? '🚛' : '📋')}</Text>
+                    <Text style={s.cardTitle}>{item.title}</Text>
+                  </View>
+                  <View style={s.catBadge}>
+                    <Text style={s.catBadgeText}>{catLabel(item.category)}</Text>
+                  </View>
                 </View>
-                {tab === 'custom' && (
-                  <TouchableOpacity onPress={() => handleDelete(item.id)} hitSlop={10}>
-                    <Ionicons name="trash-outline" size={18} color="#F87171" />
+                {item.parentId ? <Text style={s.customized}>✎ Δικό μου (αντίγραφο)</Text> : null}
+                <Text style={s.cardContent}>{item.content}</Text>
+
+                <View style={s.cardActions}>
+                  {tab === 'system' && (
+                    copied
+                      ? <Text style={s.copiedText}>✓ Υπάρχει στα Δικά μου</Text>
+                      : (
+                        <TouchableOpacity onPress={() => handleCopyToMine(item)} hitSlop={8}>
+                          <Text style={s.actionAmber}>⭐ Αντιγραφή στα Δικά μου</Text>
+                        </TouchableOpacity>
+                      )
+                  )}
+                  <TouchableOpacity onPress={() => openEdit(item)} hitSlop={8}>
+                    <Text style={s.actionMuted}>✏️ Επεξεργασία</Text>
                   </TouchableOpacity>
-                )}
+                  {tab === 'custom' && (
+                    <TouchableOpacity onPress={() => handleDelete(item.id)} hitSlop={10}>
+                      <Ionicons name="trash-outline" size={18} color="#F87171" />
+                    </TouchableOpacity>
+                  )}
+                </View>
               </View>
-              <Text style={s.cardContent}>{item.content}</Text>
-            </View>
-          ))}
+            )
+          })}
         </ScrollView>
       )}
 
-      {/* Modal Add */}
+      {/* Modal Add / Edit */}
       <Modal visible={modalOpen} transparent animationType="slide">
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -193,9 +286,9 @@ export default function TemplatesScreen() {
           <View style={s.modalCard}>
             <View style={s.modalHeader}>
               <Text style={s.modalTitle}>
-                {isCarrier ? 'Νέο Πρότυπο Μεταφορέα' : 'Νέο Πρότυπο Αποστολέα'}
+                {editingId ? 'Επεξεργασία Προτύπου' : (isCarrier ? 'Νέο Πρότυπο Μεταφορέα' : 'Νέο Πρότυπο Αποστολέα')}
               </Text>
-              <TouchableOpacity onPress={() => setModalOpen(false)}>
+              <TouchableOpacity onPress={() => { setModalOpen(false); setEditingId(null) }}>
                 <Ionicons name="close" size={24} color="rgba(255,255,255,0.6)" />
               </TouchableOpacity>
             </View>
@@ -209,6 +302,34 @@ export default function TemplatesScreen() {
               onChangeText={setTitle}
             />
 
+            <Text style={s.inputLabel}>Θέμα (για το email)</Text>
+            <TextInput
+              style={s.input}
+              placeholder="Αν μείνει κενό, χρησιμοποιείται ο τίτλος"
+              placeholderTextColor="rgba(255,255,255,0.3)"
+              value={subject}
+              onChangeText={setSubject}
+            />
+
+            <Text style={s.inputLabel}>Κατηγορία</Text>
+            {categoryLocked ? (
+              <View style={[s.input, { opacity: 0.6 }]}>
+                <Text style={{ color: '#fff', fontSize: 14 }}>🔒 {catLabel(category)}</Text>
+              </View>
+            ) : (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                {categoryOptions.map(cat => (
+                  <TouchableOpacity
+                    key={cat}
+                    style={[s.chip, category === cat && s.chipActive]}
+                    onPress={() => setCategory(cat)}
+                  >
+                    <Text style={[s.chipText, category === cat && { color: '#000' }]}>{catLabel(cat)}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
             <Text style={s.inputLabel}>Κείμενο Μηνύματος</Text>
             <TextInput
               style={[s.input, { height: 100, textAlignVertical: 'top' }]}
@@ -220,7 +341,7 @@ export default function TemplatesScreen() {
             />
 
             <View style={{ flexDirection: 'row', gap: 6, marginVertical: 8, flexWrap: 'wrap' }}>
-              {['{shipment_title}', '{origin_city}', '{dest_city}'].map(tag => (
+              {['{{shipment_title}}', '{{shipment_origin_city}}', '{{shipment_dest_city}}'].map(tag => (
                 <TouchableOpacity
                   key={tag}
                   onPress={() => setContent(prev => prev + tag)}
@@ -232,12 +353,12 @@ export default function TemplatesScreen() {
             </View>
 
             <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
-              <TouchableOpacity style={s.cancelBtn} onPress={() => setModalOpen(false)}>
+              <TouchableOpacity style={s.cancelBtn} onPress={() => { setModalOpen(false); setEditingId(null) }}>
                 <Text style={s.cancelText}>Ακύρωση</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[s.saveBtn, saving && { opacity: 0.6 }]}
-                onPress={handleCreate}
+                onPress={handleSave}
                 disabled={saving}
               >
                 {saving ? (
@@ -255,6 +376,28 @@ export default function TemplatesScreen() {
 }
 
 const s = StyleSheet.create({
+  combo: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+    backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10,
+  },
+  comboText: { color: '#fff', fontSize: 13, fontWeight: '600', flex: 1 },
+  comboList: {
+    marginTop: 6, backgroundColor: '#1a1a1a', borderRadius: 10,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+  },
+  comboItem: { paddingHorizontal: 12, paddingVertical: 11, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(255,255,255,0.08)' },
+  comboItemText: { color: '#E2E8F0', fontSize: 13 },
+  catBadge: { backgroundColor: 'rgba(251,191,36,0.1)', borderWidth: 1, borderColor: 'rgba(251,191,36,0.3)', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
+  catBadgeText: { color: '#FBBF24', fontSize: 10, fontWeight: '800' },
+  customized: { color: '#4ADE80', fontSize: 11, fontWeight: '700', marginBottom: 6 },
+  cardActions: { flexDirection: 'row', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginTop: 12, paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(255,255,255,0.1)' },
+  actionAmber: { color: '#FBBF24', fontSize: 12, fontWeight: '700' },
+  actionMuted: { color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '700' },
+  copiedText: { color: '#4ADE80', fontSize: 12, fontWeight: '700' },
+  chip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+  chipActive: { backgroundColor: '#FBBF24', borderColor: '#FBBF24' },
+  chipText: { color: 'rgba(255,255,255,0.75)', fontSize: 12, fontWeight: '700' },
   root: { flex: 1, backgroundColor: '#0a0a0a' },
   header: {
     paddingTop: 54, paddingBottom: 16, paddingHorizontal: 16,

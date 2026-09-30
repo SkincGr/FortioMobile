@@ -34,6 +34,7 @@ type ShipmentInfo = {
 type RouteInfo = {
   id?: string
   routeNumber?: string | null
+  routeCompanyId?: string | null
   originCity?: string | null
   destCity?: string | null
   departureDate?: string | null
@@ -625,7 +626,7 @@ function MessageRow({ msg, myId, carrierName, onToggleRead, onReply, onNew }: {
   const displaySubject = subject || msg.subject || msg.category || ''
   const senderName = msg.sender?.company?.name ?? msg.sender?.name ?? '—'
 
-  const routeNum = msg.route?.routeNumber || (msg.route?.id ? msg.route.id.slice(-8).toUpperCase() : null)
+  const routeNum = msg.route?.routeCompanyId || msg.route?.routeNumber || (msg.route?.id ? msg.route.id.slice(-8).toUpperCase() : null)
   const routeOrigin = msg.route?.originCity ? fCity(msg.route.originCity, (msg.route as any).originPlace) : undefined
   const routeDest   = msg.route?.destCity ? fCity(msg.route.destCity, (msg.route as any).destPlace) : undefined
 

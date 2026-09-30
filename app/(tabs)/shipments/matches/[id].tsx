@@ -29,6 +29,7 @@ function fDate(v?: string | null) {
 
 
 function routeNumber(route: RouteMatch) {
+  if (route.routeCompanyId) return route.routeCompanyId
   if (route.routeNumber) return String(route.routeNumber).padStart(6, '0')
   return route.id.slice(-8).toUpperCase()
 }
@@ -87,6 +88,7 @@ function RouteCard({ route, offerStatus, onRequest, onMessage, onViewOffer }: Ro
       {/* Mid stops */}
       {midStops.length > 0 && (
         <Text style={styles.stopsText} numberOfLines={2}>
+          {t('ship.stops')}{' '}
           {midStops.map(s => {
             let loc = s.city ?? '—'
             const country = (s as any).country
@@ -116,9 +118,9 @@ function RouteCard({ route, offerStatus, onRequest, onMessage, onViewOffer }: Ro
       {/* CTA */}
       <View style={[styles.row, { gap: 8, flexWrap: 'wrap', marginTop: 10, justifyContent: 'flex-start' }]}>
         {hasQuote ? (
-          <TouchableOpacity style={styles.viewOfferBtn} onPress={onViewOffer} activeOpacity={0.85}>
-            <Text style={styles.viewOfferBtnText}>{t('match.btn_view_offer')}</Text>
-          </TouchableOpacity>
+          <View style={styles.sentBadge}>
+            <Text style={styles.sentText}>✓ {t('match.btn_view_offer')}</Text>
+          </View>
         ) : isRequestOnly ? (
           <View style={styles.sentBadge}>
             <Ionicons name="checkmark-circle" size={14} color="#4ADE80" />
@@ -130,13 +132,6 @@ function RouteCard({ route, offerStatus, onRequest, onMessage, onViewOffer }: Ro
           </TouchableOpacity>
         )}
 
-        {/* Μηνύματα */}
-        <TouchableOpacity style={[styles.msgBtn, (route.messageCount ?? 0) > 0 ? styles.msgBtnActive : styles.msgBtnOff]} onPress={onMessage} activeOpacity={0.85}>
-          <Text style={(route.messageCount ?? 0) > 0 ? styles.msgBtnActiveText : styles.msgBtnOffText}>{t('match.btn_messages')}</Text>
-          <View style={(route.messageCount ?? 0) > 0 ? styles.msgBadge : styles.msgBadgeOff}>
-            <Text style={(route.messageCount ?? 0) > 0 ? styles.msgBadgeText : styles.msgBadgeOffText}>{route.messageCount ?? 0}</Text>
-          </View>
-        </TouchableOpacity>
       </View>
     </View>
   )

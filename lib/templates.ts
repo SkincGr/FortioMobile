@@ -6,12 +6,15 @@ export type TemplateRole = 'SENDER' | 'CARRIER' | 'ALL'
 export interface MessageTemplate {
   id: string
   title: string
-  category: 'OFFER' | 'CLARIFICATION' | 'REQUEST' | 'GENERAL'
+  // Οι κατηγορίες των προτύπων ζουν στη βάση (πεδίο category) και μεγαλώνουν· δεν είναι κλειστό σύνολο
+  category: 'OFFER' | 'CLARIFICATION' | 'REQUEST' | 'GENERAL' | (string & {})
   content: string
   icon?: string
   role?: TemplateRole
   /** Θέμα — μόνο στα πρότυπα που έρχονται από το API (email_templates) */
   subject?: string
+  /** Κωδικός του κοινού προτύπου από το οποίο προήλθε ένα δικό μου πρότυπο (αντίγραφο) */
+  parentId?: string | null
 }
 
 export const SENDER_TEMPLATES: MessageTemplate[] = [

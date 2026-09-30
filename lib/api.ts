@@ -343,8 +343,8 @@ export const messagesApi = {
     api.get<Message[]>(`/api/messages?offerId=${offerId}`),
 
   // Send a message in an offer context
-  send: (offerId: string, content: string) =>
-    api.post<Message>('/api/messages', { offerId, content }),
+  send: (offerId: string, content: string, subject?: string) =>
+    api.post<Message>('/api/messages', { offerId, content, ...(subject ? { subject } : {}) }),
 
   // Send an offer request from shipment matches screen
   sendOfferRequest: (data: { shipmentId: string; routeId: string; content: string }) =>

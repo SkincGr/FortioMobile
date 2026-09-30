@@ -9,8 +9,9 @@ import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '@/lib/auth'
 import { useTheme } from '@/lib/theme'
 import { useI18n, translateText } from '@/lib/i18n'
-import { dashboardApi, matchCountsApi, shipmentsApi, offersApi, Shipment, Offer, ShipmentStatus } from '@/lib/api'
+import { dashboardApi, matchCountsApi, shipmentsApi, offersApi, messagesApi, Shipment, Offer, ShipmentStatus } from '@/lib/api'
 import { ShipmentStatusBadge } from '@/components/ShipmentStatusBadge'
+import { TemplateSendModal } from '@/components/TemplateSendModal'
 import { LoadingScreen } from '@/components/ui/LoadingScreen'
 import { Colors } from '@/constants/colors'
 import { carrierRating } from '@/lib/display'
@@ -250,7 +251,7 @@ function OfferGroupSection({ group, mode, showMessages, showCount, onViewOffer }
   mode: 'request' | 'carrier_offer'
   showMessages?: boolean
   showCount?: boolean
-  onViewOffer?: (offer: Offer, shipmentTitle: string) => void
+  onViewOffer?: (offer: Offer, shipmentTitle: string, shipment?: any) => void
 }) {
   const { colors } = useTheme()
   const { t } = useI18n()
@@ -299,7 +300,7 @@ function OfferGroupSection({ group, mode, showMessages, showCount, onViewOffer }
           mode={mode}
           shipmentId={shipment.id}
           showMessages={showMessages}
-          onViewOffer={onViewOffer ? () => onViewOffer(offer, shipment.title) : undefined}
+          onViewOffer={onViewOffer ? () => onViewOffer(offer, shipment.title, shipment) : undefined}
         />
       ))}
     </View>
@@ -314,7 +315,7 @@ function ShipmentCard({ item, filter, matchCount, matchCountsLoading, onDelete, 
   matchCount?: number
   matchCountsLoading?: boolean
   onDelete?: (id: string, offerCount: number) => void
-  onViewOffer?: (offer: Offer, title: string) => void
+  onViewOffer?: (offer: Offer, title: string, shipment?: any) => void
 }) {
   const { colors } = useTheme()
   const { t } = useI18n()
@@ -406,7 +407,7 @@ function ShipmentCard({ item, filter, matchCount, matchCountsLoading, onDelete, 
               <TouchableOpacity
                 style={[styles.actionBtn, styles.actionBtnEdit]}
                 activeOpacity={0.75}
-                onPress={() => onViewOffer?.(acceptedOffer, item.title)}
+                onPress={() => onViewOffer?.(acceptedOffer, item.title, item)}
               >
                 <Ionicons name="eye-outline" size={12} color="#000" />
                 <Text style={styles.actionBtnEditText}>{t('dash.btn.view_offer')}</Text>
@@ -548,7 +549,12 @@ export default function DashboardScreen() {
   const [filter, setFilter] = useState<Filter>('shipments')
   const [sortBy, setSortBy] = useState<SortKey>('date_desc')
   const [burgerOpen, setBurgerOpen] = useState(false)
-  const [offerModal, setOfferModal] = useState<{ offer: Offer; shipmentTitle: string } | null>(null)
+  const [offerModal, setOfferModal] = useState<{ offer: Offer; shipmentTitle: string; shipment?: any } | null>(null)
+  // Ενέργεια μέσω προτύπων (Αποδοχή, Απόρριψη, Ακύρωση αιτήματος, Διευκρίνηση, Παράδοση στη μεταφορική)
+  const [tplFlow, setTplFlow] = useState<{
+    kind: 'accept' | 'reject' | 'cancelRequest' | 'info' | 'loadCancel' | 'loadInfo'
+    offer: Offer; shipmentTitle: string; shipment?: any
+  } | null>(null)
   const [offerSort, setOfferSort] = useState<'price' | 'rating'>('price')
 
   const deleteMut = useMutation({
@@ -568,6 +574,27 @@ export default function DashboardScreen() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['dashboard'] }),
     onError: (e: any) => Alert.alert(t('common.error'), e?.response?.data?.error || 'Αποτυχία απόρριψης.'),
   })
+
+  const TPL_FLOW_CATEGORY = {
+    accept: 'OFFER_ACCEPTED', reject: 'OFFER_REJECTBYUSER', cancelRequest: 'REQUEST_CANCELED',
+    info: 'OFFER_INFO', loadCancel: 'OFFER_CANCELL_BEFORELOAD', loadInfo: 'OFFER_LOAD_INFO',
+  } as const
+
+  function openTplFlow(kind: keyof typeof TPL_FLOW_CATEGORY, offer: Offer, shipmentTitle: string, shipment?: any) {
+    setOfferModal(null)
+    setTplFlow({ kind, offer, shipmentTitle, shipment })
+  }
+
+  // Πρώτα το μήνυμα, μετά η ενέργεια (αποδοχή/απόρριψη/ακύρωση)· οι διευκρινήσεις είναι μόνο μήνυμα
+  async function sendTplFlow(subject: string, content: string) {
+    if (!tplFlow) return
+    const { kind, offer } = tplFlow
+    await messagesApi.send(offer.id, content, subject)
+    setTplFlow(null)
+    if (kind === 'accept') acceptMut.mutate(offer.id)
+    else if (kind === 'reject' || kind === 'cancelRequest') rejectMut.mutate(offer.id)
+    else qc.invalidateQueries({ queryKey: ['dashboard'] })
+  }
 
   // DELETE /api/shipments/[id] cancels (status CANCELLED, open offers rejected) — it never deletes the row.
   function handleDelete(id: string, _offerCount: number) {
@@ -873,7 +900,7 @@ export default function DashboardScreen() {
               mode={filter === 'offer_requests' ? 'request' : 'carrier_offer'}
               showMessages={filter === 'in_transit' || filter === 'carrier_offers' || filter === 'to_transport'}
               showCount={filter === 'carrier_offers'}
-              onViewOffer={(offer, title) => setOfferModal({ offer, shipmentTitle: title })}
+              onViewOffer={(offer, title, shipment) => setOfferModal({ offer, shipmentTitle: title, shipment })}
             />
           )}
         />
@@ -904,7 +931,7 @@ export default function DashboardScreen() {
               matchCount={matchCounts[item.id]}
               matchCountsLoading={filter === 'shipments' && matchCountsLoading}
               onDelete={filter === 'shipments' ? handleDelete : undefined}
-              onViewOffer={(offer, title) => setOfferModal({ offer, shipmentTitle: title })}
+              onViewOffer={(offer, title, shipment) => setOfferModal({ offer, shipmentTitle: title, shipment })}
             />
           )}
         />
@@ -981,7 +1008,7 @@ export default function DashboardScreen() {
                         </View>
                         {midStops.length > 0 && (
                           <Text style={[styles.offerModalMuted, { marginTop: 4 }]}>
-                            {midStops.map(s => s.city ?? '—').join(' · ')}
+                            {t('ship.stops')} {midStops.map(s => s.city ?? '—').join(' · ')}
                           </Text>
                         )}
                       </View>
@@ -1026,40 +1053,61 @@ export default function DashboardScreen() {
                     )}
                   </ScrollView>
 
-                  {/* Footer buttons */}
-                  <View style={[styles.row, { gap: 8, marginTop: 16 }]}>
+                  {/* Footer buttons — οι ενέργειες ανοίγουν πρότυπα (ίδια ροή με το web) */}
+                  <View style={[styles.row, { gap: 8, marginTop: 16, flexWrap: 'wrap' }]}>
                     {o.status === 'OFFERED' && (
                       <TouchableOpacity
-                        style={[styles.actionBtn, { flex: 1, justifyContent: 'center', backgroundColor: '#DCFCE7', paddingVertical: 12 }]}
-                        onPress={() => { setOfferModal(null); handleAccept(o.id) }}
+                        style={[styles.actionBtn, { flex: 1, minWidth: '45%', justifyContent: 'center', backgroundColor: '#DCFCE7', paddingVertical: 12 }]}
+                        onPress={() => openTplFlow('accept', o, shipmentTitle, offerModal.shipment)}
                       >
-                        <Text style={[styles.actionBtnEditText, { color: '#166534' }]}>Αποδοχή</Text>
+                        <Text style={[styles.actionBtnEditText, { color: '#166534' }]}>{t('common.accept')}</Text>
                       </TouchableOpacity>
                     )}
-                    {['REQUEST', 'OFFERED'].includes(o.status) && (
+                    {o.status === 'OFFERED' && (
                       <TouchableOpacity
-                        style={[styles.actionBtn, { flex: 1, justifyContent: 'center', backgroundColor: '#DBEAFE', paddingVertical: 12 }]}
-                        onPress={() => {
-                          setOfferModal(null)
-                          router.push(`/(tabs)/messages/${o.id}?returnTo=${encodeURIComponent('/(tabs)')}` as any)
-                        }}
+                        style={[styles.actionBtn, { flex: 1, minWidth: '45%', justifyContent: 'center', backgroundColor: '#DBEAFE', paddingVertical: 12 }]}
+                        onPress={() => openTplFlow('info', o, shipmentTitle, offerModal.shipment)}
                       >
-                        <Text style={[styles.actionBtnEditText, { color: '#1D4ED8' }]}>{t('dash.btn.reply')}</Text>
+                        <Text style={[styles.actionBtnEditText, { color: '#1D4ED8' }]}>{t('dash.btn.clarification')}</Text>
                       </TouchableOpacity>
                     )}
-                    {['REQUEST', 'OFFERED'].includes(o.status) && (
+                    {o.status === 'ACCEPTED' && (
                       <TouchableOpacity
-                        style={[styles.actionBtn, styles.actionBtnDanger, { flex: 1, justifyContent: 'center', paddingVertical: 12 }]}
-                        onPress={() => { setOfferModal(null); handleReject(o.id) }}
+                        style={[styles.actionBtn, styles.actionBtnDanger, { flex: 1, minWidth: '45%', justifyContent: 'center', paddingVertical: 12 }]}
+                        onPress={() => openTplFlow('loadCancel', o, shipmentTitle, offerModal.shipment)}
                       >
-                        <Text style={styles.actionBtnDangerText}>Απόρριψη</Text>
+                        <Text style={styles.actionBtnDangerText}>{t('common.reject')}</Text>
+                      </TouchableOpacity>
+                    )}
+                    {o.status === 'ACCEPTED' && (
+                      <TouchableOpacity
+                        style={[styles.actionBtn, { flex: 1, minWidth: '45%', justifyContent: 'center', backgroundColor: '#DBEAFE', paddingVertical: 12 }]}
+                        onPress={() => openTplFlow('loadInfo', o, shipmentTitle, offerModal.shipment)}
+                      >
+                        <Text style={[styles.actionBtnEditText, { color: '#1D4ED8' }]}>{t('dash.btn.load_clarify')}</Text>
+                      </TouchableOpacity>
+                    )}
+                    {o.status === 'OFFERED' && (
+                      <TouchableOpacity
+                        style={[styles.actionBtn, styles.actionBtnDanger, { flex: 1, minWidth: '45%', justifyContent: 'center', paddingVertical: 12 }]}
+                        onPress={() => openTplFlow('reject', o, shipmentTitle, offerModal.shipment)}
+                      >
+                        <Text style={styles.actionBtnDangerText}>{t('common.reject')}</Text>
+                      </TouchableOpacity>
+                    )}
+                    {o.status === 'REQUEST' && (
+                      <TouchableOpacity
+                        style={[styles.actionBtn, styles.actionBtnDanger, { flex: 1, minWidth: '45%', justifyContent: 'center', paddingVertical: 12 }]}
+                        onPress={() => openTplFlow('cancelRequest', o, shipmentTitle, offerModal.shipment)}
+                      >
+                        <Text style={styles.actionBtnDangerText}>{t('common.cancel')}</Text>
                       </TouchableOpacity>
                     )}
                     <TouchableOpacity
-                      style={[styles.actionBtn, styles.actionBtnEdit, { flex: 1, justifyContent: 'center', paddingVertical: 12 }]}
+                      style={[styles.actionBtn, styles.actionBtnEdit, { flex: 1, minWidth: '45%', justifyContent: 'center', paddingVertical: 12 }]}
                       onPress={() => setOfferModal(null)}
                     >
-                      <Text style={styles.actionBtnEditText}>Κλείσιμο</Text>
+                      <Text style={styles.actionBtnEditText}>{t('common.close')}</Text>
                     </TouchableOpacity>
                   </View>
                 </>
@@ -1068,6 +1116,21 @@ export default function DashboardScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* ── Πρότυπα ενεργειών (SENDER) ── */}
+      <TemplateSendModal
+        visible={!!tplFlow}
+        role="SENDER"
+        category={TPL_FLOW_CATEGORY[tplFlow?.kind ?? 'info']}
+        data={{
+          shipment_title: tplFlow?.shipmentTitle,
+          shipment_origin_city: tplFlow?.shipment ? fCity(tplFlow.shipment.originCity, tplFlow.shipment.originPlace) : undefined,
+          shipment_dest_city: tplFlow?.shipment ? fCity(tplFlow.shipment.destCity, tplFlow.shipment.destPlace) : undefined,
+          carrier_name: tplFlow?.offer.carrier?.company?.name ?? tplFlow?.offer.carrier?.name,
+        }}
+        onClose={() => setTplFlow(null)}
+        onSend={sendTplFlow}
+      />
 
       {/* ── FAB ── */}
       {filter === 'shipments' && (

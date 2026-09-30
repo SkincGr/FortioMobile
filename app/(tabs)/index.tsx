@@ -593,6 +593,10 @@ export default function DashboardScreen() {
     setTplFlow(null)
     if (kind === 'accept') acceptMut.mutate(offer.id)
     else if (kind === 'reject' || kind === 'cancelRequest') rejectMut.mutate(offer.id)
+    else if (kind === 'loadCancel') {
+      try { await offersApi.cancel(offer.id) } catch (e: any) { Alert.alert(t('common.error'), e?.response?.data?.error || 'Αποτυχία ακύρωσης.') }
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+    }
     else qc.invalidateQueries({ queryKey: ['dashboard'] })
   }
 

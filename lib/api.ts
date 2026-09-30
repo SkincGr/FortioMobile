@@ -281,6 +281,10 @@ export const offersApi = {
 
   reject: (offerId: string) =>
     api.patch(`/api/offers/${offerId}`, { action: 'REJECTED' }),
+
+  // Ακύρωση ήδη αποδεκτής προσφοράς πριν τη φόρτωση
+  cancel: (offerId: string) =>
+    api.patch(`/api/offers/${offerId}`, { action: 'CANCELLED' }),
 }
 
 // ─── Match counts (batch) ─────────────────────────────────────────────────────

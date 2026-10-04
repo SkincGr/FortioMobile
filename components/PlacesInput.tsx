@@ -18,11 +18,13 @@ type Props = {
   type?: 'city' | 'address'
   cityContext?: string
   optional?: boolean
+  /** Marks the field red (e.g. a required field left empty after a "Continue" press). */
+  error?: boolean
 }
 
 export function PlacesInput({
   label, value, placeId, onSelect,
-  placeholder = 'Αναζήτηση...', type = 'city', cityContext, optional,
+  placeholder = 'Αναζήτηση...', type = 'city', cityContext, optional, error,
 }: Props) {
   const [text, setText]               = useState(value)
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
@@ -75,9 +77,11 @@ export function PlacesInput({
   const confirmed = !!placeId && text.length > 0
   const borderColor = focused
     ? Colors.primary
-    : confirmed
-      ? Colors.success
-      : Colors.border
+    : error
+      ? Colors.danger
+      : confirmed
+        ? Colors.success
+        : Colors.border
 
   return (
     <View style={styles.wrapper}>

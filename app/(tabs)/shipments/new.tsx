@@ -101,6 +101,30 @@ function Field({ label, optional, children }: { label: string; optional?: boolea
   )
 }
 
+// Required-field feedback (same pattern as the web route form): "Continue" is always
+// enabled; when fields are missing it shows this box and marks those fields red.
+const errorBorder = { borderColor: Colors.danger }
+
+function ErrorBox({ issues }: { issues: string[] }) {
+  return (
+    <View style={{
+      flexDirection: 'row', gap: 10, alignItems: 'flex-start', marginBottom: 12,
+      backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FECACA', borderRadius: 12,
+      paddingHorizontal: 14, paddingVertical: 12,
+    }}>
+      <Text style={{ color: Colors.danger, fontSize: 15 }}>⚠</Text>
+      <View style={{ flex: 1 }}>
+        <Text style={{ color: '#B91C1C', fontSize: 13, fontWeight: '600' }}>
+          Συμπλήρωσε τα υποχρεωτικά πεδία που είναι επισημασμένα με κόκκινο.
+        </Text>
+        {issues.map(m => (
+          <Text key={m} style={{ color: '#DC2626', fontSize: 12, marginTop: 3 }}>• {m}</Text>
+        ))}
+      </View>
+    </View>
+  )
+}
+
 function Row({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8, gap: 12 }}>
@@ -144,13 +168,23 @@ function StepBar({ current }: { current: number }) {
 function Step1({ form, update, onNext }: {
   form: Form; update: (k: keyof Form, v: any) => void; onNext: () => void
 }) {
-  const canContinue = !!form.category && !!form.title.trim()
+  const [showErrors, setShowErrors] = useState(false)
+  const noCategory = !form.category
+  const noTitle = !form.title.trim()
+  const issues = [
+    ...(noCategory ? ['Κατηγορία: επίλεξε'] : []),
+    ...(noTitle ? ['Τίτλος αποστολής: συμπλήρωσε'] : []),
+  ]
+  const advance = () => { if (issues.length > 0) { setShowErrors(true); return } onNext() }
 
   return (
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 40 }}>
       <Text className="text-base font-bold text-slate-700 mb-3">Τι θέλεις να στείλεις;</Text>
 
-      <View className="flex-row flex-wrap gap-2 mb-5">
+      <View
+        className="flex-row flex-wrap gap-2 mb-5"
+        style={showErrors && noCategory ? { borderWidth: 1, borderColor: Colors.danger, borderRadius: 16, padding: 4 } : undefined}
+      >
         {CATEGORIES.map(c => (
           <TouchableOpacity
             key={c.id}
@@ -171,7 +205,7 @@ function Step1({ form, update, onNext }: {
 
       <Field label="Τίτλος αποστολής *">
         <TextInput
-          style={inputStyle}
+          style={[inputStyle, showErrors && noTitle && errorBorder]}
           placeholder="π.χ. Καναπές 3θέσιος + πολυθρόνα"
           placeholderTextColor="#94A3B8"
           value={form.title}
@@ -192,13 +226,13 @@ function Step1({ form, update, onNext }: {
         />
       </Field>
 
+      {showErrors && issues.length > 0 && <ErrorBox issues={issues} />}
       <TouchableOpacity
-        className={`rounded-2xl py-4 items-center mt-2 ${canContinue ? 'bg-primary' : 'bg-slate-200'}`}
-        onPress={onNext}
-        disabled={!canContinue}
+        className="rounded-2xl py-4 items-center mt-2 bg-primary"
+        onPress={advance}
         activeOpacity={0.85}
       >
-        <Text className={`font-bold text-base ${canContinue ? 'text-white' : 'text-slate-400'}`}>
+        <Text className="font-bold text-base text-white">
           Συνέχεια →
         </Text>
       </TouchableOpacity>
@@ -300,8 +334,24 @@ function Step2({ form, update, setForm, sender, onBack, onNext }: {
   onBack: () => void; onNext: () => void
 }) {
   const [showDatePicker, setShowDatePicker] = useState(false)
-  const canContinue = !!form.originCity.trim() && !!form.destCity.trim()
-    && !!form.recipientName.trim() && !!form.recipientPhone.trim()
+  const [showErrors, setShowErrors] = useState(false)
+  const noOrigin = !form.originCity.trim()
+  const noOriginAddress = !form.originAddress.trim()
+  const noDest = !form.destCity.trim()
+  const noDestAddress = !form.destAddress.trim()
+  const noName = !form.recipientName.trim()
+  const noPhone = !form.recipientPhone.trim()
+  const noDate = !form.desiredDelivery
+  const issues = [
+    ...(noOrigin ? ['Σημείο Παραλαβής — Πόλη: συμπλήρωσε'] : []),
+    ...(noOriginAddress ? ['Σημείο Παραλαβής — Διεύθυνση: συμπλήρωσε'] : []),
+    ...(noDest ? ['Σημείο Παράδοσης — Πόλη: συμπλήρωσε'] : []),
+    ...(noDestAddress ? ['Σημείο Παράδοσης — Διεύθυνση: συμπλήρωσε'] : []),
+    ...(noName ? ['Ονοματεπώνυμο παραλήπτη: συμπλήρωσε'] : []),
+    ...(noPhone ? ['Τηλέφωνο παραλήπτη: συμπλήρωσε'] : []),
+    ...(noDate ? ['Επιθυμητή ημερομηνία παράδοσης: επίλεξε'] : []),
+  ]
+  const advance = () => { if (issues.length > 0) { setShowErrors(true); return } onNext() }
 
   // Ticking copies the sender's own details; unticking clears them — never
   // leaves the sender's data sitting in fields that now claim to be someone else's.
@@ -320,12 +370,16 @@ function Step2({ form, update, setForm, sender, onBack, onNext }: {
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 40 }}>
 
       {/* Origin */}
-      <View className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-3">
+      <View
+        className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-3"
+        style={showErrors && (noOrigin || noOriginAddress) ? errorBorder : undefined}
+      >
         <Text className="text-sm font-bold text-amber-700 mb-2">📍 Σημείο Παραλαβής</Text>
 
         <PlacesInput
           label="Πόλη *"
           placeholder="π.χ. Αθήνα"
+          error={showErrors && noOrigin}
           type="city"
           value={form.originCity}
           placeId={form.originCityPlaceId}
@@ -333,14 +387,14 @@ function Step2({ form, update, setForm, sender, onBack, onNext }: {
         />
 
         <PlacesInput
-          label="Διεύθυνση"
+          label="Διεύθυνση *"
           placeholder="π.χ. Ερμού 5"
           type="address"
           cityContext={form.originCity}
           value={form.originAddress}
           placeId={''}
           onSelect={(addr) => update('originAddress', addr)}
-          optional
+          error={showErrors && noOriginAddress}
         />
 
         <CoordGroup
@@ -359,12 +413,16 @@ function Step2({ form, update, setForm, sender, onBack, onNext }: {
       </View>
 
       {/* Destination */}
-      <View className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-4">
+      <View
+        className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-4"
+        style={showErrors && (noDest || noDestAddress) ? errorBorder : undefined}
+      >
         <Text className="text-sm font-bold text-blue-700 mb-2">🏁 Σημείο Παράδοσης</Text>
 
         <PlacesInput
           label="Πόλη *"
           placeholder="π.χ. Θεσσαλονίκη"
+          error={showErrors && noDest}
           type="city"
           value={form.destCity}
           placeId={form.destCityPlaceId}
@@ -372,14 +430,14 @@ function Step2({ form, update, setForm, sender, onBack, onNext }: {
         />
 
         <PlacesInput
-          label="Διεύθυνση"
+          label="Διεύθυνση *"
           placeholder="π.χ. Εγνατία 10"
           type="address"
           cityContext={form.destCity}
           value={form.destAddress}
           placeId={''}
           onSelect={(addr) => update('destAddress', addr)}
-          optional
+          error={showErrors && noDestAddress}
         />
 
         <CoordGroup
@@ -410,7 +468,7 @@ function Step2({ form, update, setForm, sender, onBack, onNext }: {
 
         <Field label="Ονοματεπώνυμο *">
           <TextInput
-            style={[inputStyle, form.recipientSameAsSender && { backgroundColor: '#F1F5F9', color: '#94A3B8' }]}
+            style={[inputStyle, showErrors && noName && errorBorder, form.recipientSameAsSender && { backgroundColor: '#F1F5F9', color: '#94A3B8' }]}
             placeholder="π.χ. Μαρία Παπαδοπούλου"
             placeholderTextColor="#94A3B8"
             value={form.recipientName}
@@ -420,7 +478,7 @@ function Step2({ form, update, setForm, sender, onBack, onNext }: {
         </Field>
         <Field label="Τηλέφωνο *">
           <TextInput
-            style={[inputStyle, form.recipientSameAsSender && { backgroundColor: '#F1F5F9', color: '#94A3B8' }]}
+            style={[inputStyle, showErrors && noPhone && errorBorder, form.recipientSameAsSender && { backgroundColor: '#F1F5F9', color: '#94A3B8' }]}
             placeholder="π.χ. 6912345678"
             placeholderTextColor="#94A3B8"
             value={form.recipientPhone}
@@ -447,10 +505,10 @@ function Step2({ form, update, setForm, sender, onBack, onNext }: {
       </View>
 
       {/* Desired delivery date */}
-      <Field label="Επιθυμητή ημερομηνία παράδοσης" optional>
+      <Field label="Επιθυμητή ημερομηνία παράδοσης *">
         <TouchableOpacity
           onPress={() => setShowDatePicker(true)}
-          style={[inputStyle, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}
+          style={[inputStyle, showErrors && noDate && errorBorder, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}
           activeOpacity={0.8}
         >
           <Text style={{ fontSize: 15, color: form.desiredDelivery ? '#1E293B' : '#94A3B8' }}>
@@ -460,11 +518,6 @@ function Step2({ form, update, setForm, sender, onBack, onNext }: {
           </Text>
           <Ionicons name="calendar-outline" size={18} color={Colors.textMuted} />
         </TouchableOpacity>
-        {form.desiredDelivery && (
-          <TouchableOpacity onPress={() => update('desiredDelivery', null)} style={{ marginTop: 4 }}>
-            <Text style={{ fontSize: 11, color: Colors.textMuted }}>✕ Καθαρισμός</Text>
-          </TouchableOpacity>
-        )}
       </Field>
 
       {showDatePicker && (
@@ -490,6 +543,7 @@ function Step2({ form, update, setForm, sender, onBack, onNext }: {
         />
       </Field>
 
+      {showErrors && issues.length > 0 && <ErrorBox issues={issues} />}
       <View className="flex-row gap-3 mt-2">
         <TouchableOpacity
           className="flex-1 border border-slate-200 rounded-2xl py-4 items-center bg-white"
@@ -499,12 +553,11 @@ function Step2({ form, update, setForm, sender, onBack, onNext }: {
           <Text className="font-bold text-slate-600">← Πίσω</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          className={`flex-1 rounded-2xl py-4 items-center ${canContinue ? 'bg-primary' : 'bg-slate-200'}`}
-          onPress={onNext}
-          disabled={!canContinue}
+          className="flex-1 rounded-2xl py-4 items-center bg-primary"
+          onPress={advance}
           activeOpacity={0.85}
         >
-          <Text className={`font-bold ${canContinue ? 'text-white' : 'text-slate-400'}`}>Συνέχεια →</Text>
+          <Text className="font-bold text-white">Συνέχεια →</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>

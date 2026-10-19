@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FortioMobile — τι πρέπει να ενημερωθεί για να είναι ίδιο με το Fortio (αποστολέας)</title>
+<style>
+  :root {
+    --bg: #0a0a0a; --panel: #131312; --line: #262624; --text: #f5f5f4; --muted: #a8a29e;
+    --amber: #fbbf24; --red: #f87171; --orange: #fb923c; --yellow: #facc15; --green: #4ade80; --blue: #60a5fa;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 32px 16px 80px; }
+  h1 { font-size: clamp(24px, 4vw, 34px); line-height: 1.15; margin: 0 0 8px; letter-spacing: -0.02em; }
+  h2 { font-size: 22px; margin: 44px 0 6px; letter-spacing: -0.01em; }
+  h3 { font-size: 17px; margin: 0; }
+  p { margin: 8px 0; }
+  .lead { color: var(--muted); max-width: 760px; }
+  code { background: #1d1d1b; border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; font: 13px/1.4 ui-monospace, Consolas, monospace; color: #e7e5e4; word-break: break-word; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 0; }
+  .chip { border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font-size: 13px; color: var(--muted); }
+  .chip b { color: var(--text); font-weight: 600; }
+
+  .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-top: 22px; }
+  .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+  .stat .n { font-size: 30px; font-weight: 800; line-height: 1; }
+  .stat .l { color: var(--muted); font-size: 13px; margin-top: 6px; }
+
+  .section-note { color: var(--muted); font-size: 14px; margin: 0 0 14px; }
+  .item { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 18px 18px 16px; margin: 12px 0; }
+  .item-head { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px; }
+  .item-head label { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; flex: 1 1 320px; min-width: 0; }
+  .item-head input { width: 18px; height: 18px; margin-top: 3px; accent-color: var(--amber); flex: none; }
+  .tag { flex: none; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+  .t-red { background: rgba(248,113,113,.14); color: var(--red); }
+  .t-orange { background: rgba(251,146,60,.14); color: var(--orange); }
+  .t-yellow { background: rgba(250,204,21,.13); color: var(--yellow); }
+  .t-blue { background: rgba(96,165,250,.14); color: var(--blue); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-top: 14px; }
+  .box { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; background: #0f0f0e; min-width: 0; }
+  .box h4 { margin: 0 0 6px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .box ul { margin: 0; padding-left: 18px; }
+  .box li { margin: 3px 0; }
+  .files { margin-top: 12px; font-size: 13px; color: var(--muted); }
+  .warn { margin-top: 12px; border: 1px solid rgba(248,113,113,.4); background: rgba(248,113,113,.08); color: #fecaca; border-radius: 12px; padding: 10px 14px; font-size: 14px; }
+  .ok-list { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 6px 18px; }
+  .ok-list li { margin: 8px 0; }
+  .ok-list b { color: var(--green); }
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; }
+  table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; background: #0f0f0e; }
+  tr:last-child td { border-bottom: 0; }
+  .q { border-left: 3px solid var(--amber); padding: 4px 0 4px 14px; margin: 14px 0; }
+  .q b { color: var(--amber); }
+  .done .item-head h3 { text-decoration: line-through; color: var(--muted); }
+  footer { margin-top: 48px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>FortioMobile — τι πρέπει να ενημερωθεί για να είναι ίδιο με το Fortio (αποστολέας)</h1>
+  <p class="lead">Σύγκριση του web (Fortio) με την εφαρμογή κινητού, μόνο για τον ρόλο του αποστολέα. Κάθε θέμα γράφει τι άλλαξε στο web, τι έχει σήμερα το mobile και τι πρέπει να γίνει. Τα κουτάκια είναι για δική σου παρακολούθηση και αποθηκεύονται μόνο σε αυτόν τον browser.</p>
+  <div class="meta">
+    <span class="chip">Ημερομηνία: <b>13/10/2026</b></span>
+    <span class="chip">Fortio <b>main · 0edf54a</b></span>
+    <span class="chip">FortioMobile <b>master · 5478681</b></span>
+    <span class="chip">Τελευταίος συγχρονισμός mobile: <b>28/9/2026</b></span>
+  </div>
+
+  <div class="summary">
+    <div class="stat"><div class="n" style="color:var(--red)">2</div><div class="l">Κρίσιμα — δεν δουλεύουν σωστά σήμερα στο κινητό</div></div>
+    <div class="stat"><div class="n" style="color:var(--orange)">3</div><div class="l">Λειτουργίες που λείπουν από το κινητό</div></div>
+    <div class="stat"><div class="n" style="color:var(--yellow)">6</div><div class="l">Διαφορές εμφάνισης και κειμένων</div></div>
+    <div class="stat"><div class="n" style="color:var(--blue)">1</div><div class="l">Αλλαγή που χρειάζεται πρώτα στο Fortio (API)</div></div>
+  </div>
+
+  <!-- ───────────── ΚΡΙΣΙΜΑ ───────────── -->
+  <h2>1. Κρίσιμα — δεν δουλεύουν σωστά σήμερα</h2>
+  <p class="section-note">Προέκυψαν επειδή το κοινό backend άλλαξε για το web. Το κινητό μιλάει στο ίδιο API, άρα επηρεάζεται ήδη.</p>
+
+  <div class="item" data-id="cards">
+    <div class="item-head">
+      <label><input type="checkbox"><h3>Μετακόμιση: η οθόνη «Διαθέσιμα Δρομολόγια» βγαίνει άδεια</h3></label>
+      <span class="tag t-red">Κρίσιμο</span>
+    </div>
+    <div class="grid">
+      <div class="box"><h4>Τι άλλαξε στο web</h4><ul>
+        <li>Για μετακόμιση και κάδο δεν ταιριάζουν πια δρομολόγια. Ταιριάζουν μόνο <b>κάρτες μεταφορέα</b>.</li>
+        <li>Το API των αποτελεσμάτων επιστρέφει <code>routes: []</code> και τη λίστα <code>cards</code>.</li>
+        <li>Ο μετρητής στο κουμπί μετρά τις κάρτες.</li>
+      </ul></div>
+      <div class="box"><h4>Τι έχει το mobile</h4><ul>
+        <li>Διαβάζει μόνο το <code>routes</code>. Για μετακόμιση δείχνει «Δεν βρέθηκαν δρομολόγια», ενώ το κουμπί στο dashboard δείχνει αριθμό.</li>
+        <li>Δεν υπάρχει τρόπος να σταλεί αίτημα σε κάρτα.</li>
+      </ul></div>
+      <div class="box"><h4>Τι πρέπει να γίνει</h4><ul>
+        <li>Εμφάνιση των καρτών (τίτλος, εταιρεία, κατάσταση αιτήματος).</li>
+        <li>«Αίτημα Προσφοράς» με πρότυπο, που στέλνει στο <code>POST /api/routes/{κάρτα}/request</code>.</li>
+        <li>«Δεν με ενδιαφέρει» και λίστα «Κρυμμένες» με «Επαναφορά» (<code>/api/card-exclusions</code>).</li>
+      </ul></div>
+    </div>
+    <div class="files">Αρχεία mobile: <code>lib/api.ts</code> · <code>app/(tabs)/shipments/matches/[id].tsx</code> · <code>lib/i18n.tsx</code></div>
+    <div class="warn"><b>Χρειάζεται πρώτα αλλαγή στο Fortio:</b> το <code>/api/routes/[id]/request</code> δέχεται μόνο σύνδεση web. Με το token του κινητού απαντά 401. Πρέπει να αλλάξει σε <code>getApiUser</code>, όπως τα υπόλοιπα endpoints. Είναι αλλαγή ενός αρχείου.</div>
+  </div>
+
+  <div class="item" data-id="template-kind">
+    <div class="item-head">
+      <label><input type="checkbox"><h3>Τα πρότυπα μηνυμάτων εμφανίζονται ανακατεμένα</h3></label>
+      <span class="tag t-red">Κρίσιμο</span>
+    </div>
+    <div class="grid">
+      <div class="box"><h4>Τι άλλαξε στο web</h4><ul>
+        <li>Τα πρότυπα έχουν πλέον είδος: Μεταφορές, Μετακομίσεις, Κάδοι (<code>transport_kind</code>).</li>
+        <li>Προστέθηκαν 20 νέα δημόσια πρότυπα για μετακομίσεις και κάδους.</li>
+        <li>Το <code>/api/templates</code> φιλτράρει με <code>&amp;kind=</code>. Χωρίς αυτό επιστρέφει όλα τα είδη.</li>
+      </ul></div>
+      <div class="box"><h4>Τι έχει το mobile</h4><ul>
+        <li>Δεν στέλνει <code>kind</code>. Σε μια κανονική μεταφορά εμφανίζονται και τα «Μετακόμιση : …» και «Κάδος : …».</li>
+        <li>Π.χ. η «Ακύρωση αιτήματος» δείχνει τρία πρότυπα αντί για ένα.</li>
+      </ul></div>
+      <div class="box"><h4>Τι πρέπει να γίνει</h4><ul>
+        <li>Το είδος βγαίνει από την κατηγορία της αποστολής: μετακόμιση → <code>MOVES</code>, κάδος → <code>WASTE_BINS</code>, αλλιώς <code>TRANSPORTS</code>.</li>
+        <li>Να περνά σε όλα τα παράθυρα προτύπων.</li>
+        <li>Ακύρωση πριν τη φόρτωση: για μετακόμιση και κάδο η κατηγορία είναι <code>OFFER_CANCEL</code>, όχι <code>OFFER_CANCELL_BEFORELOAD</code>.</li>
+      </ul></div>
+    </div>
+    <div class="files">Αρχεία mobile: <code>lib/templates.ts</code> · <code>components/TemplateSendModal.tsx</code> · <code>app/(tabs)/index.tsx</code> · <code>app/(tabs)/shipments/matches/[id].tsx</code> · <code>app/(tabs)/messages/[offerId].tsx</code></div>
+  </div>
+
+  <!-- ───────────── ΛΕΙΠΟΥΝ ───────────── -->
+  <h2>2. Λειτουργίες που λείπουν από το κινητό</h2>
+  <p class="section-note">Υπάρχουν στο web και ο αποστολέας δεν μπορεί να τις κάνει από το κινητό.</p>
+
+  <div class="item" data-id="bins">
+    <div class="item-head">
+      <label><input type="checkbox"><h3>Νέα κατηγορία «Κάδοι Απορριμμάτων»</h3></label>
+      <span class="tag t-orange">Λείπει</span>
+    </div>
+    <div class="grid">
+      <div class="box"><h4>Στο web</h4><ul>
+        <li>Κατηγορία <code>WASTE_BINS</code> με εικονίδιο 🗑️ και κλειδωμένο τίτλο «Προμήθεια Κάδου».</li>
+        <li>Δεν έχει αφετηρία. Ο προορισμός αντιγράφεται στην αφετηρία κατά την αποθήκευση.</li>
+        <li>Πεδία: προορισμός και διεύθυνση, ημερομηνία παράδοσης, εκτιμώμενη διάρκεια σε μέρες, άλλες πληροφορίες, χωρητικότητα κάδου (3, 4, 6, 8, 10 m³), παραλήπτης.</li>
+        <li>Δεν δείχνει διαστάσεις, βάρος, όγκο και ιδιότητες φορτίου.</li>
+      </ul></div>
+      <div class="box"><h4>Στο mobile</h4><ul>
+        <li>Η κατηγορία δεν υπάρχει στη λίστα.</li>
+        <li>Αποστολή κάδου που φτιάχτηκε στο web εμφανίζεται χωρίς εικονίδιο και ετικέτα.</li>
+      </ul></div>
+      <div class="box"><h4>Τι πρέπει να γίνει</h4><ul>
+        <li>Η κατηγορία στη νέα αποστολή, με τη δική της φόρμα.</li>
+        <li>Αποστολή του <code>cardDetails: { binSize, durationDays }</code>.</li>
+        <li>Εικονίδιο και ετικέτα στο dashboard, στη λίστα και στις λεπτομέρειες.</li>
+      </ul></div>
+    </div>
+    <div class="files">Αρχεία mobile: <code>app/(tabs)/shipments/new.tsx</code> · <code>lib/api.ts</code> · <code>app/(tabs)/index.tsx</code> · <code>app/(tabs)/shipments/index.tsx</code> · <code>app/(tabs)/shipments/[id].tsx</code></div>
+  </div>
+
+  <div class="item" data-id="move-card">
+    <div class="item-head">
+      <label><input type="checkbox"><h3>Κάρτα μετακόμισης (στοιχεία χώρων, αντικείμενα, υπηρεσίες)</h3></label>
+      <span class="tag t-orange">Λείπει · μεγάλο</span>
+    </div>
+    <div class="grid">
+      <div class="box"><h4>Στο web</h4><ul>
+        <li>Η μετακόμιση έχει κλειδωμένο τίτλο «Μετακόμιση Οικίας/Γραφείου».</li>
+        <li>Για αφετηρία και προορισμό: τύπος οικίας, όροφος, ασανσέρ, σκάλες, ανυψωτικό, στάθμευση.</li>
+        <li>Τετραγωνικά και δωμάτια, λίστες επίπλων και συσκευών, ειδικά αντικείμενα, υπηρεσίες, άλλες πληροφορίες.</li>
+        <li>Αποθηκεύονται στο <code>cardDetails</code> και τα βλέπει ο μεταφορέας.</li>
+      </ul></div>
+      <div class="box"><h4>Στο mobile</h4><ul>
+        <li>Η κατηγορία υπάρχει ως «Μετακόμιση Οικίας», αλλά με τη γενική φόρμα φορτίου.</li>
+        <li>Δεν συμπληρώνεται κανένα στοιχείο της κάρτας. Ο μεταφορέας βλέπει άδεια κάρτα.</li>
+      </ul></div>
+      <div class="box"><h4>Τι πρέπει να γίνει</h4><ul>
+        <li>Οι ενότητες της κάρτας στη φόρμα και στη σύνοψη.</li>
+        <li>Εμφάνιση των στοιχείων στις λεπτομέρειες αποστολής.</li>
+        <li>Είναι το μεγαλύτερο κομμάτι. Δες την ερώτηση 2 παρακάτω.</li>
+      </ul></div>
+    </div>
+    <div class="files">Αναφορά web: <code>lib/moveCard.ts</code> · <code>components/shipment-form/MoveCardFields.tsx</code> · <code>components/MoveCardSummary.tsx</code></div>
+  </div>
+
+  <div class="item" data-id="form">
+    <div class="item-head">
+      <label><input type="checkbox"><h3>Φόρμα αποστολής: πεδίο που αφαιρέθηκε και τίτλοι</h3></label>
+      <span class="tag t-orange">Λείπει</span>
+    </div>
+    <div class="grid">
+      <div class="box"><h4>Στο web</h4><ul>
+        <li>Αφαιρέθηκε η «Περίοδος φόρτωσης / εκφόρτωσης». Μένει μόνο στους κάδους, ως «Άλλες Πληροφορίες».</li>
+        <li>Ο τίτλος της οθόνης αλλάζει: «Νέα Μετακόμιση», «Νέα Παραγγελία Κάδου», αλλιώς «Νέα Αποστολή».</li>
+      </ul></div>
+      <div class="box"><h4>Στο mobile</h4><ul>
+        <li>Το πεδίο υπάρχει ακόμα στο βήμα 2 και στη σύνοψη («Φόρτωση / εκφόρτωση»).</li>
+        <li>Ο τίτλος είναι πάντα ο ίδιος.</li>
+      </ul></div>
+      <div class="box"><h4>Τι πρέπει να γίνει</h4><ul>
+        <li>Αφαίρεση του πεδίου και της γραμμής σύνοψης, εκτός από κάδους.</li>
+        <li>Σε επεξεργασία, η παλιά τιμή να μη σβήνεται.</li>
+        <li>Τίτλος ανά κατηγορία.</li>
+      </ul></div>
+    </div>
+    <div class="files">Αρχεία mobile: <code>app/(tabs)/shipments/new.tsx</code> · <code>lib/i18n.tsx</code></div>
+  </div>
+
+  <!-- ───────────── ΕΜΦΑΝΙΣΗ ───────────── -->
+  <h2>3. Διαφορές εμφάνισης και κειμένων</h2>
+  <p class="section-note">Δεν σπάνε κάτι, αλλά το κινητό δείχνει άλλα κείμενα από το web.</p>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th style="width:36px"></th><th>Θέμα</th><th>Web</th><th>Mobile σήμερα</th><th>Αρχείο mobile</th></tr></thead>
+      <tbody>
+        <tr data-id="btn-routes"><td><input type="checkbox" aria-label="Έγινε"></td><td><b>Κουμπί «Δρομολόγια» στο dashboard</b></td><td>«Μεταφορείς» για μετακόμιση, «Προμηθευτής» για κάδο</td><td>Πάντα «Δρομολόγια»</td><td><code>index.tsx</code>, <code>i18n.tsx</code></td></tr>
+        <tr data-id="match-title"><td><input type="checkbox" aria-label="Έγινε"></td><td><b>Τίτλος και φόρτωση αποτελεσμάτων</b></td><td>«Διαθέσιμοι Μεταφορείς» / «Διαθέσιμοι Προμηθευτές». Φόρτωση: «Παρακαλώ περιμένετε» και «Αναζήτηση και Φόρτωση Στοιχείων»</td><td>«Διαθέσιμα Δρομολόγια», «Αναζήτηση δρομολογίων…»</td><td><code>matches/[id].tsx</code>, <code>i18n.tsx</code></td></tr>
+        <tr data-id="offer-row"><td><input type="checkbox" aria-label="Έγινε"></td><td><b>Γραμμή προσφοράς για μετακόμιση και κάδο</b></td><td>Χωρίς διαδρομή «δρομολογίου». Εικονίδιο 🏠 ή 🗑️ και «· Μεταφορέας» ή «· Προμηθευτής». Πρώτη γραμμή του μηνύματος κάτω από την τιμή</td><td>Δείχνει διαδρομή και ημερομηνίες δρομολογίου, δηλαδή ξανά την ίδια την αποστολή</td><td><code>index.tsx</code></td></tr>
+        <tr data-id="places"><td><input type="checkbox" aria-label="Έγινε"></td><td><b>Γραμμή τοποθεσίας αποστολής</b></td><td>Μετακόμιση: πλήρεις διευθύνσεις. Κάδος: «διεύθυνση (5 μέρες)», χωρίς αφετηρία και χωρίς km</td><td>Πάντα «πόλη → πόλη»</td><td><code>index.tsx</code>, <code>[id].tsx</code>, <code>lib/cityDisplay.ts</code></td></tr>
+        <tr data-id="templates-screen"><td><input type="checkbox" aria-label="Έγινε"></td><td><b>Οθόνη «Πρότυπα Μηνυμάτων»</b></td><td>Τρεις επιλογές: Δρομολόγια, Μετακόμιση, Κάδοι. Η σειρά έρχεται έτοιμη από το API</td><td>Μία λίστα με όλα μαζί</td><td><code>templates.tsx</code></td></tr>
+        <tr data-id="menu"><td><input type="checkbox" aria-label="Έγινε"></td><td><b>Μενού ≡</b></td><td>Χωρίς «Νέα Αποστολή». Σειρά: Οι Αποστολές Μου, Αναζήτηση Δρομολογίων, Αρχείο, Μηνύματα, Πρότυπα, Ρυθμίσεις Χρήστη, Έξοδος</td><td>Έχει «Νέα Αποστολή», Αρχείο, Πρότυπα και τις καρτέλες</td><td><code>index.tsx</code> — θέλει απόφαση</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ───────────── ΗΔΗ ΙΔΙΑ ───────────── -->
+  <h2>4. Ήδη ίδια — δεν χρειάζεται δουλειά</h2>
+  <ul class="ok-list">
+    <li><b>✓</b> Ημερομηνίες ως ημέρα/μήνας/έτος. Το κινητό τις έδειχνε ήδη έτσι.</li>
+    <li><b>✓</b> Κουμπί «Επεξεργασία» στο dashboard.</li>
+    <li><b>✓</b> Η ημερομηνία παράδοσης χωρίς «έως» μπροστά.</li>
+    <li><b>✓</b> Η σειρά των προτύπων (order). Την εφαρμόζει το API.</li>
+    <li><b>—</b> Μόνο για web: η μπάρα της επεξεργασίας (Προηγούμενη, Επόμενη, Ακύρωση), τα κουμπιά της κεφαλίδας, οι οθόνες του μεταφορέα και οι αναλύσεις φορτίων.</li>
+  </ul>
+
+  <!-- ───────────── API ───────────── -->
+  <h2>5. Τα σημεία του API που θα χρησιμοποιήσει το κινητό</h2>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Κλήση</th><th>Για ποιο θέμα</th><th>Κατάσταση</th></tr></thead>
+      <tbody>
+        <tr><td><code>GET /api/shipments/{id}/matches</code></td><td>Επιστρέφει πλέον και <code>cards</code>, <code>hiddenCards</code></td><td>Έτοιμο</td></tr>
+        <tr><td><code>POST /api/routes/{κάρτα}/request</code><br><code>{ shipmentId, content }</code></td><td>Αίτημα προσφοράς σε κάρτα, με το κείμενο του προτύπου</td><td style="color:var(--red)"><b>Θέλει αλλαγή στο Fortio</b> (token κινητού)</td></tr>
+        <tr><td><code>POST</code> / <code>DELETE /api/card-exclusions</code><br><code>{ routeId, shipmentId }</code></td><td>«Δεν με ενδιαφέρει» και «Επαναφορά»</td><td>Έτοιμο</td></tr>
+        <tr><td><code>GET /api/templates?role=SENDER&amp;kind=…</code></td><td>Πρότυπα ανά είδος</td><td>Έτοιμο</td></tr>
+        <tr><td><code>POST</code> / <code>PATCH /api/shipments</code></td><td><code>category: WASTE_BINS</code> και <code>cardDetails</code></td><td>Έτοιμο</td></tr>
+        <tr><td><code>GET /api/dashboard/sender</code></td><td>Επιστρέφει πλέον <code>originAddress</code>, <code>destAddress</code>, <code>cardDetails</code></td><td>Έτοιμο</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ───────────── ΕΡΩΤΗΣΕΙΣ ───────────── -->
+  <h2>6. Αποφάσεις που χρειάζονται από σένα</h2>
+  <div class="q"><b>1. Αλλαγή στο Fortio.</b> Να γίνει η αλλαγή στο <code>/api/routes/[id]/request</code> ώστε να δέχεται το token του κινητού; Χωρίς αυτήν δεν δουλεύει το αίτημα σε κάρτα. Γίνεται σε συνεδρία του Fortio, όχι του κινητού.</div>
+  <div class="q"><b>2. Κάρτα μετακόμισης.</b> Πλήρης φόρμα όπως στο web, ή απλή έκδοση στο κινητό (π.χ. όροφος, ασανσέρ, τετραγωνικά, άλλες πληροφορίες) και τα υπόλοιπα από το web;</div>
+  <div class="q"><b>3. Μενού ≡.</b> Να φύγει η «Νέα Αποστολή» από το μενού του κινητού, όπως στο web; Στο κινητό υπάρχει ήδη το κουμπί + στο dashboard.</div>
+  <div class="q"><b>4. Έρευνα δρομολογίου.</b> Για μετακόμιση και κάδο, να κρύβεται η «Έρευνα Δρομολογίου» στο κινητό; Στο web δεν άλλαξε ακόμα.</div>
+
+  <!-- ───────────── ΣΕΙΡΑ ───────────── -->
+  <h2>7. Προτεινόμενη σειρά</h2>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Βήμα</th><th>Τι</th><th>Γιατί πρώτα</th></tr></thead>
+      <tbody>
+        <tr><td>0</td><td>Αλλαγή στο Fortio για το token (απόφαση 1)</td><td>Προϋπόθεση για το βήμα 2</td></tr>
+        <tr><td>1</td><td>Πρότυπα ανά είδος</td><td>Μικρό και διορθώνει κάτι που φαίνεται ήδη λάθος</td></tr>
+        <tr><td>2</td><td>Κάρτες στα αποτελέσματα και αίτημα σε κάρτα</td><td>Οι μετακομίσεις δεν λειτουργούν σήμερα από το κινητό</td></tr>
+        <tr><td>3</td><td>Κείμενα και εμφάνιση (ενότητα 3)</td><td>Γρήγορα, και αφορούν ό,τι ήδη υπάρχει</td></tr>
+        <tr><td>4</td><td>Φόρμα: αφαίρεση πεδίου, τίτλοι, κατηγορία Κάδοι</td><td>Νέα λειτουργία μεσαίου μεγέθους</td></tr>
+        <tr><td>5</td><td>Κάρτα μετακόμισης (απόφαση 2)</td><td>Το μεγαλύτερο κομμάτι</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <footer>Οι οδηγίες για την υλοποίηση βρίσκονται στο <code>INSTRUCTIONS.md</code>, στον ίδιο φάκελο. Η σύγκριση έγινε διαβάζοντας τον κώδικα των δύο εφαρμογών. Δεν έχει δοκιμαστεί σε συσκευή.</footer>
+</div>
+
+<script>
+  // Τα κουτάκια θυμούνται την κατάστασή τους μόνο σε αυτόν τον browser
+  (function () {
+    var KEY = 'fortio-mobile-sync-2026-10-13';
+    var state = {};
+    try { state = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { state = {}; }
+    document.querySelectorAll('[data-id]').forEach(function (el) {
+      var id = el.getAttribute('data-id');
+      var box = el.querySelector('input[type="checkbox"]');
+      if (!box) return;
+      box.checked = !!state[id];
+      el.classList.toggle('done', box.checked);
+      box.addEventListener('change', function () {
+        state[id] = box.checked;
+        el.classList.toggle('done', box.checked);
+        try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* χωρίς αποθήκευση */ }
+      });
+    });
+  })();
+</script>
+</body>
+</html>

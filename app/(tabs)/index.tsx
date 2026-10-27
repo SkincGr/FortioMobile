@@ -23,6 +23,7 @@ const CATEGORY_ICON: Record<string, string> = {
   FURNITURE: '🛋️', HOUSE_MOVE: '🏠', SMALL_PACKAGE: '📦', COURIER: '🛵',
   ELECTRONICS: '💻', VEHICLE: '🚗', MACHINERY: '⚙️', BOAT: '⛵',
   FOOD: '🥩', HAZARDOUS: '⚠️', OTHER: '🗃️',
+  APPLIANCES: '🔌', BOXES: '🧳', WASTE_BINS: '🗑️', VEHICLE_RENTAL: '🚐',
 }
 
 const OFFER_STATUS_KEY: Record<string, any> = {

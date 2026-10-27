@@ -263,29 +263,21 @@ export const reviewsApi = {
 
 // ─── Shipments ────────────────────────────────────────────────────────────────
 
-export type CreateShipmentPayload = {
-  title: string; description?: string; category: string
-  originCity: string; originCityPlaceId?: string
-  destCity: string;   destCityPlaceId?: string
-  originAddress?: string; destAddress?: string
-  originLat?: number; originLng?: number
-  destLat?: number;   destLng?: number
-  weight?: number; volume?: number
-  length?: number; width?: number; height?: number
-  isFragile?: boolean; requiresCooling?: boolean; isHazardous?: boolean
-  desiredDelivery?: string; maxBudget?: number; loadingInfo?: string
-  recipientName: string; recipientPhone: string; recipientEmail?: string
-  recipientSameAsSender?: boolean
-}
+/**
+ * Το σώμα που στέλνει η φόρμα αποστολής: ίδιο με το buildBody του web (components/ShipmentForm.tsx), με τιμές κειμένου όπως
+ * στη φόρμα — το createShipmentSchema / updateShipmentSchema του Fortio μετατρέπει τα κενά και τους αριθμούς. Περιέχει
+ * category + categories (πολλαπλή επιλογή), place ids πόλεων και διευθύνσεων, και cardDetails της κάρτας της κατηγορίας.
+ */
+export type ShipmentPayload = Record<string, unknown>
 
 export const shipmentsApi = {
   get: (id: string) =>
     api.get<Shipment & { offers: Offer[] }>(`/api/shipments/${id}`),
 
-  create: (data: CreateShipmentPayload) =>
+  create: (data: ShipmentPayload) =>
     api.post<Shipment>('/api/shipments', data),
 
-  update: (id: string, data: Partial<CreateShipmentPayload>) =>
+  update: (id: string, data: ShipmentPayload) =>
     api.patch<Shipment>(`/api/shipments/${id}`, data),
 
   delete: (id: string) =>
@@ -403,6 +395,8 @@ export const announcementsApi = {
 export type SenderProfile = {
   name?: string; email?: string; username?: string; phone?: string
   vatNumber?: string; country?: string; city?: string; address?: string
+  // Για το «Η Διεύθυνσή μου» της φόρμας αποστολής
+  cityPlaceId?: string | null; addressPlaceId?: string | null
 }
 
 export const profileApi = {

@@ -37,8 +37,10 @@ export function PlacesInput({
 
   function handleChange(q: string) {
     setText(q)
-    // Clear confirmed placeId when user edits
-    if (placeId) onSelect(q, '')
+    // Clear confirmed placeId when user edits. An address may also stay as
+    // free text without a Google pick (same as the web form), so it is
+    // passed on as typed; a city still needs a pick to get its placeId.
+    if (placeId || type === 'address') onSelect(q, '')
     if (debounceRef.current) clearTimeout(debounceRef.current)
     if (q.length < 2) { setSuggestions([]); return }
     debounceRef.current = setTimeout(() => doSearch(q), 350)

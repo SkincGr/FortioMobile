@@ -313,6 +313,7 @@ const CATEGORY_LABEL: Record<string, string> = {
   FURNITURE: '🛋️ Έπιπλα', HOUSE_MOVE: '🏠 Μετακόμιση', SMALL_PACKAGE: '📦 Μικροδέματα', COURIER: '🛵 Ταχυμεταφορές',
   ELECTRONICS: '💻 Ηλεκτρονικά', VEHICLE: '🚗 Όχημα', MACHINERY: '⚙️ Μηχανήματα', BOAT: '⛵ Σκάφος',
   FOOD: '🥩 Τρόφιμα', HAZARDOUS: '⚠️ Επικίνδυνα', OTHER: '🗃️ Άλλο',
+  APPLIANCES: '🔌 Οικιακές Συσκευές', BOXES: '🧳 Κούτες', WASTE_BINS: '🗑️ Κάδοι', VEHICLE_RENTAL: '🚐 Ενοικίαση Van / Οχήματος',
 }
 
 function ShipmentInfoCard({ s }: { s: Shipment }) {

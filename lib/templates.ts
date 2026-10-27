@@ -60,57 +60,6 @@ export const SENDER_TEMPLATES: MessageTemplate[] = [
   },
 ]
 
-export const CARRIER_TEMPLATES: MessageTemplate[] = [
-  {
-    id: 'tpl_carrier_basic_offer',
-    title: 'Βασική Προσφορά',
-    category: 'OFFER',
-    icon: '🚛',
-    role: 'CARRIER',
-    content: 'Ενδιαφερόμαστε για τη μεταφορά του φορτίου σας "{shipment_title}" ({origin_city} → {dest_city}). Η τιμή περιλαμβάνει ασφαλή μεταφορά με το όχημά μας.',
-  },
-  {
-    id: 'tpl_carrier_full_service',
-    title: 'Πλήρης Μεταφορά (με Εργατικά)',
-    category: 'OFFER',
-    icon: '📦',
-    role: 'CARRIER',
-    content: 'Προσφορά για "{shipment_title}": Περιλαμβάνει παραλαβή από τον χώρο σας, ασφαλή φόρτωση, μεταφορά ({origin_city} → {dest_city}) και εκφόρτωση στον προορισμό.',
-  },
-  {
-    id: 'tpl_carrier_floor_clarify',
-    title: 'Ερώτηση για Όροφο / Πρόσβαση',
-    category: 'CLARIFICATION',
-    icon: '❓',
-    role: 'CARRIER',
-    content: 'Καλησπέρα σας, σχετικά με την αποστολή "{shipment_title}": Υπάρχει ασανσέρ ή πρόκειται για ισόγειο; Επίσης είναι εύκολη η πρόσβαση του οχήματος στο σημείο παραλαβής;',
-  },
-  {
-    id: 'tpl_carrier_pickup_dates',
-    title: 'Επιβεβαίωση Ημερομηνιών & Ετοιμότητας',
-    category: 'GENERAL',
-    icon: '📅',
-    role: 'CARRIER',
-    content: 'Μπορούμε να εξυπηρετήσουμε άμεσα την αποστολή σας στις ημερομηνίες που επιθυμείτε. Παρακαλώ ενημερώστε μας αν συμφωνείτε ώστε να προχωρήσουμε στον προγραμματισμό.',
-  },
-  {
-    id: 'tpl_carrier_express',
-    title: 'Άμεση / Express Αναχώρηση',
-    category: 'OFFER',
-    icon: '⚡',
-    role: 'CARRIER',
-    content: 'Το όχημά μας αναχωρεί άμεσα από {origin_city} για {dest_city}. Μπορούμε να παραλάβουμε το "{shipment_title}" εντός της ημέρας.',
-  },
-]
-
-export const DEFAULT_TEMPLATES: MessageTemplate[] = [...SENDER_TEMPLATES, ...CARRIER_TEMPLATES]
-
-export function getTemplatesForRole(role?: string | null): MessageTemplate[] {
-  if (role === 'CARRIER' || role === 'carrier') return CARRIER_TEMPLATES
-  if (role === 'SENDER' || role === 'sender') return SENDER_TEMPLATES
-  return DEFAULT_TEMPLATES
-}
-
 export type TemplateData = Record<string, string | number | null | undefined>
 
 /** Παλιά ονόματα placeholder (τα τοπικά πρότυπα) → κλειδιά του API catalog (email_template_variables) */

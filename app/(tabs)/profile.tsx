@@ -33,7 +33,7 @@ export default function ProfileScreen() {
         { icon: 'key-outline',                label: t('profile.change_pass'),     onPress: () => router.push('/(tabs)/profile-password' as any) },
         { icon: 'copy-outline',               label: 'Πρότυπα Μηνυμάτων & Email', onPress: () => router.push('/(tabs)/templates' as any) },
         { icon: 'search-outline',             label: t('dash.menu.route_search'), onPress: () => router.push('/(tabs)/routes-search' as any) },
-        { icon: 'notifications-outline',      label: t('profile.notifications'), onPress: () => {} },
+        { icon: 'notifications-outline',      label: t('profile.notifications'), onPress: () => router.push('/(tabs)/notifications' as any) },
         // Ίδιο με τη «Βοήθεια» του Λογαριασμού στο web
         { icon: 'help-circle-outline',        label: t('profile.help'),     onPress: () => { Linking.openURL('mailto:support@fortio.gr') } },
         { icon: 'information-circle-outline', label: t('profile.about'),    onPress: () => {} },

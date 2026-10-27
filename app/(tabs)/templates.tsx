@@ -28,8 +28,8 @@ const catLabel = (c: string) => CATEGORY_LABELS[c] ?? c
 export default function TemplatesScreen() {
   const { t } = useI18n()
   const { user } = useAuth()
-  const isCarrier = user?.role === 'CARRIER'
-  const role = isCarrier ? 'CARRIER' : 'SENDER'
+  // Η εφαρμογή είναι μόνο για αποστολείς: πάντα τα πρότυπα του αποστολέα
+  const role = 'SENDER'
 
   const [tab, setTab] = useState<'system' | 'custom'>('system')
   const [kind, setKind] = useState<TemplateKind>('TRANSPORTS')
@@ -45,8 +45,8 @@ export default function TemplatesScreen() {
   const [title, setTitle] = useState('')
   const [subject, setSubject] = useState('')
   const [content, setContent] = useState('')
-  const [category, setCategory] = useState<string>(isCarrier ? 'OFFER' : 'REQUEST')
-  const [icon, setIcon] = useState(isCarrier ? '🚛' : '📋')
+  const [category, setCategory] = useState<string>('REQUEST')
+  const [icon, setIcon] = useState('📋')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -87,7 +87,7 @@ export default function TemplatesScreen() {
 
   function openNew() {
     setEditingId(null)
-    setTitle(''); setSubject(''); setContent(''); setIcon(isCarrier ? '🚛' : '📋')
+    setTitle(''); setSubject(''); setContent(''); setIcon('📋')
     if (categoryFilter !== 'ALL' && categoryFilter !== REST) setCategory(categoryFilter)
     setModalOpen(true)
   }
@@ -98,7 +98,7 @@ export default function TemplatesScreen() {
     setSubject(item.subject ?? '')
     setContent(item.content)
     setCategory(item.category || 'GENERAL')
-    setIcon(item.icon || (isCarrier ? '🚛' : '📋'))
+    setIcon(item.icon || '📋')
     setModalOpen(true)
   }
 
@@ -166,7 +166,7 @@ export default function TemplatesScreen() {
     <View style={s.root}>
       <Stack.Screen
         options={{
-          title: isCarrier ? 'Πρότυπα Μεταφορέα' : 'Πρότυπα Αποστολέα',
+          title: 'Πρότυπα Αποστολέα',
           headerBackTitle: 'Πίσω',
         }}
       />
@@ -177,7 +177,7 @@ export default function TemplatesScreen() {
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
         <Text style={s.headerTitle}>
-          {isCarrier ? '🚛 Πρότυπα Μεταφορέα' : '👤 Πρότυπα Αποστολέα'}
+          👤 Πρότυπα Αποστολέα
         </Text>
         <TouchableOpacity onPress={openNew} style={s.addBtn}>
           <Ionicons name="add" size={22} color="#000" />
@@ -200,7 +200,7 @@ export default function TemplatesScreen() {
           onPress={() => setTab('system')}
         >
           <Text style={[s.tabText, tab === 'system' && s.tabTextActive]}>
-            {isCarrier ? '🚛 Έτοιμα Πρότυπα' : '📋 Έτοιμα Πρότυπα'} ({systemList.length})
+            📋 Έτοιμα Πρότυπα ({systemList.length})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -259,7 +259,7 @@ export default function TemplatesScreen() {
               <View key={item.id} style={s.card}>
                 <View style={s.cardHeader}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
-                    <Text style={{ fontSize: 20 }}>{item.icon || (isCarrier ? '🚛' : '📋')}</Text>
+                    <Text style={{ fontSize: 20 }}>{item.icon || '📋'}</Text>
                     <Text style={s.cardTitle}>{item.title}</Text>
                   </View>
                   <View style={s.catBadge}>
@@ -306,7 +306,7 @@ export default function TemplatesScreen() {
           <View style={s.modalCard}>
             <View style={s.modalHeader}>
               <Text style={s.modalTitle}>
-                {editingId ? 'Επεξεργασία Προτύπου' : (isCarrier ? 'Νέο Πρότυπο Μεταφορέα' : 'Νέο Πρότυπο Αποστολέα')}
+                {editingId ? 'Επεξεργασία Προτύπου' : 'Νέο Πρότυπο Αποστολέα'}
               </Text>
               <TouchableOpacity onPress={() => { setModalOpen(false); setEditingId(null) }}>
                 <Ionicons name="close" size={24} color="rgba(255,255,255,0.6)" />
@@ -316,7 +316,7 @@ export default function TemplatesScreen() {
             <Text style={s.inputLabel}>Τίτλος Προτύπου</Text>
             <TextInput
               style={s.input}
-              placeholder={isCarrier ? 'π.χ. Προσφορά με Εργατικά' : 'π.χ. Αίτημα για Δρομολόγιο'}
+              placeholder='π.χ. Αίτημα για Δρομολόγιο'
               placeholderTextColor="rgba(255,255,255,0.3)"
               value={title}
               onChangeText={setTitle}

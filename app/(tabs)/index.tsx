@@ -72,11 +72,6 @@ const IN_TRANSIT_STATUSES: ShipmentStatus[]   = ['LOADED', 'IN_TRANSIT', 'IN_STO
 
 type OfferGroup = { shipment: Shipment; offers: Offer[] }
 
-function isCarrierUser(role?: string | null) {
-  const normalized = String(role ?? '').toUpperCase()
-  return normalized === 'CARRIER' || normalized.includes('TRANSPORT')
-}
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatRoad(distKm?: number | null, durMin?: number | null) {
@@ -635,18 +630,11 @@ export default function DashboardScreen() {
     ])
   }
 
-  const isCarrier = isCarrierUser(user?.role)
-
+  // Η εφαρμογή είναι μόνο για αποστολείς (το login δέχεται μόνο SENDER), οπότε ο πίνακας είναι πάντα του αποστολέα
   const { data, isLoading, error, refetch, isRefetching } = useQuery({
     queryKey: ['dashboard', user?.role, sortBy, language, autoTranslate],
     queryFn: async () => {
-      let result;
-      if (isCarrier) {
-        const { data } = await dashboardApi.getCarrier()
-        result = { shipments: data.shipments, completedShipments: [], announcementCount: 0, inboxMessageCount: 0 }
-      } else {
-        result = await dashboardApi.getSender(sortBy).then(r => r.data)
-      }
+      const result = await dashboardApi.getSender(sortBy).then(r => r.data)
 
       if (autoTranslate && result.shipments) {
         result.shipments = await Promise.all(result.shipments.map(async (s: Shipment) => {

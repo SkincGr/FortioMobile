@@ -563,6 +563,10 @@ export const FORM_MOBILE_EL = {
     city_ph_origin: 'π.χ. Αθήνα', city_ph_dest: 'π.χ. Θεσσαλονίκη', address_ph_origin: 'π.χ. Ερμού 5', address_ph_dest: 'π.χ. Εγνατία 10',
     pick_date: 'Επιλέξτε ημερομηνία', edit_cancel: '✕ Ακύρωση',
     open: 'Άνοιγμα', close: 'Κλείσιμο',
+    // Χάρτης συντεταγμένων (ίδια κείμενα με το MapPickerModal του web)
+    map_search_ph: 'Αναζήτηση πόλης ή περιοχής...', map_search_go: 'Μετάβαση', map_not_found: 'Δεν βρέθηκε η περιοχή.',
+    map_hint: 'Πάτησε στον χάρτη (ή σύρε τον δείκτη) για να επιλέξεις την ακριβή θέση.',
+    map_use: 'Χρήση θέσης', map_pick: 'Επίλεξε θέση στον χάρτη', map_my_location: '📍 Η θέση μου',
   },
 }
 
@@ -577,6 +581,9 @@ export const FORM_MOBILE_EN: typeof FORM_MOBILE_EL = {
     city_ph_origin: 'e.g. Athens', city_ph_dest: 'e.g. Thessaloniki', address_ph_origin: 'e.g. Ermou 5', address_ph_dest: 'e.g. Egnatia 10',
     pick_date: 'Select a date', edit_cancel: '✕ Cancel',
     open: 'Open', close: 'Close',
+    map_search_ph: 'Search a city or area...', map_search_go: 'Go', map_not_found: 'Area not found.',
+    map_hint: 'Tap the map (or drag the marker) to pick the exact position.',
+    map_use: 'Use position', map_pick: 'Pick a position on the map', map_my_location: '📍 My location',
   },
 }
 
@@ -863,6 +870,9 @@ export const FORM_FR: DeepPartial<typeof FORM_EL & typeof FORM_MOBILE_EL> = {
     city_ph_origin: 'ex. Athènes', city_ph_dest: 'ex. Thessalonique', address_ph_origin: 'ex. Ermou 5', address_ph_dest: 'ex. Egnatia 10',
     pick_date: 'Choisir une date', edit_cancel: '✕ Annuler',
     open: 'Ouvrir', close: 'Fermer',
+    map_search_ph: 'Rechercher une ville ou une zone...', map_search_go: 'Aller', map_not_found: 'Zone introuvable.',
+    map_hint: 'Touchez la carte (ou faites glisser le repère) pour choisir la position exacte.',
+    map_use: 'Utiliser la position', map_pick: 'Choisissez une position sur la carte', map_my_location: '📍 Ma position',
   },
 }
 

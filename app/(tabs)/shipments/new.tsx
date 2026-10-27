@@ -31,6 +31,7 @@ import { RentalSection } from '@/components/shipment-form/RentalFields'
 import { PhotoManager } from '@/components/shipment-form/PhotoManager'
 import { MoveInventoryAnalysis } from '@/components/shipment-form/MoveInventoryAnalysis'
 import { MoveCardSummary, TransportCardSummary } from '@/components/shipment-form/CardSummary'
+import { MapPickerModal } from '@/components/shipment-form/MapPickerModal'
 
 // Η φόρμα ακολουθεί το components/ShipmentForm.tsx του Fortio: ίδιες κατηγορίες (πολλαπλή επιλογή), ίδιοι κανόνες ανά
 // κατηγορία (Μετακόμιση, Κάδοι, Όχημα/Σκάφος, Ενοικίαση) και ίδιο σώμα αιτήματος, με τις βιβλιοθήκες του lib/shared.
@@ -143,11 +144,11 @@ function BackNext({ t, onBack, onNext, nextLabel, busy }: { t: FormT; onBack: ()
   )
 }
 
-// ─── Συντεταγμένες (τρέχουσα τοποθεσία ή χειροκίνητα· το web έχει και χάρτη) ─────────────────────────────────────────────
+// ─── Συντεταγμένες: χάρτης (όπως το web), τρέχουσα τοποθεσία ή χειροκίνητα ─────────────────────────────────────────────
 
-function CoordGroup({ t, title, latValue, lngValue, latPh, lngPh, onLatChange, onLngChange }: {
+function CoordGroup({ t, title, latValue, lngValue, latPh, lngPh, onLatChange, onLngChange, onOpenMap }: {
   t: FormT; title: string; latValue: string; lngValue: string; latPh: string; lngPh: string
-  onLatChange: (v: string) => void; onLngChange: (v: string) => void
+  onLatChange: (v: string) => void; onLngChange: (v: string) => void; onOpenMap: () => void
 }) {
   const latRef = useRef<TextInput>(null)
   const lngRef = useRef<TextInput>(null)
@@ -174,9 +175,14 @@ function CoordGroup({ t, title, latValue, lngValue, latPh, lngPh, onLatChange, o
 
   return (
     <View>
-      <Text style={{ fontSize: 12, fontWeight: '600', color: '#94A3B8', marginBottom: 6 }}>
-        {title} <Text style={{ fontWeight: '400' }}>{t('shipmentForm.coord_note')}</Text>
-      </Text>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
+        <Text style={{ flex: 1, fontSize: 12, fontWeight: '600', color: '#94A3B8' }}>
+          {title} <Text style={{ fontWeight: '400' }}>{t('shipmentForm.coord_note')}</Text>
+        </Text>
+        <TouchableOpacity onPress={onOpenMap} hitSlop={8}>
+          <Text style={{ fontSize: 12, fontWeight: '800', color: '#B45309' }}>📍 {t('shipmentForm.btn_find_on_map')}</Text>
+        </TouchableOpacity>
+      </View>
       <View style={{ flexDirection: 'row', gap: 8 }}>
         {(['lat', 'lng'] as const).map(f => (
           <TextInput
@@ -217,6 +223,7 @@ export default function NewShipmentScreen() {
   const [fieldErrors, setFieldErrors]   = useState<Record<string, string>>({})
   const [showErrors, setShowErrors]     = useState(false)
   const [showDatePicker, setShowDatePicker] = useState(false)
+  const [mapTarget, setMapTarget]       = useState<'origin' | 'dest' | null>(null)
   const [listSaving, setListSaving]     = useState(false)
   const [listMessage, setListMessage]   = useState<{ ok: boolean; text: string } | null>(null)
   // Οι διαστάσεις που έβαλε η λίστα αντικειμένων, ώστε ο αυτόματος όγκος να μην τις θεωρήσει δικές του
@@ -738,7 +745,8 @@ export default function NewShipmentScreen() {
                           onSelect={(addr, pid) => setForm(f => ({ ...f, originAddress: addr, originAddressPlaceId: pid }))}
                           error={missing('originAddress')} />
                         <CoordGroup t={t} title={t('shipmentForm.coord_section_origin')} latValue={form.originLat} lngValue={form.originLng}
-                          latPh="Lat π.χ. 37.9839" lngPh="Lng π.χ. 23.7275" onLatChange={v => update('originLat', v)} onLngChange={v => update('originLng', v)} />
+                          latPh="Lat π.χ. 37.9839" lngPh="Lng π.χ. 23.7275" onLatChange={v => update('originLat', v)} onLngChange={v => update('originLng', v)}
+                          onOpenMap={() => setMapTarget('origin')} />
                       </>
                     )}
                   </View>
@@ -773,7 +781,8 @@ export default function NewShipmentScreen() {
                       onSelect={(addr, pid) => setForm(f => ({ ...f, destAddress: addr, destAddressPlaceId: pid }))}
                       error={missing('destAddress')} />
                     <CoordGroup t={t} title={t('shipmentForm.coord_section_dest')} latValue={form.destLat} lngValue={form.destLng}
-                      latPh="Lat π.χ. 40.6401" lngPh="Lng π.χ. 22.9444" onLatChange={v => update('destLat', v)} onLngChange={v => update('destLng', v)} />
+                      latPh="Lat π.χ. 40.6401" lngPh="Lng π.χ. 22.9444" onLatChange={v => update('destLat', v)} onLngChange={v => update('destLng', v)}
+                      onOpenMap={() => setMapTarget('dest')} />
                   </View>
                   {isMove && <MoveAddressFields t={t} side="dest" value={form.cardDetails.dest} onChange={dest => setMove(d => ({ ...d, dest }))} />}
                 </>
@@ -949,6 +958,21 @@ export default function NewShipmentScreen() {
           )}
         </ScrollView>
       </View>
+
+      {/* Χάρτης συντεταγμένων: ανοίγει στις υπάρχουσες συντεταγμένες, αλλιώς στη διεύθυνση της πλευράς */}
+      <MapPickerModal
+        t={t}
+        open={mapTarget !== null}
+        title={mapTarget === 'dest' ? t('shipmentForm.coord_section_dest') : t('shipmentForm.coord_section_origin')}
+        initialLat={parseFloat(mapTarget === 'dest' ? form.destLat : form.originLat)}
+        initialLng={parseFloat(mapTarget === 'dest' ? form.destLng : form.originLng)}
+        focusText={(mapTarget === 'dest' ? [form.destAddress, form.destCity] : [form.originAddress, form.originCity]).filter(Boolean).join(', ')}
+        onClose={() => setMapTarget(null)}
+        onSelect={(lat, lng) => {
+          if (mapTarget === 'dest') setForm(f => ({ ...f, destLat: lat.toFixed(6), destLng: lng.toFixed(6) }))
+          else setForm(f => ({ ...f, originLat: lat.toFixed(6), originLng: lng.toFixed(6) }))
+        }}
+      />
     </KeyboardAvoidingView>
   )
 }

@@ -159,4 +159,5 @@ git push --tags
 - **Fortio API base URL:** `API_BASE_URL` in `constants/config.ts` (production URL; a commented local-dev URL is next to it).
 - **Google Places:** always through Fortio's `/api/places` — never call Google directly from mobile.
 - **Photos:** `expo-image-picker` (camera / gallery) and `expo-image-manipulator` (resize to 800 or 1280 px, JPEG) before `POST /api/shipments/:id/photos` (max 4 MB).
+- **Maps (coordinates picker in the shipment form):** `react-native-maps`, configured in `app.config.js`. Centering on an address uses the device geocoder (`expo-location`), not Google. Android builds need a **Maps SDK for Android** key (restricted to package `com.skincgr.FortioMobile` + signing SHA-1) in the env var `GOOGLE_MAPS_ANDROID_API_KEY` (e.g. `eas env:create`); never commit it. Fortio's browser and server keys do not work here. Expo Go and iOS (Apple Maps) need no key.
 - **Payments:** there is no payment integration (removed from Fortio on purpose). Do not add Stripe or any payment flow.

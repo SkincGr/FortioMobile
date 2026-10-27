@@ -5,7 +5,7 @@ import {
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useI18n } from '@/lib/i18n'
-import { useMessageTemplates, renderTemplate, MessageTemplate, TemplateData } from '@/lib/templates'
+import { useMessageTemplates, renderTemplate, MessageTemplate, TemplateData, type TemplateKind } from '@/lib/templates'
 
 const FREE_TEXT_ID = '__free_text__'
 
@@ -15,17 +15,19 @@ const FREE_TEXT_ID = '__free_text__'
  * το μήνυμα με το κουμπί «Αποστολή» (η ενέργεια της οθόνης τρέχει μετά την αποστολή).
  */
 export function TemplateSendModal({
-  visible, role, category, data, onClose, onSend,
+  visible, role, category, kind, data, onClose, onSend,
 }: {
   visible: boolean
   role: 'SENDER' | 'CARRIER'
   category: string
+  /** Είδος της αποστολής: τα πρότυπα είναι ανά Μεταφορές / Μετακομίσεις / Κάδους / Ενοικιάσεις */
+  kind?: TemplateKind
   data: TemplateData
   onClose: () => void
   onSend: (subject: string, content: string) => Promise<void>
 }) {
   const { t } = useI18n()
-  const { all: templates, loading } = useMessageTemplates(role, category)
+  const { all: templates, loading } = useMessageTemplates(role, category, kind)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [subject, setSubject] = useState('')

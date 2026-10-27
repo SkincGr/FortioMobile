@@ -153,11 +153,23 @@ export function renderTemplate(templateContent: string, data: TemplateData = {})
   )
 }
 
+/** Είδος μεταφοράς των προτύπων (transport_kind στο Fortio) */
+export type TemplateKind = 'TRANSPORTS' | 'MOVES' | 'WASTE_BINS' | 'VEHICLE_RENTAL'
+
+/** Ίδιο με το templateKindForCategory του Fortio: μετακόμιση → MOVES, κάδος → WASTE_BINS, ενοικίαση → VEHICLE_RENTAL, αλλιώς TRANSPORTS */
+export function templateKindForCategory(category: string | null | undefined): TemplateKind {
+  if (category === 'HOUSE_MOVE') return 'MOVES'
+  if (category === 'WASTE_BINS') return 'WASTE_BINS'
+  if (category === 'VEHICLE_RENTAL') return 'VEHICLE_RENTAL'
+  return 'TRANSPORTS'
+}
+
 /**
  * Πρότυπα από το πραγματικό backend (/api/templates — έτοιμα + δικά μου),
  * ίδια πηγή με τον browser. Δεν προσθέτει δημιουργία/διαγραφή — μόνο ανάγνωση/επιλογή.
+ * kind: το είδος της αποστολής (προεπιλογή Μεταφορές, όπως το TemplatePickerModal του web).
  */
-export function useMessageTemplates(role?: string | null, category?: string) {
+export function useMessageTemplates(role?: string | null, category?: string, kind: TemplateKind = 'TRANSPORTS') {
   const [system, setSystem] = useState<MessageTemplate[]>([])
   const [custom, setCustom] = useState<MessageTemplate[]>([])
   const [loading, setLoading] = useState(true)
@@ -166,7 +178,7 @@ export function useMessageTemplates(role?: string | null, category?: string) {
     let active = true
     setLoading(true)
     const roleParam = role === 'CARRIER' ? 'CARRIER' : 'SENDER'
-    api.get<{ system: MessageTemplate[]; custom: MessageTemplate[] }>(`/api/templates?role=${roleParam}`)
+    api.get<{ system: MessageTemplate[]; custom: MessageTemplate[] }>(`/api/templates?role=${roleParam}&kind=${kind}`)
       .then(res => {
         if (!active) return
         const bySystem = category
@@ -175,13 +187,15 @@ export function useMessageTemplates(role?: string | null, category?: string) {
         const byCustom = category
           ? (res.data?.custom ?? []).filter(tpl => tpl.category === category)
           : (res.data?.custom ?? [])
+        // Το δικό μου αντίγραφο κοινού προτύπου εμφανίζεται ήδη στα έτοιμα (στη θέση του κοινού), όπως στο web
+        const systemIds = new Set(bySystem.map(tpl => tpl.id))
         setSystem(bySystem)
-        setCustom(byCustom)
+        setCustom(byCustom.filter(tpl => !systemIds.has(tpl.id)))
       })
       .catch(() => { if (active) { setSystem([]); setCustom([]) } })
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
-  }, [role, category])
+  }, [role, category, kind])
 
   return { system, custom, all: [...system, ...custom], loading }
 }

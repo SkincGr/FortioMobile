@@ -12,6 +12,7 @@ import { useI18n, translateText } from '@/lib/i18n'
 import { dashboardApi, matchCountsApi, shipmentsApi, offersApi, messagesApi, Shipment, Offer, ShipmentStatus } from '@/lib/api'
 import { ShipmentStatusBadge } from '@/components/ShipmentStatusBadge'
 import { TemplateSendModal } from '@/components/TemplateSendModal'
+import { templateKindForCategory } from '@/lib/templates'
 import { LoadingScreen } from '@/components/ui/LoadingScreen'
 import { Colors } from '@/constants/colors'
 import { carrierRating } from '@/lib/display'
@@ -581,6 +582,13 @@ export default function DashboardScreen() {
     info: 'OFFER_INFO', loadCancel: 'OFFER_CANCELL_BEFORELOAD', loadInfo: 'OFFER_LOAD_INFO',
   } as const
 
+  // Τα πρότυπα είναι ανά είδος αποστολής (Μεταφορές, Μετακομίσεις, Κάδοι, Ενοικιάσεις), όπως στο web. Η ακύρωση πριν τη
+  // φόρτωση έχει κατηγορία OFFER_CANCELL_BEFORELOAD στις Μεταφορές και OFFER_CANCEL στα υπόλοιπα είδη.
+  const tplKind = templateKindForCategory(tplFlow?.shipment?.category)
+  const tplCategory = tplFlow?.kind === 'loadCancel' && tplKind !== 'TRANSPORTS'
+    ? 'OFFER_CANCEL'
+    : TPL_FLOW_CATEGORY[tplFlow?.kind ?? 'info']
+
   function openTplFlow(kind: keyof typeof TPL_FLOW_CATEGORY, offer: Offer, shipmentTitle: string, shipment?: any) {
     setOfferModal(null)
     setTplFlow({ kind, offer, shipmentTitle, shipment })
@@ -1126,7 +1134,8 @@ export default function DashboardScreen() {
       <TemplateSendModal
         visible={!!tplFlow}
         role="SENDER"
-        category={TPL_FLOW_CATEGORY[tplFlow?.kind ?? 'info']}
+        kind={tplKind}
+        category={tplCategory}
         data={{
           shipment_title: tplFlow?.shipmentTitle,
           shipment_origin_city: tplFlow?.shipment ? fCity(tplFlow.shipment.originCity, tplFlow.shipment.originPlace) : undefined,

@@ -5,7 +5,13 @@ import {
 } from 'react-native'
 import { router, Stack } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
-import { MessageTemplate } from '@/lib/templates'
+import { MessageTemplate, type TemplateKind } from '@/lib/templates'
+
+// Είδος μεταφοράς των προτύπων, όπως ο διακόπτης της σελίδας /sender/templates του web
+const TEMPLATE_KINDS = [
+  ['TRANSPORTS', 'tpl.kind_transports'], ['MOVES', 'tpl.kind_moves'],
+  ['WASTE_BINS', 'tpl.kind_waste_bins'], ['VEHICLE_RENTAL', 'tpl.kind_vehicle_rental'],
+] as const
 import { useI18n } from '@/lib/i18n'
 import { api } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
@@ -26,6 +32,7 @@ export default function TemplatesScreen() {
   const role = isCarrier ? 'CARRIER' : 'SENDER'
 
   const [tab, setTab] = useState<'system' | 'custom'>('system')
+  const [kind, setKind] = useState<TemplateKind>('TRANSPORTS')
   const [systemList, setSystemList] = useState<MessageTemplate[]>([])
   const [customList, setCustomList] = useState<MessageTemplate[]>([])
   const [loading, setLoading] = useState(true)
@@ -44,14 +51,15 @@ export default function TemplatesScreen() {
 
   useEffect(() => {
     loadTemplates()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kind])
 
   async function loadTemplates() {
     try {
       setLoading(true)
-      // raw=1: τα «Έτοιμα» έρχονται αναλλοίωτα (όπως είναι τα κοινά)
+      // raw=1: τα «Έτοιμα» έρχονται αναλλοίωτα (όπως είναι τα κοινά)· kind: μόνο τα πρότυπα του είδους που διαλέχτηκε
       const res = await api.get<{ system: MessageTemplate[]; custom: MessageTemplate[] }>(
-        `/api/templates?role=${role}&raw=1`
+        `/api/templates?role=${role}&raw=1&kind=${kind}`
       )
       setSystemList(res.data?.system ?? [])
       setCustomList(res.data?.custom ?? [])
@@ -174,6 +182,15 @@ export default function TemplatesScreen() {
         <TouchableOpacity onPress={openNew} style={s.addBtn}>
           <Ionicons name="add" size={22} color="#000" />
         </TouchableOpacity>
+      </View>
+
+      {/* Είδος: Δρομολόγια / Μετακόμιση / Κάδοι / Ενοικιάσεις */}
+      <View style={[s.tabRow, { flexWrap: 'wrap' }]}>
+        {TEMPLATE_KINDS.map(([key, label]) => (
+          <TouchableOpacity key={key} style={[s.kindChip, kind === key && s.tabBtnActive]} onPress={() => { setKind(key); setCategoryFilter('ALL') }}>
+            <Text style={[s.tabText, kind === key && s.tabTextActive]}>{t(label)}</Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       {/* Segment tabs */}
@@ -422,6 +439,10 @@ const s = StyleSheet.create({
     alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
   },
   tabBtnActive: { backgroundColor: 'rgba(251,191,36,0.15)', borderColor: '#FBBF24' },
+  kindChip: {
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', borderRadius: 999,
+    paddingHorizontal: 12, paddingVertical: 6,
+  },
   tabText: { color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: '700' },
   tabTextActive: { color: '#FBBF24' },
   placeholderBanner: {

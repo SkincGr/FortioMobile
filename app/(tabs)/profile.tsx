@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { View, Text, ScrollView, TouchableOpacity, Alert, StyleSheet, Switch } from 'react-native'
+import { View, Text, ScrollView, TouchableOpacity, Alert, StyleSheet, Switch, Linking } from 'react-native'
 import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '@/lib/auth'
@@ -32,8 +32,10 @@ export default function ProfileScreen() {
         { icon: 'person-outline',             label: t('profile.personal_info') || 'Προσωπικά Στοιχεία',  onPress: () => router.push('/(tabs)/profile-personal' as any) },
         { icon: 'key-outline',                label: t('profile.change_pass'),     onPress: () => router.push('/(tabs)/profile-password' as any) },
         { icon: 'copy-outline',               label: 'Πρότυπα Μηνυμάτων & Email', onPress: () => router.push('/(tabs)/templates' as any) },
+        { icon: 'search-outline',             label: t('dash.menu.route_search'), onPress: () => router.push('/(tabs)/routes-search' as any) },
         { icon: 'notifications-outline',      label: t('profile.notifications'), onPress: () => {} },
-        { icon: 'help-circle-outline',        label: t('profile.help'),     onPress: () => {} },
+        // Ίδιο με τη «Βοήθεια» του Λογαριασμού στο web
+        { icon: 'help-circle-outline',        label: t('profile.help'),     onPress: () => { Linking.openURL('mailto:support@fortio.gr') } },
         { icon: 'information-circle-outline', label: t('profile.about'),    onPress: () => {} },
       ],
     },

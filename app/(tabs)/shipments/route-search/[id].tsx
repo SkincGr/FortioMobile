@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { shipmentsApi, matchesApi, messagesApi, RouteMatch } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
 import { Colors } from '@/constants/colors'
-import { useMessageTemplates, renderTemplate } from '@/lib/templates'
+import { useMessageTemplates, renderTemplate, templateKindForCategory } from '@/lib/templates'
 import { fCity } from '@/lib/cityDisplay'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -181,8 +181,6 @@ export default function RouteSearchScreen() {
   const [msgModal, setMsgModal] = useState<RouteMatch | null>(null)
   const [msgText, setMsgText] = useState('')
 
-  const { all: templates } = useMessageTemplates('SENDER')
-
   // Debounce distance/date-window changes for query
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -203,6 +201,9 @@ export default function RouteSearchScreen() {
     queryFn: () => shipmentsApi.get(shipmentId!).then(r => r.data),
     enabled: !!shipmentId,
   })
+
+  // Πρότυπα του είδους της αποστολής (Μεταφορές, Μετακομίσεις, Κάδοι, Ενοικιάσεις)
+  const { all: templates } = useMessageTemplates('SENDER', undefined, templateKindForCategory(shipmentData?.category))
 
   const { data: matchData, isLoading: loadingMatches, isFetching: fetchingMatches } = useQuery({
     queryKey: ['route-search', shipmentId, debouncedDistance, debouncedDateWindow],

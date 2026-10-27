@@ -104,6 +104,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="shipments-archive" options={{ href: null }} />
       <Tabs.Screen name="notifications" options={{ href: null }} />
       <Tabs.Screen name="templates" options={{ href: null }} />
+      <Tabs.Screen name="routes-search" options={{ href: null }} />
       <Tabs.Screen name="profile-personal" options={{ href: null }} />
       <Tabs.Screen name="profile-password" options={{ href: null }} />
       <Tabs.Screen

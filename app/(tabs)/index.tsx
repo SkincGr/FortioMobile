@@ -823,6 +823,13 @@ export default function DashboardScreen() {
               <Text style={styles.burgerItemText}>{t('dash.menu.archive')}</Text>
               <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.3)" />
             </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.burgerItem}
+              onPress={() => { setBurgerOpen(false); router.push('/(tabs)/routes-search' as any) }}
+            >
+              <Text style={styles.burgerItemText}>{t('dash.menu.route_search')}</Text>
+              <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.3)" />
+            </TouchableOpacity>
             <View style={styles.burgerDivider} />
             <TouchableOpacity
               style={styles.burgerItem}

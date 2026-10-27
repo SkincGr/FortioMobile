@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import {
   View, Text, FlatList, TouchableOpacity, Modal,
   TextInput, ActivityIndicator, StyleSheet, ScrollView,
@@ -7,10 +7,10 @@ import {
 import { useLocalSearchParams, router, Stack } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
-import { shipmentsApi, matchesApi, messagesApi, RouteMatch } from '@/lib/api'
+import { shipmentsApi, matchesApi, messagesApi, cardsApi, RouteMatch, CardMatch } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
 import { Colors } from '@/constants/colors'
-import { useMessageTemplates, renderTemplate } from '@/lib/templates'
+import { useMessageTemplates, renderTemplate, templateKindForCategory } from '@/lib/templates'
 import { carrierRating, recurrenceNote } from '@/lib/display'
 import { fCity } from '@/lib/cityDisplay'
 
@@ -33,6 +33,8 @@ function routeNumber(route: RouteMatch) {
   if (route.routeNumber) return String(route.routeNumber).padStart(6, '0')
   return route.id.slice(-8).toUpperCase()
 }
+
+const cardIcon = (cardId: string) => (cardId === 'WASTE_BINS' ? '🗑️' : cardId === 'VEHICLE_RENTAL' ? '🚐' : '🚛')
 
 // ─── Route card ───────────────────────────────────────────────────────────────
 
@@ -63,6 +65,7 @@ function RouteCard({ route, offerStatus, onRequest, onMessage, onViewOffer }: Ro
       <View style={[styles.row, { gap: 8, marginBottom: 4, flexWrap: 'wrap' }]}>
         <Text style={{ fontSize: 20 }}>{icon}</Text>
         <Text style={styles.carrierName}>{carrier}</Text>
+        {route.viaTransshipment && <Text style={styles.transshipText}>{t('match.via_transshipment')}</Text>}
         <Text style={styles.ratingText}>
           ★ {rating.toFixed(1)}{trips > 0 ? <Text style={styles.ratingTrips}> ({trips})</Text> : null}
         </Text>
@@ -84,6 +87,16 @@ function RouteCard({ route, offerStatus, onRequest, onMessage, onViewOffer }: Ro
         <Text style={styles.cityText}>{fCity(route.destCity, route.destPlace)}</Text>
         {arrDate && <Text style={styles.dateText}>({arrDate})</Text>}
       </View>
+
+      {/* Άλλες ημερομηνίες του ίδιου επαναλαμβανόμενου δρομολογίου */}
+      {(route.otherExecutions?.length ?? 0) > 0 && (
+        <View style={[styles.row, { gap: 6, flexWrap: 'wrap', marginBottom: 6 }]}>
+          <Text style={styles.stopsText}>{t('match.other_dates')}</Text>
+          {route.otherExecutions!.map(o => (
+            <Text key={o.id} style={styles.otherDateChip}>{fDate(o.departureDate)}</Text>
+          ))}
+        </View>
+      )}
 
       {/* Mid stops */}
       {midStops.length > 0 && (
@@ -152,7 +165,13 @@ export default function MatchesScreen() {
   const [msgModal, setMsgModal] = useState<RouteMatch | null>(null)
   const [msgText, setMsgText] = useState('')
 
-  const { all: templates } = useMessageTemplates('SENDER')
+  // Κάρτες μεταφορέα (Μετακόμιση, Κάδοι, Ενοικίαση) και όσες έκρυψε ο αποστολέας, με τις αλλαγές αυτής της οθόνης
+  const [cards, setCards] = useState<CardMatch[]>([])
+  const [hiddenCards, setHiddenCards] = useState<CardMatch[]>([])
+  const [modalCard, setModalCard] = useState<CardMatch | null>(null)
+  const [cardBusy, setCardBusy] = useState<string | null>(null)
+  const [cardError, setCardError] = useState('')
+  const [sendingCard, setSendingCard] = useState(false)
 
   const { data: shipmentData, isLoading: loadingShipment } = useQuery({
     queryKey: ['shipment', shipmentId],
@@ -160,11 +179,42 @@ export default function MatchesScreen() {
     enabled: !!shipmentId,
   })
 
+  // Πρότυπα του είδους της αποστολής (Μεταφορές, Μετακομίσεις, Κάδοι, Ενοικιάσεις): REQUEST για το αίτημα, όλα για το μήνυμα
+  const kind = templateKindForCategory(shipmentData?.category)
+  const { all: templates } = useMessageTemplates('SENDER', 'REQUEST', kind)
+  const { all: msgTemplates } = useMessageTemplates('SENDER', undefined, kind)
+
   const { data: matchData, isLoading: loadingMatches } = useQuery({
     queryKey: ['matches', shipmentId],
     queryFn: () => matchesApi.get(shipmentId!).then(r => r.data),
     enabled: !!shipmentId,
   })
+
+  useEffect(() => {
+    setCards(matchData?.cards ?? [])
+    setHiddenCards(matchData?.hiddenCards ?? [])
+  }, [matchData])
+
+  // «Δεν με ενδιαφέρει» / επαναφορά: κρύβει το ζεύγος κάρτα + αποστολή και για τον μεταφορέα
+  async function setCardHidden(card: CardMatch, hide: boolean) {
+    if (!shipmentId) return
+    setCardBusy(card.id); setCardError('')
+    try {
+      if (hide) await cardsApi.hide(card.id, shipmentId)
+      else await cardsApi.restore(card.id, shipmentId)
+      if (hide) {
+        setCards(prev => prev.filter(c => c.id !== card.id))
+        setHiddenCards(prev => [...prev, { id: card.id, cardId: card.cardId, title: card.title, companyName: card.companyName }])
+      } else {
+        setHiddenCards(prev => prev.filter(c => c.id !== card.id))
+        setCards(prev => [...prev, { ...card, offerStatus: null }])
+      }
+    } catch (e: any) {
+      setCardError(e?.response?.data?.error || t('match.error_request'))
+    } finally {
+      setCardBusy(null)
+    }
+  }
 
   // routeId → offer status ('REQUEST' while awaiting the carrier, anything
   // else not closed by the carrier once the carrier has actually responded with a quote).
@@ -179,8 +229,8 @@ export default function MatchesScreen() {
     return map
   }, [shipmentData, sentIds])
 
-  const { mutate: sendRequest, isPending: sending } = useMutation({
-    mutationFn: (vars: { shipmentId: string; routeId: string; content: string }) =>
+  const { mutate: sendRequest, isPending: sendingRoute } = useMutation({
+    mutationFn: (vars: { shipmentId: string; routeId: string; content: string; subject?: string }) =>
       messagesApi.sendOfferRequest(vars),
     onSuccess: (_, vars) => {
       setSentIds(prev => new Set([...prev, vars.routeId]))
@@ -188,6 +238,8 @@ export default function MatchesScreen() {
       closeModal()
     },
   })
+
+  const sending = sendingRoute || sendingCard
 
   const { mutate: sendPlainMsg, isPending: sendingMsg } = useMutation({
     mutationFn: (vars: { shipmentId: string; routeId: string; content: string }) =>
@@ -206,13 +258,40 @@ export default function MatchesScreen() {
 
   function closeModal() {
     setModalRoute(null)
+    setModalCard(null)
     setMessageText('')
+    setCardError('')
   }
 
-  function handleSend() {
-    if (!modalRoute || !shipmentId) return
-    sendRequest({ shipmentId, routeId: modalRoute.id, content: messageText.trim() })
+  async function handleSend() {
+    if (!shipmentId) return
+    if (modalCard) {
+      // Το αίτημα σε κάρτα δημιουργεί την εγγραφή της αποστολής στον μεταφορέα· σε σφάλμα το παράθυρο μένει ανοιχτό
+      setSendingCard(true); setCardError('')
+      try {
+        await cardsApi.request(modalCard.id, { shipmentId, content: messageText.trim() })
+        setCards(prev => prev.map(c => (c.id === modalCard.id ? { ...c, offerStatus: 'REQUEST' } : c)))
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+        closeModal()
+      } catch (e: any) {
+        setCardError(e?.response?.data?.error || t('match.error_request'))
+      } finally {
+        setSendingCard(false)
+      }
+      return
+    }
+    if (!modalRoute) return
+    sendRequest({ shipmentId, routeId: modalRoute.id, content: messageText.trim(), subject: t('match.modal.req_title') })
   }
+
+  // Δεδομένα των προτύπων: ίδια κλειδιά με τον κατάλογο του web
+  const templateData = (target: RouteMatch | CardMatch | null) => ({
+    shipment_title: shipmentData?.title,
+    shipment_origin_city: shipmentData ? fCity(shipmentData.originCity, shipmentData.originPlace) : undefined,
+    shipment_dest_city: shipmentData ? fCity(shipmentData.destCity, shipmentData.destPlace) : undefined,
+    carrier_name: target ? ('companyName' in target ? target.companyName : target.company?.name) : undefined,
+    route_number: target && !('companyName' in target) ? routeNumber(target) : undefined,
+  })
 
   function handleMessage(route: RouteMatch) {
     const count = route.messageCount ?? 0
@@ -235,6 +314,8 @@ export default function MatchesScreen() {
     [matchData],
   )
   const isLoading = loadingShipment || loadingMatches
+  const sectionTitle = shipmentData?.category === 'HOUSE_MOVE' ? t('match.section_moves')
+    : shipmentData?.category === 'WASTE_BINS' ? t('match.section_bins') : t('match.title')
 
   if (isLoading) {
     return (
@@ -266,7 +347,7 @@ export default function MatchesScreen() {
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>{t('match.title')}</Text>
+          <Text style={styles.headerTitle}>{sectionTitle}</Text>
           {(shipmentData?.title || titleParam) ? (
             <Text style={styles.headerSub} numberOfLines={1}>
               {shipmentData?.title ?? decodeURIComponent(titleParam ?? '')}
@@ -274,7 +355,7 @@ export default function MatchesScreen() {
           ) : null}
         </View>
         <View style={styles.countBadge}>
-          <Text style={styles.countText}>{routes.length}</Text>
+          <Text style={styles.countText}>{routes.length + cards.length}</Text>
         </View>
       </View>
 
@@ -284,6 +365,7 @@ export default function MatchesScreen() {
         keyExtractor={r => r.id}
         contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
         ListHeaderComponent={shipmentData ? (
+          <>
           <View style={styles.summaryCard}>
             <Text style={styles.summaryLabel}>{t('ship.info.title')}</Text>
             <Text style={styles.summaryRoute}>
@@ -312,8 +394,56 @@ export default function MatchesScreen() {
               </Text>
             )}
           </View>
+
+          {cardError && !modalCard ? <Text style={styles.cardError}>{cardError}</Text> : null}
+
+          {/* Κάρτες μεταφορέων (Μετακόμιση, Κάδοι, Ενοικίαση) */}
+          {cards.map(card => (
+            <View key={card.id} style={[styles.card, { borderColor: 'rgba(251,191,36,0.35)' }]}>
+              <View style={[styles.row, { gap: 8, flexWrap: 'wrap', marginBottom: 10 }]}>
+                <Text style={{ fontSize: 20 }}>{cardIcon(card.cardId)}</Text>
+                <Text style={styles.cardTitle}>{card.title}</Text>
+                <Text style={styles.carrierName}>{card.companyName}</Text>
+              </View>
+              {card.offerStatus ? (
+                <View style={[styles.sentBadge, { alignSelf: 'flex-start' }]}>
+                  <Ionicons name="checkmark-circle" size={14} color="#4ADE80" />
+                  <Text style={styles.sentText}>{card.offerStatus === 'REQUEST' ? t('match.btn_sent') : t('match.btn_view_offer')}</Text>
+                </View>
+              ) : (
+                <View style={[styles.row, { gap: 8, flexWrap: 'wrap' }]}>
+                  <TouchableOpacity style={styles.ghostBtn} disabled={cardBusy === card.id} onPress={() => setCardHidden(card, true)}>
+                    <Text style={styles.ghostBtnText}>{t('match.btn_not_interested')}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.requestBtn, cardBusy === card.id && { opacity: 0.5 }]} disabled={cardBusy === card.id}
+                    onPress={() => { setModalCard(card); setMessageText(''); setCardError('') }} activeOpacity={0.85}>
+                    <Text style={styles.requestBtnText}>{t('match.btn_request')}</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          ))}
+          </>
         ) : null}
-        ListEmptyComponent={
+        ListFooterComponent={hiddenCards.length > 0 ? (
+          // Κάρτες που έκρυψε ο αποστολέας: δεν ξαναεμφανίζονται, εκτός αν τις επαναφέρει
+          <View style={{ marginTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', paddingTop: 14 }}>
+            <Text style={styles.summaryLabel}>{t('match.hidden_title')} ({hiddenCards.length})</Text>
+            {hiddenCards.map(card => (
+              <View key={card.id} style={[styles.row, styles.hiddenRow]}>
+                <Text style={{ fontSize: 14 }}>{cardIcon(card.cardId)}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.hiddenTitle}>{card.title}</Text>
+                  <Text style={styles.summaryMuted}>{card.companyName}</Text>
+                </View>
+                <TouchableOpacity style={styles.ghostBtn} disabled={cardBusy === card.id} onPress={() => setCardHidden(card, false)}>
+                  <Text style={styles.ghostBtnText}>{t('match.btn_restore')}</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        ) : null}
+        ListEmptyComponent={cards.length > 0 ? null : (
           <View style={styles.empty}>
             <Text style={{ fontSize: 40, marginBottom: 12 }}>🔍</Text>
             <Text style={styles.emptyTitle}>{t('match.empty_title')}</Text>
@@ -321,7 +451,7 @@ export default function MatchesScreen() {
               {t('match.empty_sub')}
             </Text>
           </View>
-        }
+        )}
         renderItem={({ item }) => (
           <RouteCard
             route={item}
@@ -333,8 +463,8 @@ export default function MatchesScreen() {
         )}
       />
 
-      {/* Request modal */}
-      <Modal visible={!!modalRoute} transparent animationType="slide" onRequestClose={closeModal}>
+      {/* Request modal (δρομολόγιο ή κάρτα) */}
+      <Modal visible={!!modalRoute || !!modalCard} transparent animationType="slide" onRequestClose={closeModal}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.modalOverlay}
@@ -370,8 +500,18 @@ export default function MatchesScreen() {
                 </View>
               </View>
             )}
+            {modalCard && (
+              <View style={styles.modalRouteInfo}>
+                <View style={[styles.row, { gap: 6, flexWrap: 'wrap' }]}>
+                  <Text style={{ fontSize: 16 }}>{cardIcon(modalCard.cardId)}</Text>
+                  <Text style={styles.modalRouteNum}>{modalCard.title}</Text>
+                  <Text style={styles.modalCarrierName}>{modalCard.companyName}</Text>
+                </View>
+              </View>
+            )}
+            {cardError && modalCard ? <Text style={styles.cardError}>{cardError}</Text> : null}
 
-            {/* Quick Template Selector */}
+            {/* Quick Template Selector — πρότυπα REQUEST του είδους της αποστολής */}
             <View style={{ marginBottom: 10 }}>
               <Text style={styles.templateHeaderLabel}>
                 📋 {t('templates.quick_select')}
@@ -381,14 +521,7 @@ export default function MatchesScreen() {
                   <TouchableOpacity
                     key={tpl.id}
                     style={styles.templateChip}
-                    onPress={() => {
-                      const rendered = renderTemplate(tpl.content, {
-                        shipment_title: shipmentData?.title,
-                        origin_city: shipmentData?.originCity,
-                        dest_city: shipmentData?.destCity,
-                      })
-                      setMessageText(rendered)
-                    }}
+                    onPress={() => setMessageText(renderTemplate(tpl.content, templateData(modalRoute ?? modalCard)))}
                   >
                     <Text style={styles.templateChipText}>{tpl.icon ? `${tpl.icon} ` : ''}{tpl.title}</Text>
                   </TouchableOpacity>
@@ -470,18 +603,11 @@ export default function MatchesScreen() {
                 📋 {t('templates.quick_select')}
               </Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-                {templates.map(tpl => (
+                {msgTemplates.map(tpl => (
                   <TouchableOpacity
                     key={tpl.id}
                     style={styles.templateChip}
-                    onPress={() => {
-                      const rendered = renderTemplate(tpl.content, {
-                        shipment_title: shipmentData?.title,
-                        origin_city: shipmentData?.originCity,
-                        dest_city: shipmentData?.destCity,
-                      })
-                      setMsgText(rendered)
-                    }}
+                    onPress={() => setMsgText(renderTemplate(tpl.content, templateData(msgModal)))}
                   >
                     <Text style={styles.templateChipText}>{tpl.icon ? `${tpl.icon} ` : ''}{tpl.title}</Text>
                   </TouchableOpacity>
@@ -614,6 +740,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 9,
   },
   requestBtnText: { fontSize: 13, fontWeight: '700', color: '#000' },
+  ghostBtn: {
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', borderRadius: 10,
+    paddingHorizontal: 12, paddingVertical: 8,
+  },
+  ghostBtnText:  { fontSize: 13, fontWeight: '700', color: 'rgba(255,255,255,0.65)' },
+  transshipText: { fontSize: 11, fontWeight: '800', color: '#EF4444' },
+  otherDateChip: {
+    fontSize: 11, fontWeight: '600', color: '#C4B5FD', backgroundColor: 'rgba(139,92,246,0.15)',
+    borderWidth: 1, borderColor: 'rgba(139,92,246,0.3)', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, overflow: 'hidden',
+  },
+  cardTitle:   { fontSize: 15, fontWeight: '800', color: '#FBBF24' },
+  cardError:   { color: '#F87171', fontSize: 13, marginBottom: 10 },
+  hiddenRow:   { gap: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', borderRadius: 12, padding: 10, marginTop: 8 },
+  hiddenTitle: { fontSize: 13, fontWeight: '700', color: 'rgba(255,255,255,0.8)' },
   viewOfferBtn: {
     backgroundColor: 'rgba(96,165,250,0.1)', borderRadius: 10,
     paddingHorizontal: 14, paddingVertical: 9,

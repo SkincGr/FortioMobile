@@ -341,13 +341,39 @@ export type RouteMatch = {
   distanceKm?: number | null
   hasExactOriginMatch: boolean
   messageCount?: number
+  /** Παραδίδεται μέσω ενδιάμεσης στάσης με μεταφόρτωση */
+  viaTransshipment?: boolean
+  /** Άλλες εκτελέσεις του ίδιου επαναλαμβανόμενου δρομολογίου (η λίστα δείχνει την πιο κοντινή στην επιθυμητή παράδοση) */
+  otherExecutions?: { id: string; departureDate?: string; estimatedArrival?: string | null }[]
+}
+
+/** Κάρτα μεταφορέα (Μετακόμιση, Κάδοι, Ενοικίαση) που ταιριάζει στην αποστολή: μόνο τίτλος και εταιρεία */
+export type CardMatch = {
+  id: string
+  cardId: 'MOVE' | 'WASTE_BINS' | 'VEHICLE_RENTAL' | string
+  title: string
+  companyName: string
+  /** Η κατάσταση του αιτήματος του αποστολέα σε αυτή την κάρτα (null αν δεν έχει σταλεί) */
+  offerStatus?: string | null
 }
 
 export const matchesApi = {
   get: (shipmentId: string, maxDistance = 10, dateWindowDays = 5) =>
-    api.get<{ routes: RouteMatch[]; matchCount: number }>(
+    api.get<{ routes: RouteMatch[]; cards?: CardMatch[]; hiddenCards?: CardMatch[]; matchCount: number }>(
       `/api/shipments/${shipmentId}/matches?maxDistance=${maxDistance}&dateWindowDays=${dateWindowDays}&proximity=true`
     ),
+}
+
+export const cardsApi = {
+  // Αίτημα σε κάρτα: δημιουργεί στον μεταφορέα την εγγραφή της αποστολής (παιδί της κάρτας) με το μήνυμα
+  request: (cardRouteId: string, data: { shipmentId: string; content: string }) =>
+    api.post(`/api/routes/${cardRouteId}/request`, data),
+
+  // «Δεν με ενδιαφέρει»: κρύβει το ζεύγος κάρτα + αποστολή και για τον μεταφορέα· DELETE το επαναφέρει
+  hide: (cardRouteId: string, shipmentId: string) =>
+    api.post('/api/card-exclusions', { routeId: cardRouteId, shipmentId }),
+  restore: (cardRouteId: string, shipmentId: string) =>
+    api.delete('/api/card-exclusions', { data: { routeId: cardRouteId, shipmentId } }),
 }
 
 // ─── Messages ─────────────────────────────────────────────────────────────────
@@ -361,8 +387,8 @@ export const messagesApi = {
   send: (offerId: string, content: string, subject?: string) =>
     api.post<Message>('/api/messages', { offerId, content, ...(subject ? { subject } : {}) }),
 
-  // Send an offer request from shipment matches screen
-  sendOfferRequest: (data: { shipmentId: string; routeId: string; content: string }) =>
+  // Send an offer request from shipment matches screen (subject: same fixed title as the web's request popup)
+  sendOfferRequest: (data: { shipmentId: string; routeId: string; content: string; subject?: string }) =>
     api.post('/api/messages', { ...data, category: 'Offer Request' }),
 
   // Send a plain message to a carrier route (not an offer request)

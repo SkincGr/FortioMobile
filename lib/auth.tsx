@@ -12,6 +12,8 @@ type AuthState = {
 type AuthContextType = AuthState & {
   login: (identifier: string, password: string) => Promise<void>
   logout: () => Promise<void>
+  // Νέο token από το backend (π.χ. μετά από αλλαγή κωδικού, που ακυρώνει το προηγούμενο)
+  replaceToken: (token: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
@@ -50,6 +52,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
+      // Η εφαρμογή είναι μόνο για αποστολείς. Συνεδρία μεταφορέα ή admin από login πριν το backend αρχίσει να απορρίπτει
+      // τους υπόλοιπους ρόλους (403) σβήνεται, ώστε η επόμενη σύνδεση να δείξει το σχετικό μήνυμα.
+      if (token && nextUser?.role && nextUser.role !== 'SENDER') {
+        await clearAuth()
+        setState({ user: null, token: null, isLoading: false, isAuthenticated: false })
+        return
+      }
+
       setState({ user: nextUser, token, isLoading: false, isAuthenticated: !!token && !!nextUser })
     })()
   }, [])
@@ -65,8 +75,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setState({ user: null, token: null, isLoading: false, isAuthenticated: false })
   }, [])
 
+  const replaceToken = useCallback(async (token: string) => {
+    await saveToken(token)
+    setState(prev => ({ ...prev, token }))
+  }, [])
+
   return (
-    <AuthContext.Provider value={{ ...state, login, logout }}>
+    <AuthContext.Provider value={{ ...state, login, logout, replaceToken }}>
       {children}
     </AuthContext.Provider>
   )

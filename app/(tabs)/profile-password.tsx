@@ -6,12 +6,14 @@ import {
 import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { profileApi } from '@/lib/api'
+import { useAuth } from '@/lib/auth'
 import { useI18n } from '@/lib/i18n'
 
 // ─── Change password screen ───────────────────────────────────────────────────
 
 export default function ChangePasswordScreen() {
   const { t } = useI18n()
+  const { replaceToken } = useAuth()
   const [form, setForm] = useState({
     currentPassword: '', newPassword: '', confirmPassword: '',
   })
@@ -41,10 +43,12 @@ export default function ChangePasswordScreen() {
 
     setSaving(true)
     try {
-      await profileApi.changePassword({
+      const { data } = await profileApi.changePassword({
         currentPassword: form.currentPassword,
         newPassword: form.newPassword,
       })
+      // Η αλλαγή κωδικού ακυρώνει το token αυτής της συσκευής· χωρίς το νέο, κάθε επόμενο αίτημα θα έπαιρνε 401
+      if (data?.token) await replaceToken(data.token)
       setSaved(true)
       setForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
       setTimeout(() => setSaved(false), 4000)

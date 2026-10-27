@@ -21,6 +21,8 @@ export default function LoginScreen() {
       await login(identifier.trim(), password)
       router.replace('/(tabs)' as any)
     } catch (e: any) {
+      // 403: σωστά στοιχεία, αλλά ο λογαριασμός δεν είναι αποστολέα (μεταφορέας ή admin)
+      if (e?.response?.status === 403) { setError(t('auth.sender_only')); return }
       setError(e?.response?.data?.error || e?.message || 'Σφάλμα σύνδεσης')
     } finally {
       setLoading(false)

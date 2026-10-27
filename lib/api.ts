@@ -15,7 +15,12 @@ api.interceptors.request.use(async (config) => {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type AuthUser = { id: string; name: string; email: string; role: string }
+export type AuthUser = {
+  id: string; name: string; email: string; role: string
+  // Αποστολέας νομικό πρόσωπο: η εταιρεία του και ο ρόλος του σε αυτήν (null για φυσικό πρόσωπο)
+  companyId?: string | null
+  companyRole?: string | null
+}
 
 export type ShipmentStatus =
   | 'PENDING' | 'REQUEST' | 'OFFERED' | 'ACCEPTED' | 'LOADED'
@@ -130,6 +135,25 @@ export type DashboardData = {
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
+// Same values and labels as Fortio's registration page (lib/schemas/company.ts LEGAL_FORMS)
+export const LEGAL_FORMS = [
+  { value: 'AE', label: 'Ανώνυμη Εταιρεία (Α.Ε.)' },
+  { value: 'EPE', label: 'Εταιρεία Περιορισμένης Ευθύνης (Ε.Π.Ε.)' },
+  { value: 'IKE', label: 'Ιδιωτική Κεφαλαιουχική Εταιρεία (Ι.Κ.Ε.)' },
+  { value: 'OE', label: 'Ομόρρυθμη Εταιρεία (Ο.Ε.)' },
+  { value: 'EE', label: 'Ετερόρρυθμη Εταιρεία (Ε.Ε.)' },
+  { value: 'ATOMIKI', label: 'Ατομική Επιχείρηση' },
+  { value: 'OTHER', label: 'Άλλο' },
+] as const
+
+export type RegisterPayload = {
+  username: string; name: string; email: string; password: string
+  entityType: 'INDIVIDUAL' | 'COMPANY'
+  companyName?: string; vatNumber?: string; taxOffice?: string; legalForm?: string
+  registrationNumber?: string; address?: string; city?: string; postalCode?: string
+  companyPhone?: string; companyEmail?: string; website?: string
+}
+
 export const authApi = {
   login: async (data: { identifier: string; password: string }) => {
     const isEmail = data.identifier.includes('@')
@@ -184,16 +208,11 @@ export const authApi = {
 
   // POST /api/register was retired server-side — registration now only
   // happens through /api/register/company (Fortio commit "company
-  // registration hardening", 2026-09-11). That endpoint requires a
-  // `username` and a `role`/`entityType` pair; FortioMobile is sender-only
-  // (see CLAUDE.md), so this always registers an individual sender —
-  // there's no company-signup flow here.
-  register: (data: { username: string; name: string; email: string; password: string }) =>
-    api.post<{ ok: boolean }>('/api/register/company', {
-      ...data,
-      role: 'SENDER',
-      entityType: 'INDIVIDUAL',
-    }),
+  // registration hardening", 2026-09-11). FortioMobile is sender-only, so
+  // the role is always SENDER: an individual, or a company with its
+  // details (the same two choices as the web registration page).
+  register: (data: RegisterPayload) =>
+    api.post<{ ok: boolean }>('/api/register/company', { ...data, role: 'SENDER' }),
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
@@ -393,6 +412,8 @@ export const profileApi = {
   update: (data: SenderProfile) =>
     api.patch<SenderProfile>('/api/sender/profile', data),
 
+  // The backend revokes every token of the account and returns a fresh one
+  // for the device that made the change (Bearer callers only).
   changePassword: (data: { currentPassword: string; newPassword: string }) =>
-    api.post('/api/change-password', data),
+    api.post<{ ok: boolean; token?: string }>('/api/change-password', data),
 }

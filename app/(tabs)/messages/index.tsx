@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   View, Text, FlatList, TouchableOpacity, TextInput,
   ActivityIndicator, ScrollView, Alert, KeyboardAvoidingView,
-  Platform, RefreshControl, StyleSheet, Modal,
+  Platform, RefreshControl, StyleSheet, Modal, type ScrollViewInstance,
 } from 'react-native'
 import { useLocalSearchParams, router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
@@ -113,7 +113,7 @@ export default function MessagesScreen() {
   const [composeOpen, setComposeOpen]     = useState(false)
   const [pickerOpen, setPickerOpen]       = useState(false)
   const flatListRef                       = useRef<FlatList>(null)
-  const chipsScrollRef                    = useRef<ScrollView>(null)
+  const chipsScrollRef                    = useRef<ScrollViewInstance>(null)
   const chipOffsets                       = useRef<Record<string, number>>({})
   const { all: templates }                = useMessageTemplates(user?.role)
 

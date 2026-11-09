@@ -467,7 +467,7 @@ export default function RouteSearchScreen() {
           </View>
         }
         ListEmptyComponent={
-          tab !== 'results' ? null : (
+          tab !== 'results' ? undefined : (
           <View style={styles.empty}>
             <Text style={{ fontSize: 40, marginBottom: 12 }}>🔍</Text>
             <Text style={styles.emptyTitle}>{t('routeSearch.no_routes_title')}</Text>

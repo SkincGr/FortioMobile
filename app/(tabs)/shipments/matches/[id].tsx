@@ -424,7 +424,7 @@ export default function MatchesScreen() {
             </View>
           ))}
           </>
-        ) : null}
+        ) : undefined}
         ListFooterComponent={hiddenCards.length > 0 ? (
           // Κάρτες που έκρυψε ο αποστολέας: δεν ξαναεμφανίζονται, εκτός αν τις επαναφέρει
           <View style={{ marginTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', paddingTop: 14 }}>
@@ -442,8 +442,8 @@ export default function MatchesScreen() {
               </View>
             ))}
           </View>
-        ) : null}
-        ListEmptyComponent={cards.length > 0 ? null : (
+        ) : undefined}
+        ListEmptyComponent={cards.length > 0 ? undefined : (
           <View style={styles.empty}>
             <Text style={{ fontSize: 40, marginBottom: 12 }}>🔍</Text>
             <Text style={styles.emptyTitle}>{t('match.empty_title')}</Text>

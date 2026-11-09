@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import {
   View, Text, FlatList, TouchableOpacity, TextInput,
   KeyboardAvoidingView, Platform, ActivityIndicator,
-  Alert, StyleSheet, ScrollView,
+  Alert, StyleSheet, ScrollView, type TextInputInstance,
 } from 'react-native'
 import { useLocalSearchParams, router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
@@ -66,7 +66,7 @@ export default function ChatScreen() {
   const [subject, setSubject] = useState('')
   const [sending, setSending] = useState(false)
   const [replyMsgType, setReplyMsgType] = useState<number | null>(null)
-  const subjectRef            = useRef<TextInput>(null)
+  const subjectRef            = useRef<TextInputInstance>(null)
   const { all: templates }    = useMessageTemplates(user?.role)
 
   async function loadThread() {

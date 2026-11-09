@@ -873,7 +873,7 @@ export default function DashboardScreen() {
           data={offerGroups}
           keyExtractor={item => item.shipment.id}
           contentContainerStyle={{ padding: 16, paddingBottom: 96 }}
-          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#F59E0B" />}
+          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => { void refetch() }} tintColor="#F59E0B" />}
           ListHeaderComponent={filter === 'carrier_offers' && offerGroups.length > 0 ? (
             <View style={[styles.row, { gap: 8, marginBottom: 12 }]}>
               <Text style={styles.sortLabel}>{t('dash.sort.label')}</Text>
@@ -890,7 +890,7 @@ export default function DashboardScreen() {
                 </TouchableOpacity>
               ))}
             </View>
-          ) : null}
+          ) : undefined}
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text style={{ fontSize: 40, marginBottom: 12 }}>📋</Text>
@@ -917,7 +917,7 @@ export default function DashboardScreen() {
           data={displayed}
           keyExtractor={s => s.id}
           contentContainerStyle={{ padding: 16, paddingBottom: 96 }}
-          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#F59E0B" />}
+          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => { void refetch() }} tintColor="#F59E0B" />}
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text style={{ fontSize: 40, marginBottom: 12 }}>📦</Text>

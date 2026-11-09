@@ -67,7 +67,7 @@ export default function ShipmentsListScreen() {
         data={shipments}
         keyExtractor={item => item.id}
         contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
-        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#F59E0B" />}
+        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => { void refetch() }} tintColor="#F59E0B" />}
         ListEmptyComponent={
           <View style={s.empty}>
             <Ionicons name="cube-outline" size={56} color="rgba(255,255,255,0.2)" />

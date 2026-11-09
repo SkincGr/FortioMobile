@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import {
-  View, Text, ScrollView, TextInput, TouchableOpacity,
+  View, Text, ScrollView, TextInput, TouchableOpacity, type TextInputInstance,
   KeyboardAvoidingView, Platform, Alert,
 } from 'react-native'
 import * as Location from 'expo-location'
@@ -150,8 +150,8 @@ function CoordGroup({ t, title, latValue, lngValue, latPh, lngPh, onLatChange, o
   t: FormT; title: string; latValue: string; lngValue: string; latPh: string; lngPh: string
   onLatChange: (v: string) => void; onLngChange: (v: string) => void; onOpenMap: () => void
 }) {
-  const latRef = useRef<TextInput>(null)
-  const lngRef = useRef<TextInput>(null)
+  const latRef = useRef<TextInputInstance>(null)
+  const lngRef = useRef<TextInputInstance>(null)
   const skipAlert = useRef<'lat' | 'lng' | null>(null)
 
   function showPrompt(field: 'lat' | 'lng') {

@@ -225,14 +225,14 @@ export default function RoutesSearchScreen() {
         ListHeaderComponent={header}
         ListEmptyComponent={isValid && !isFetching && !error ? (
           <View style={s.empty}><Text style={{ fontSize: 36 }}>🔍</Text><Text style={s.emptyTxt}>{t('rs.empty')}</Text></View>
-        ) : null}
+        ) : undefined}
         ListFooterComponent={totalPages > 1 && !knownIds && isValid ? (
           <View style={[s.row, { justifyContent: 'center', gap: 12, marginTop: 8 }]}>
             <TouchableOpacity style={[s.chip, page === 1 && { opacity: 0.3 }]} disabled={page === 1} onPress={() => setPage(p => p - 1)}><Text style={s.chipTxt}>←</Text></TouchableOpacity>
             <Text style={s.muted}>{page} / {totalPages}</Text>
             <TouchableOpacity style={[s.chip, page >= totalPages && { opacity: 0.3 }]} disabled={page >= totalPages} onPress={() => setPage(p => p + 1)}><Text style={s.chipTxt}>→</Text></TouchableOpacity>
           </View>
-        ) : null}
+        ) : undefined}
         renderItem={({ item: r }) => {
           const { rating, trips } = carrierRating(r.company, r.id)
           const recurrence = recurrenceNote(r, language)

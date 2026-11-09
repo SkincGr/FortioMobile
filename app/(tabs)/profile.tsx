@@ -4,8 +4,13 @@ import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '@/lib/auth'
 import { useI18n, Language } from '@/lib/i18n'
+import { Theme, useStyles, useTheme } from '@/lib/theme'
 
 export default function ProfileScreen() {
+  const th = useTheme()
+  const { mode, setMode } = th
+  const s = useStyles(makeStyles)
+
   const { user, logout } = useAuth()
   const { t, language, setLanguage, autoTranslate, setAutoTranslate } = useI18n()
   const [loggingOut, setLoggingOut] = useState(false)
@@ -78,14 +83,33 @@ export default function ProfileScreen() {
               ))}
             </View>
           </View>
-          
-          <View style={[s.row, { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)' }]}>
+
+          <View style={[s.row, { borderTopWidth: 1, borderTopColor: th.ink(0.06) }]}>
+            <Ionicons name={th.isDark ? 'moon-outline' : 'sunny-outline'} size={20} color={th.accentText} />
+            <Text style={s.itemLabel}>{t('profile.theme')}</Text>
+            <View style={s.langRow}>
+              {(['light', 'dark'] as const).map(m => (
+                <TouchableOpacity
+                  key={m}
+                  onPress={() => setMode(m)}
+                  style={[s.langBtn, mode === m && s.langBtnActive]}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[s.langBtnText, mode === m && s.langBtnTextActive]}>
+                    {m === 'light' ? t('profile.theme_light') : t('profile.theme_dark')}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <View style={[s.row, { borderTopWidth: 1, borderTopColor: th.ink(0.06) }]}>
             <Text style={{ fontSize: 18 }}>🤖</Text>
             <Text style={s.itemLabel}>{t('profile.auto_translate')}</Text>
             <Switch
               value={autoTranslate}
               onValueChange={setAutoTranslate}
-              trackColor={{ false: 'rgba(255,255,255,0.1)', true: '#F59E0B' }}
+              trackColor={{ false: th.ink(0.1), true: '#F59E0B' }}
               thumbColor="#fff"
             />
           </View>
@@ -103,9 +127,9 @@ export default function ProfileScreen() {
                   style={[s.menuItem, idx < arr.length - 1 && s.menuItemBorder]}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name={item.icon as any} size={20} color="rgba(255,255,255,0.5)" />
+                  <Ionicons name={item.icon as any} size={20} color={th.inkText(0.5)} />
                   <Text style={s.menuLabel}>{item.label}</Text>
-                  <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.25)" />
+                  <Ionicons name="chevron-forward" size={16} color={th.inkText(0.25)} />
                 </TouchableOpacity>
               ))}
             </View>
@@ -119,7 +143,7 @@ export default function ProfileScreen() {
           style={s.logoutBtn}
           activeOpacity={0.8}
         >
-          <Ionicons name="log-out-outline" size={18} color="#fff" />
+          <Ionicons name="log-out-outline" size={18} color={th.inkSolid} />
           <Text style={s.logoutText}>{t('profile.logout')}</Text>
         </TouchableOpacity>
 
@@ -129,12 +153,12 @@ export default function ProfileScreen() {
   )
 }
 
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0a0a0a' },
+const makeStyles = (t: Theme) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: t.page },
 
   header: {
-    backgroundColor: '#111',
-    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: t.surface,
+    borderBottomWidth: 1, borderBottomColor: t.ink(0.1),
     paddingTop: 56, paddingBottom: 28, paddingHorizontal: 20,
     alignItems: 'center',
   },
@@ -144,36 +168,36 @@ const s = StyleSheet.create({
     borderWidth: 2, borderColor: 'rgba(245,158,11,0.4)',
     alignItems: 'center', justifyContent: 'center', marginBottom: 10,
   },
-  avatarText: { color: '#F59E0B', fontSize: 32, fontWeight: '900' },
-  name:       { color: '#fff', fontSize: 20, fontWeight: '700' },
-  email:      { color: 'rgba(255,255,255,0.4)', fontSize: 13, marginTop: 2 },
+  avatarText: { color: t.accentText, fontSize: 32, fontWeight: '900' },
+  name:       { color: t.inkSolid, fontSize: 20, fontWeight: '700' },
+  email:      { color: t.inkText(0.4), fontSize: 13, marginTop: 2 },
   roleBadge:  { marginTop: 8, backgroundColor: 'rgba(245,158,11,0.15)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4 },
-  roleText:   { color: '#F59E0B', fontSize: 11, fontWeight: '600' },
+  roleText:   { color: t.accentText, fontSize: 11, fontWeight: '600' },
 
   sectionLabel: {
-    fontSize: 10, fontWeight: '800', color: 'rgba(255,255,255,0.35)',
+    fontSize: 10, fontWeight: '800', color: t.inkText(0.35),
     textTransform: 'uppercase', letterSpacing: 1.5,
     marginTop: 20, marginBottom: 8, marginLeft: 4,
   },
 
   card: {
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: t.ink(0.03),
+    borderRadius: 12, borderWidth: 1, borderColor: t.ink(0.1),
     overflow: 'hidden',
   },
 
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14 },
-  itemLabel: { flex: 1, fontSize: 14, fontWeight: '500', color: '#fff' },
+  itemLabel: { flex: 1, fontSize: 14, fontWeight: '500', color: t.inkSolid },
 
   langRow:           { flexDirection: 'row', gap: 6 },
-  langBtn:           { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: 'rgba(255,255,255,0.04)' },
+  langBtn:           { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: t.ink(0.12), backgroundColor: t.ink(0.04) },
   langBtnActive:     { backgroundColor: '#F59E0B', borderColor: '#F59E0B' },
-  langBtnText:       { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.5)' },
+  langBtnText:       { fontSize: 12, fontWeight: '600', color: t.inkText(0.5) },
   langBtnTextActive: { color: '#000' },
 
   menuItem:       { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14 },
-  menuItemBorder: { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
-  menuLabel:      { flex: 1, fontSize: 14, fontWeight: '500', color: '#fff' },
+  menuItemBorder: { borderBottomWidth: 1, borderBottomColor: t.ink(0.06) },
+  menuLabel:      { flex: 1, fontSize: 14, fontWeight: '500', color: t.inkSolid },
 
   logoutBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -181,7 +205,7 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)',
     borderRadius: 12, paddingVertical: 14, marginTop: 24,
   },
-  logoutText: { color: '#F87171', fontSize: 15, fontWeight: '700' },
+  logoutText: { color: t.soft('red'), fontSize: 15, fontWeight: '700' },
 
-  version: { textAlign: 'center', color: 'rgba(255,255,255,0.2)', fontSize: 11, marginTop: 20 },
+  version: { textAlign: 'center', color: t.inkText(0.2), fontSize: 11, marginTop: 20 },
 })

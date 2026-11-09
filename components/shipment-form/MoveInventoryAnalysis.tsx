@@ -5,7 +5,8 @@ import { api } from '@/lib/api'
 import type { MoveDetails } from '@/lib/shared/moveCard'
 import { dropAiItems, existingForRoom, mergeAnalysis, planAnalysis, planRepeat } from '@/lib/shared/moveInventoryMerge'
 import type { FormT } from '@/lib/useFormT'
-import { Check, s } from './ui'
+import { Check, useFormStyles } from './ui'
+import { useTheme } from '@/lib/theme'
 
 /**
  * Προαιρετική αυτόματη καταγραφή αντικειμένων από τις φωτογραφίες (AI), όπως το MoveInventoryAnalysis του web: ο αποστολέας τη
@@ -20,6 +21,10 @@ export function MoveInventoryAnalysis({ t, shipmentId, photos, details, onChange
   onChange: (patch: (d: MoveDetails) => MoveDetails) => void
   onEnabledChange?: (enabled: boolean) => void
 }) {
+  const s = useFormStyles()
+
+  const th = useTheme()
+
   const enabled = details.aiEnabled
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
   const [error, setError] = useState('')
@@ -82,7 +87,7 @@ export function MoveInventoryAnalysis({ t, shipmentId, photos, details, onChange
   }
 
   return (
-    <View style={{ borderWidth: 1, borderColor: Colors.border, backgroundColor: '#fff', borderRadius: 16, padding: 12, marginBottom: 14 }}>
+    <View style={{ borderWidth: 1, borderColor: th.ink(0.12), backgroundColor: th.surface, borderRadius: 16, padding: 12, marginBottom: 14 }}>
       <Check checked={enabled} onChange={on => { onChange(d => ({ ...d, aiEnabled: on })); onEnabledChange?.(on) }} label={t('moveCard.ai_toggle')} />
       <Text style={[s.hint, { marginTop: 6 }]}>{t('moveCard.ai_disclosure')}</Text>
 
@@ -93,7 +98,7 @@ export function MoveInventoryAnalysis({ t, shipmentId, photos, details, onChange
           ) : (
             <>
               {pendingCount > 0
-                ? <Text style={{ fontSize: 13, fontWeight: '700', color: '#B45309', marginBottom: 8 }}>{t('moveCard.ai_unanalysed')}: {pendingCount}</Text>
+                ? <Text style={{ fontSize: 13, fontWeight: '700', color: th.accentText, marginBottom: 8 }}>{t('moveCard.ai_unanalysed')}: {pendingCount}</Text>
                 : <Text style={[s.hint, { marginBottom: 8 }]}>{t('moveCard.ai_none_new')}</Text>}
               <View style={s.wrap}>
                 {pendingCount > 0 && (
@@ -107,7 +112,7 @@ export function MoveInventoryAnalysis({ t, shipmentId, photos, details, onChange
                 {details.analyzedPhotoIds.length > 0 && (
                   <TouchableOpacity onPress={repeat} disabled={running}
                     style={{ borderWidth: 1, borderColor: Colors.accent, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, opacity: running ? 0.6 : 1 }}>
-                    <Text style={{ fontWeight: '700', color: '#B45309' }}>{t('moveCard.ai_repeat')}</Text>
+                    <Text style={{ fontWeight: '700', color: th.accentText }}>{t('moveCard.ai_repeat')}</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -121,8 +126,8 @@ export function MoveInventoryAnalysis({ t, shipmentId, photos, details, onChange
           )}
           {warnings.length > 0 && (
             <View style={{ marginTop: 8 }}>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: '#B45309' }}>{t('moveCard.ai_warnings')}</Text>
-              {warnings.map((w, i) => <Text key={i} style={{ fontSize: 12, color: '#B45309' }}>• {w}</Text>)}
+              <Text style={{ fontSize: 12, fontWeight: '700', color: th.accentText }}>{t('moveCard.ai_warnings')}</Text>
+              {warnings.map((w, i) => <Text key={i} style={{ fontSize: 12, color: th.accentText }}>• {w}</Text>)}
             </View>
           )}
         </View>

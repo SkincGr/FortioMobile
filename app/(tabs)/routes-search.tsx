@@ -13,6 +13,7 @@ import { PlacesInput } from '@/components/PlacesInput'
 import { carrierRating, recurrenceNote } from '@/lib/display'
 import { fCity } from '@/lib/cityDisplay'
 import { useMessageTemplates, renderTemplate, templateKindForCategory } from '@/lib/templates'
+import { Theme, useStyles, useTheme } from '@/lib/theme'
 
 // Αναζήτηση δρομολογίων μεταφορέων, όπως η σελίδα /routes του web (components/RoutesSearchClient.tsx): αφετηρία και
 // προορισμός από το Google, ημερομηνία «από» και αριθμός ημερών (έως 30) υποχρεωτικά — το GET /api/routes τα απαιτεί.
@@ -32,6 +33,9 @@ const LOCALES = { el: 'el-GR', en: 'en-GB', fr: 'fr-FR' } as const
 const day = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
 export default function RoutesSearchScreen() {
+  const th = useTheme()
+  const s = useStyles(makeStyles)
+
   const { t, language } = useI18n()
   const locale = LOCALES[language]
   const qc = useQueryClient()
@@ -137,8 +141,8 @@ export default function RoutesSearchScreen() {
       {/* Αποστολή που συμπληρώνει τα φίλτρα */}
       <Text style={s.label}>{t('rs.select_shipment')}</Text>
       <TouchableOpacity style={s.select} onPress={() => setShipmentPicker(true)}>
-        <Text style={[s.selectTxt, !shipment && { color: 'rgba(255,255,255,0.35)' }]} numberOfLines={1}>{shipment?.title ?? t('rs.select_shipment_ph')}</Text>
-        <Ionicons name="chevron-down" size={16} color="rgba(255,255,255,0.5)" />
+        <Text style={[s.selectTxt, !shipment && { color: th.inkText(0.35) }]} numberOfLines={1}>{shipment?.title ?? t('rs.select_shipment_ph')}</Text>
+        <Ionicons name="chevron-down" size={16} color={th.inkText(0.5)} />
       </TouchableOpacity>
       {!!shipment && (
         <View style={[s.row, { justifyContent: 'space-between', marginBottom: 12 }]}>
@@ -156,8 +160,8 @@ export default function RoutesSearchScreen() {
 
       <Text style={s.label}>{t('rs.date_from')} *</Text>
       <TouchableOpacity style={s.select} onPress={() => setShowDate(true)}>
-        <Text style={[s.selectTxt, !dateFrom && { color: 'rgba(255,255,255,0.35)' }]}>{dateFrom ? fDate(dateFrom.toISOString()) : t('rs.pick_date')}</Text>
-        <Ionicons name="calendar-outline" size={16} color="rgba(255,255,255,0.5)" />
+        <Text style={[s.selectTxt, !dateFrom && { color: th.inkText(0.35) }]}>{dateFrom ? fDate(dateFrom.toISOString()) : t('rs.pick_date')}</Text>
+        <Ionicons name="calendar-outline" size={16} color={th.inkText(0.5)} />
       </TouchableOpacity>
       {showDate && (
         <DateTimePicker value={dateFrom ?? new Date()} mode="date" display={Platform.OS === 'ios' ? 'spinner' : 'default'}
@@ -176,14 +180,14 @@ export default function RoutesSearchScreen() {
       <View style={[s.row, { gap: 10 }]}>
         <View style={{ flex: 1 }}>
           <Text style={s.label}>{t('rs.min_volume')}</Text>
-          <TextInput style={s.input} value={minVolume} onChangeText={setMinVolume} keyboardType="decimal-pad" placeholder="m³" placeholderTextColor="rgba(255,255,255,0.3)" />
+          <TextInput style={s.input} value={minVolume} onChangeText={setMinVolume} keyboardType="decimal-pad" placeholder="m³" placeholderTextColor={th.inkText(0.3)} />
         </View>
         <View style={{ flex: 1 }}>
           <View style={[s.row, { justifyContent: 'space-between' }]}>
             <Text style={s.label}>{t('rs.radius')}</Text>
             <Switch value={radiusMode} onValueChange={setRadiusMode} trackColor={{ true: '#F59E0B' }} />
           </View>
-          {radiusMode && <TextInput style={s.input} value={radiusKm} onChangeText={setRadiusKm} keyboardType="number-pad" placeholder="km" placeholderTextColor="rgba(255,255,255,0.3)" />}
+          {radiusMode && <TextInput style={s.input} value={radiusKm} onChangeText={setRadiusKm} keyboardType="number-pad" placeholder="km" placeholderTextColor={th.inkText(0.3)} />}
         </View>
       </View>
 
@@ -198,12 +202,12 @@ export default function RoutesSearchScreen() {
       {!isValid ? (
         <View style={s.empty}><Text style={{ fontSize: 36 }}>🧭</Text><Text style={s.emptyTxt}>{t('rs.fill_required')}</Text></View>
       ) : isFetching ? (
-        <ActivityIndicator color="#FBBF24" style={{ marginVertical: 30 }} />
+        <ActivityIndicator color={th.accentText} style={{ marginVertical: 30 }} />
       ) : error ? (
         <Text style={s.error}>{(error as any)?.response?.data?.error ?? t('common.error')}</Text>
       ) : (
         <Text style={[s.muted, { marginBottom: 10 }]}>
-          <Text style={{ color: '#fff', fontWeight: '800' }}>{total}</Text> {t('rs.results')}
+          <Text style={{ color: th.inkSolid, fontWeight: '800' }}>{total}</Text> {t('rs.results')}
           {totalPages > 1 && !knownIds ? `  ·  ${page}/${totalPages}` : ''}
         </Text>
       )}
@@ -213,7 +217,7 @@ export default function RoutesSearchScreen() {
   return (
     <View style={s.root}>
       <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()} hitSlop={12}><Ionicons name="arrow-back" size={22} color="#fff" /></TouchableOpacity>
+        <TouchableOpacity onPress={() => router.back()} hitSlop={12}><Ionicons name="arrow-back" size={22} color={th.inkSolid} /></TouchableOpacity>
         <Text style={s.headerTitle}>{t('rs.title')}</Text>
       </View>
 
@@ -278,7 +282,7 @@ export default function RoutesSearchScreen() {
               {openShipments.length === 0 && <Text style={[s.muted, { padding: 16 }]}>{t('rs.no_shipments')}</Text>}
               {openShipments.map((x: any) => (
                 <TouchableOpacity key={x.id} style={s.option} onPress={() => pickShipment(x)}>
-                  <Text style={[s.optionTxt, x.id === shipmentId && { color: '#FBBF24' }]}>{x.title}</Text>
+                  <Text style={[s.optionTxt, x.id === shipmentId && { color: th.accentText }]}>{x.title}</Text>
                   <Text style={s.muted}>{fCity(x.originCity, x.originPlace)} → {fCity(x.destCity, x.destPlace)}</Text>
                 </TouchableOpacity>
               ))}
@@ -293,7 +297,7 @@ export default function RoutesSearchScreen() {
           <View style={s.modalCard}>
             <View style={[s.row, { justifyContent: 'space-between', marginBottom: 12 }]}>
               <Text style={s.modalTitle}>{t('match.modal.req_title')}</Text>
-              <TouchableOpacity onPress={() => setRequestRoute(null)} hitSlop={12}><Ionicons name="close" size={22} color="rgba(255,255,255,0.4)" /></TouchableOpacity>
+              <TouchableOpacity onPress={() => setRequestRoute(null)} hitSlop={12}><Ionicons name="close" size={22} color={th.inkText(0.4)} /></TouchableOpacity>
             </View>
             {requestRoute && <Text style={[s.muted, { marginBottom: 10 }]}>{shipment?.title} · {requestRoute.company?.name}</Text>}
             <Text style={s.label}>📋 {t('templates.quick_select')}</Text>
@@ -310,7 +314,7 @@ export default function RoutesSearchScreen() {
               ))}
             </ScrollView>
             <TextInput style={[s.input, { minHeight: 100, textAlignVertical: 'top' }]} multiline value={requestText} onChangeText={setRequestText}
-              placeholder={t('match.modal.req_placeholder')} placeholderTextColor="rgba(255,255,255,0.3)" />
+              placeholder={t('match.modal.req_placeholder')} placeholderTextColor={th.inkText(0.3)} />
             {requestError ? <Text style={s.error}>{requestError}</Text> : null}
             <View style={[s.row, { gap: 10, marginTop: 12 }]}>
               <TouchableOpacity style={[s.chip, { flex: 1, alignItems: 'center', paddingVertical: 12 }]} onPress={() => setRequestRoute(null)}>
@@ -328,41 +332,41 @@ export default function RoutesSearchScreen() {
   )
 }
 
-const s = StyleSheet.create({
-  root:        { flex: 1, backgroundColor: '#0a0a0a' },
-  header:      { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 56, paddingBottom: 14, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)' },
-  headerTitle: { color: '#fff', fontSize: 17, fontWeight: '800' },
+const makeStyles = (t: Theme) => StyleSheet.create({
+  root:        { flex: 1, backgroundColor: t.page },
+  header:      { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 56, paddingBottom: 14, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: t.ink(0.1) },
+  headerTitle: { color: t.inkSolid, fontSize: 17, fontWeight: '800' },
   row:         { flexDirection: 'row', alignItems: 'center' },
-  label:       { fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6 },
-  muted:       { fontSize: 12, color: 'rgba(255,255,255,0.45)' },
-  select:      { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 12 },
-  selectTxt:   { flex: 1, color: '#fff', fontSize: 14 },
-  input:       { backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, color: '#fff', fontSize: 14 },
-  places:      { backgroundColor: '#fff', borderRadius: 16, padding: 12, marginBottom: 12 },
-  chip:        { borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 },
+  label:       { fontSize: 11, fontWeight: '700', color: t.inkText(0.45), textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6 },
+  muted:       { fontSize: 12, color: t.inkText(0.45) },
+  select:      { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: t.ink(0.06), borderWidth: 1, borderColor: t.ink(0.12), borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 12 },
+  selectTxt:   { flex: 1, color: t.inkSolid, fontSize: 14 },
+  input:       { backgroundColor: t.ink(0.06), borderWidth: 1, borderColor: t.ink(0.12), borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, color: t.inkSolid, fontSize: 14 },
+  places:      { backgroundColor: t.surface, borderRadius: 16, padding: 12, marginBottom: 12 },
+  chip:        { borderWidth: 1, borderColor: t.ink(0.15), borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 },
   chipOn:      { backgroundColor: 'rgba(251,191,36,0.15)', borderColor: '#FBBF24' },
-  chipTxt:     { color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '700' },
-  chipTxtOn:   { color: '#FBBF24' },
+  chipTxt:     { color: t.inkText(0.7), fontSize: 12, fontWeight: '700' },
+  chipTxtOn:   { color: t.accentText },
   empty:       { alignItems: 'center', paddingVertical: 40, gap: 10 },
-  emptyTxt:    { color: 'rgba(255,255,255,0.5)', fontSize: 13, textAlign: 'center', paddingHorizontal: 20 },
-  error:       { color: '#F87171', fontSize: 13, marginTop: 8 },
-  card:        { backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', borderRadius: 16, padding: 14, marginBottom: 12 },
-  company:     { color: '#fff', fontSize: 14, fontWeight: '700' },
+  emptyTxt:    { color: t.inkText(0.5), fontSize: 13, textAlign: 'center', paddingHorizontal: 20 },
+  error:       { color: t.soft('red'), fontSize: 13, marginTop: 8 },
+  card:        { backgroundColor: t.ink(0.03), borderWidth: 1, borderColor: t.ink(0.1), borderRadius: 16, padding: 14, marginBottom: 12 },
+  company:     { color: t.inkSolid, fontSize: 14, fontWeight: '700' },
   recurring:   { fontSize: 12 },
-  distance:    { fontSize: 11, color: '#FBBF24', fontWeight: '700' },
-  rating:      { marginLeft: 'auto', fontSize: 12, color: '#F87171', fontWeight: '800' },
-  recurrence:  { fontSize: 12, color: '#A78BFA', marginBottom: 4 },
-  cities:      { color: '#fff', fontSize: 14, fontWeight: '700', marginBottom: 2 },
-  charge:      { fontSize: 12, color: '#FBBF24', fontWeight: '700', marginTop: 2 },
-  sent:        { color: '#4ADE80', fontSize: 12, fontWeight: '700' },
+  distance:    { fontSize: 11, color: t.accentText, fontWeight: '700' },
+  rating:      { marginLeft: 'auto', fontSize: 12, color: t.soft('red'), fontWeight: '800' },
+  recurrence:  { fontSize: 12, color: t.soft('violet'), marginBottom: 4 },
+  cities:      { color: t.inkSolid, fontSize: 14, fontWeight: '700', marginBottom: 2 },
+  charge:      { fontSize: 12, color: t.accentText, fontWeight: '700', marginTop: 2 },
+  sent:        { color: t.soft('green'), fontSize: 12, fontWeight: '700' },
   requestBtn:  { backgroundColor: '#FBBF24', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9 },
   requestTxt:  { color: '#000', fontSize: 13, fontWeight: '700' },
   backdrop:    { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 24 },
-  sheet:       { backgroundColor: '#161616', borderRadius: 16, paddingVertical: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  sheetTitle:  { color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', paddingHorizontal: 16, paddingBottom: 8 },
-  option:      { paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)' },
-  optionTxt:   { color: '#fff', fontSize: 14, fontWeight: '600', marginBottom: 2 },
+  sheet:       { backgroundColor: t.raised, borderRadius: 16, paddingVertical: 12, borderWidth: 1, borderColor: t.ink(0.1) },
+  sheetTitle:  { color: t.inkText(0.5), fontSize: 12, fontWeight: '700', textTransform: 'uppercase', paddingHorizontal: 16, paddingBottom: 8 },
+  option:      { paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: t.ink(0.06) },
+  optionTxt:   { color: t.inkSolid, fontSize: 14, fontWeight: '600', marginBottom: 2 },
   modalOverlay:{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-  modalCard:   { backgroundColor: '#111', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 32 },
-  modalTitle:  { color: '#fff', fontSize: 18, fontWeight: '800' },
+  modalCard:   { backgroundColor: t.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 32 },
+  modalTitle:  { color: t.inkSolid, fontSize: 18, fontWeight: '800' },
 })

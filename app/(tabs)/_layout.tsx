@@ -29,6 +29,14 @@ function TabIcon({ name, focused, badge, activeColor, inactiveColor, dangerColor
   )
 }
 
+// Οθόνες που ανοίγουν με router.push αλλά δεν έχουν κουμπί στην κάτω μπάρα. Δεν χρησιμοποιούμε `href: null`: από το
+// expo-router 58 η κρυφή καρτέλα (hidden) ανακατευθύνει αυτόματα στην αρχική όταν γίνει ενεργή, και κάθε router.push
+// σε αυτές τις οθόνες γύριζε στο dashboard. Εδώ η καρτέλα μένει κανονική και απλώς δεν σχεδιάζεται το κουμπί της.
+const offTabBar = {
+  tabBarButton: () => null,
+  tabBarItemStyle: { display: 'none' as const },
+}
+
 export default function TabsLayout() {
   const { isLoading, isAuthenticated, logout } = useAuth()
   const { colors } = useTheme()
@@ -100,13 +108,13 @@ export default function TabsLayout() {
           tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'person' : 'person-outline'} focused={focused} {...iconProps} />,
         }}
       />
-      <Tabs.Screen name="shipments" options={{ href: null }} />
-      <Tabs.Screen name="shipments-archive" options={{ href: null }} />
-      <Tabs.Screen name="notifications" options={{ href: null }} />
-      <Tabs.Screen name="templates" options={{ href: null }} />
-      <Tabs.Screen name="routes-search" options={{ href: null }} />
-      <Tabs.Screen name="profile-personal" options={{ href: null }} />
-      <Tabs.Screen name="profile-password" options={{ href: null }} />
+      <Tabs.Screen name="shipments" options={offTabBar} />
+      <Tabs.Screen name="shipments-archive" options={offTabBar} />
+      <Tabs.Screen name="notifications" options={offTabBar} />
+      <Tabs.Screen name="templates" options={offTabBar} />
+      <Tabs.Screen name="routes-search" options={offTabBar} />
+      <Tabs.Screen name="profile-personal" options={offTabBar} />
+      <Tabs.Screen name="profile-password" options={offTabBar} />
       <Tabs.Screen
         name="logout"
         options={{

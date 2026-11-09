@@ -6,6 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import { API_BASE_URL } from '@/constants/config'
 import { Colors } from '@/constants/colors'
+import { Theme, useStyles, useTheme } from '@/lib/theme'
 
 type Suggestion = { label: string; placeId: string }
 
@@ -26,6 +27,9 @@ export function PlacesInput({
   label, value, placeId, onSelect,
   placeholder = 'Αναζήτηση...', type = 'city', cityContext, optional, error,
 }: Props) {
+  const th = useTheme()
+  const styles = useStyles(makeStyles)
+
   const [text, setText]               = useState(value)
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
   const [loading, setLoading]         = useState(false)
@@ -83,7 +87,7 @@ export function PlacesInput({
       ? Colors.danger
       : confirmed
         ? Colors.success
-        : Colors.border
+        : th.ink(0.12)
 
   return (
     <View style={styles.wrapper}>
@@ -97,7 +101,7 @@ export function PlacesInput({
         <TextInput
           style={styles.input}
           placeholder={placeholder}
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={th.inkText(0.4)}
           value={text}
           onChangeText={handleChange}
           onFocus={() => setFocused(true)}
@@ -128,7 +132,7 @@ export function PlacesInput({
               ]}
               activeOpacity={0.7}
             >
-              <Ionicons name="location-outline" size={14} color={Colors.textMuted} />
+              <Ionicons name="location-outline" size={14} color={th.inkText(0.4)} />
               <Text style={styles.suggestionText} numberOfLines={2}>{s.label}</Text>
             </TouchableOpacity>
           ))}
@@ -138,21 +142,21 @@ export function PlacesInput({
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) => StyleSheet.create({
   wrapper:       { marginBottom: 16 },
-  label:         { fontSize: 14, fontWeight: '600', color: '#334155', marginBottom: 6 },
-  optional:      { fontWeight: '400', color: '#94A3B8' },
+  label:         { fontSize: 14, fontWeight: '600', color: t.inkText(0.85), marginBottom: 6 },
+  optional:      { fontWeight: '400', color: t.inkText(0.4) },
   inputRow: {
     flexDirection: 'row', alignItems: 'center',
     borderWidth: 1, borderRadius: 12,
-    paddingHorizontal: 14, backgroundColor: '#FAFAFA',
+    paddingHorizontal: 14, backgroundColor: t.raised,
   },
-  input: { flex: 1, paddingVertical: 12, fontSize: 15, color: '#1E293B' },
+  input: { flex: 1, paddingVertical: 12, fontSize: 15, color: t.inkSolid },
   icon:      { marginLeft: 8 },
   confirmed: { fontSize: 11, color: Colors.success, marginTop: 3 },
   dropdown: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 12,
+    backgroundColor: t.surface,
+    borderWidth: 1, borderColor: t.ink(0.12), borderRadius: 12,
     marginTop: 4,
     shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.10, shadowRadius: 8, elevation: 6,
@@ -161,6 +165,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'flex-start',
     gap: 8, paddingHorizontal: 14, paddingVertical: 11,
   },
-  suggestionBorder: { borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
-  suggestionText:   { flex: 1, fontSize: 13, color: '#1E293B', lineHeight: 18 },
+  suggestionBorder: { borderBottomWidth: 1, borderBottomColor: t.ink(0.08) },
+  suggestionText:   { flex: 1, fontSize: 13, color: t.inkSolid, lineHeight: 18 },
 })

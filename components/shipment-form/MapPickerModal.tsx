@@ -5,6 +5,7 @@ import * as Location from 'expo-location'
 import { Ionicons } from '@expo/vector-icons'
 import { Colors } from '@/constants/colors'
 import type { FormT } from '@/lib/useFormT'
+import { Theme, useStyles, useTheme } from '@/lib/theme'
 
 // Κέντρο της Ελλάδας όταν δεν υπάρχει τίποτα να κεντράρει ο χάρτης (το web ξεκινά επίσης σε zoom χώρας)
 const GREECE: Region = { latitude: 38.6, longitude: 23.6, latitudeDelta: 7, longitudeDelta: 7 }
@@ -28,6 +29,9 @@ export function MapPickerModal({ t, open, title, initialLat, initialLng, focusTe
   onClose: () => void
   onSelect: (lat: number, lng: number) => void
 }) {
+  const th = useTheme()
+  const s = useStyles(makeStyles)
+
   const mapRef = useRef<MapView>(null)
   const [picked, setPicked] = useState<LatLng | null>(null)
   const [region, setRegion] = useState<Region | null>(null)
@@ -89,13 +93,13 @@ export function MapPickerModal({ t, open, title, initialLat, initialLng, focusTe
       <View style={s.root}>
         <View style={s.header}>
           <Text style={s.title} numberOfLines={1}>{title}</Text>
-          <TouchableOpacity onPress={onClose} hitSlop={12}><Ionicons name="close" size={24} color="#fff" /></TouchableOpacity>
+          <TouchableOpacity onPress={onClose} hitSlop={12}><Ionicons name="close" size={24} color={th.snow} /></TouchableOpacity>
         </View>
 
         <View style={s.searchRow}>
           <TextInput
             style={s.search} value={query} onChangeText={v => { setQuery(v); setNotFound(false) }} onSubmitEditing={search}
-            placeholder={t('mobile.map_search_ph')} placeholderTextColor="#94A3B8" returnKeyType="search"
+            placeholder={t('mobile.map_search_ph')} placeholderTextColor={th.inkText(0.4)} returnKeyType="search"
           />
           <TouchableOpacity style={s.goBtn} onPress={search} disabled={busy}>
             {busy ? <ActivityIndicator size="small" color="#000" /> : <Text style={s.goTxt}>{t('mobile.map_search_go')}</Text>}
@@ -144,22 +148,22 @@ export function MapPickerModal({ t, open, title, initialLat, initialLng, focusTe
   )
 }
 
-const s = StyleSheet.create({
-  root:      { flex: 1, backgroundColor: '#fff' },
+const makeStyles = (t: Theme) => StyleSheet.create({
+  root:      { flex: 1, backgroundColor: t.surface },
   header:    { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: Colors.primary, paddingTop: Platform.OS === 'ios' ? 56 : 40, paddingBottom: 14, paddingHorizontal: 16 },
-  title:     { flex: 1, color: '#fff', fontSize: 17, fontWeight: '800' },
-  searchRow: { flexDirection: 'row', gap: 8, padding: 12, borderBottomWidth: 1, borderBottomColor: Colors.border },
-  search:    { flex: 1, borderWidth: 1, borderColor: Colors.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: '#1E293B', backgroundColor: '#FAFAFA' },
+  title:     { flex: 1, color: t.snow, fontSize: 17, fontWeight: '800' },
+  searchRow: { flexDirection: 'row', gap: 8, padding: 12, borderBottomWidth: 1, borderBottomColor: t.ink(0.12) },
+  search:    { flex: 1, borderWidth: 1, borderColor: t.ink(0.12), borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: t.inkSolid, backgroundColor: t.raised },
   goBtn:     { backgroundColor: Colors.accent, borderRadius: 12, paddingHorizontal: 14, justifyContent: 'center', minWidth: 72, alignItems: 'center' },
   goTxt:     { color: '#000', fontWeight: '700' },
   notFound:  { color: Colors.danger, fontSize: 12, paddingHorizontal: 12, paddingTop: 6 },
   loading:   { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  myLocation:{ position: 'absolute', right: 12, bottom: 12, backgroundColor: '#fff', borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9, borderWidth: 1, borderColor: Colors.border, elevation: 3, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } },
-  myLocationTxt: { fontSize: 13, fontWeight: '700', color: '#1E293B' },
-  footer:    { padding: 12, paddingBottom: Platform.OS === 'ios' ? 32 : 16, borderTopWidth: 1, borderTopColor: Colors.border, gap: 10 },
-  hint:      { fontSize: 12, color: '#64748B' },
-  cancelBtn: { flex: 1, borderWidth: 1, borderColor: Colors.border, borderRadius: 14, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
-  cancelTxt: { fontWeight: '700', color: '#475569' },
+  myLocation:{ position: 'absolute', right: 12, bottom: 12, backgroundColor: t.surface, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9, borderWidth: 1, borderColor: t.ink(0.12), elevation: 3, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } },
+  myLocationTxt: { fontSize: 13, fontWeight: '700', color: t.inkSolid },
+  footer:    { padding: 12, paddingBottom: Platform.OS === 'ios' ? 32 : 16, borderTopWidth: 1, borderTopColor: t.ink(0.12), gap: 10 },
+  hint:      { fontSize: 12, color: t.inkText(0.6) },
+  cancelBtn: { flex: 1, borderWidth: 1, borderColor: t.ink(0.12), borderRadius: 14, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
+  cancelTxt: { fontWeight: '700', color: t.inkText(0.7) },
   useBtn:    { flex: 2, backgroundColor: Colors.accent, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center' },
   useTxt:    { fontWeight: '800', color: '#000', textAlign: 'center', fontSize: 13 },
 })

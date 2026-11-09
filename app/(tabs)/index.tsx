@@ -7,7 +7,6 @@ import { router } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '@/lib/auth'
-import { useTheme } from '@/lib/theme'
 import { useI18n, translateText } from '@/lib/i18n'
 import { dashboardApi, matchCountsApi, shipmentsApi, offersApi, messagesApi, Shipment, Offer, ShipmentStatus } from '@/lib/api'
 import { ShipmentStatusBadge } from '@/components/ShipmentStatusBadge'
@@ -17,6 +16,7 @@ import { LoadingScreen } from '@/components/ui/LoadingScreen'
 import { Colors } from '@/constants/colors'
 import { carrierRating } from '@/lib/display'
 import { fCity } from '@/lib/cityDisplay'
+import { Theme, useStyles, useTheme } from '@/lib/theme'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -94,6 +94,9 @@ function OfferRow({ offer, mode, shipmentId, showMessages, onViewOffer }: {
   showMessages?: boolean
   onViewOffer?: () => void
 }) {
+  const th = useTheme()
+  const styles = useStyles(makeStyles)
+
   const { t } = useI18n()
   const msgCount    = offer._count?.messages ?? 0
   const carrierName = offer.carrier?.company?.name ?? offer.carrier?.name ?? '—'
@@ -168,7 +171,7 @@ function OfferRow({ offer, mode, shipmentId, showMessages, onViewOffer }: {
         )}
         {offer.status && (
           <View style={[styles.offerStatusPill, { backgroundColor: 'rgba(251,191,36,0.12)' }]}>
-            <Text style={[styles.offerStatusPillText, { color: '#FBBF24' }]}>
+            <Text style={[styles.offerStatusPillText, { color: th.accentText }]}>
               {OFFER_STATUS_KEY[offer.status] ? t(OFFER_STATUS_KEY[offer.status]) : offer.status}
             </Text>
           </View>
@@ -250,6 +253,8 @@ function OfferGroupSection({ group, mode, showMessages, showCount, onViewOffer }
   showCount?: boolean
   onViewOffer?: (offer: Offer, shipmentTitle: string, shipment?: any) => void
 }) {
+  const styles = useStyles(makeStyles)
+
   const { colors } = useTheme()
   const { t } = useI18n()
   const { shipment, offers } = group
@@ -314,6 +319,9 @@ function ShipmentCard({ item, filter, matchCount, matchCountsLoading, onDelete, 
   onDelete?: (id: string, offerCount: number) => void
   onViewOffer?: (offer: Offer, title: string, shipment?: any) => void
 }) {
+  const th = useTheme()
+  const styles = useStyles(makeStyles)
+
   const { colors } = useTheme()
   const { t } = useI18n()
   const icon       = CATEGORY_ICON[item.category] ?? '📦'
@@ -482,8 +490,8 @@ function ShipmentCard({ item, filter, matchCount, matchCountsLoading, onDelete, 
             <>
               <Text style={styles.statusLabelText}>·</Text>
               <View style={styles.row}>
-                <Ionicons name="checkmark-circle-outline" size={11} color="#4ADE80" />
-                <Text style={[styles.statusLabelText, { color: '#4ADE80' }]}>{t('dash.label.selected')}</Text>
+                <Ionicons name="checkmark-circle-outline" size={11} color={th.soft('green')} />
+                <Text style={[styles.statusLabelText, { color: th.soft('green') }]}>{t('dash.label.selected')}</Text>
               </View>
             </>
           )}
@@ -504,6 +512,8 @@ function ShipmentCard({ item, filter, matchCount, matchCountsLoading, onDelete, 
 // ─── Sort picker ──────────────────────────────────────────────────────────────
 
 function SortPicker({ value, onChange }: { value: SortKey; onChange: (v: SortKey) => void }) {
+  const styles = useStyles(makeStyles)
+
   const [open, setOpen] = useState(false)
   const { t } = useI18n()
   const current = SORT_OPTIONS.find(o => o.id === value)!
@@ -539,6 +549,9 @@ function SortPicker({ value, onChange }: { value: SortKey; onChange: (v: SortKey
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 export default function DashboardScreen() {
+  const th = useTheme()
+  const styles = useStyles(makeStyles)
+
   const { user, token, logout } = useAuth()
   const { t, autoTranslate, language } = useI18n()
   const { colors } = useTheme()
@@ -782,7 +795,7 @@ export default function DashboardScreen() {
     carrierOfferGroups
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#0a0a0a' }}>
+    <View style={{ flex: 1, backgroundColor: th.page }}>
 
       {/* ── Burger Menu Modal ── */}
       <Modal visible={burgerOpen} transparent animationType="fade" onRequestClose={() => setBurgerOpen(false)}>
@@ -790,7 +803,7 @@ export default function DashboardScreen() {
           <Pressable style={styles.burgerPanel} onPress={e => e.stopPropagation()}>
 {TABS.map((tab) => (
               <TouchableOpacity key={tab.key} style={styles.burgerItem} onPress={() => { setFilter(tab.key); setBurgerOpen(false) }}>
-                <Text style={[styles.burgerItemText, filter === tab.key && { color: '#F59E0B' }]}>{tab.label}</Text>
+                <Text style={[styles.burgerItemText, filter === tab.key && { color: th.accentText }]}>{tab.label}</Text>
                 <View style={styles.burgerBadge}>
                   <Text style={styles.burgerBadgeText}>{tab.count}</Text>
                 </View>
@@ -802,21 +815,21 @@ export default function DashboardScreen() {
               onPress={() => { setBurgerOpen(false); router.push(`/(tabs)/shipments/new?returnTo=${encodeURIComponent('/(tabs)')}` as any) }}
             >
               <Text style={styles.burgerItemText}>{t('dash.menu.new_shipment')}</Text>
-              <Ionicons name="add" size={16} color="rgba(255,255,255,0.3)" />
+              <Ionicons name="add" size={16} color={th.inkText(0.3)} />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.burgerItem}
               onPress={() => { setBurgerOpen(false); router.push('/(tabs)/shipments-archive' as any) }}
             >
               <Text style={styles.burgerItemText}>{t('dash.menu.archive')}</Text>
-              <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.3)" />
+              <Ionicons name="chevron-forward" size={16} color={th.inkText(0.3)} />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.burgerItem}
               onPress={() => { setBurgerOpen(false); router.push('/(tabs)/routes-search' as any) }}
             >
               <Text style={styles.burgerItemText}>{t('dash.menu.route_search')}</Text>
-              <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.3)" />
+              <Ionicons name="chevron-forward" size={16} color={th.inkText(0.3)} />
             </TouchableOpacity>
             <View style={styles.burgerDivider} />
             <TouchableOpacity
@@ -824,7 +837,7 @@ export default function DashboardScreen() {
               onPress={() => { setBurgerOpen(false); router.push('/(tabs)/templates' as any) }}
             >
               <Text style={styles.burgerItemText}>{t('dash.menu.templates')}</Text>
-              <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.3)" />
+              <Ionicons name="chevron-forward" size={16} color={th.inkText(0.3)} />
             </TouchableOpacity>
           </Pressable>
         </Pressable>
@@ -860,7 +873,7 @@ export default function DashboardScreen() {
               onPress={() => router.push('/(tabs)/announcements')}
               style={[styles.badge, { backgroundColor: '#D97706' }]}
             >
-              <Ionicons name="megaphone-outline" size={13} color="#fff" />
+              <Ionicons name="megaphone-outline" size={13} color={th.snow} />
               <Text style={styles.badgeText}>{announcementCount} {t('dash.announcements')}</Text>
             </TouchableOpacity>
           </View>
@@ -873,7 +886,7 @@ export default function DashboardScreen() {
           data={offerGroups}
           keyExtractor={item => item.shipment.id}
           contentContainerStyle={{ padding: 16, paddingBottom: 96 }}
-          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => { void refetch() }} tintColor="#F59E0B" />}
+          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => { void refetch() }} tintColor={th.accentText} />}
           ListHeaderComponent={filter === 'carrier_offers' && offerGroups.length > 0 ? (
             <View style={[styles.row, { gap: 8, marginBottom: 12 }]}>
               <Text style={styles.sortLabel}>{t('dash.sort.label')}</Text>
@@ -917,7 +930,7 @@ export default function DashboardScreen() {
           data={displayed}
           keyExtractor={s => s.id}
           contentContainerStyle={{ padding: 16, paddingBottom: 96 }}
-          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => { void refetch() }} tintColor="#F59E0B" />}
+          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => { void refetch() }} tintColor={th.accentText} />}
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text style={{ fontSize: 40, marginBottom: 12 }}>📦</Text>
@@ -1148,7 +1161,7 @@ export default function DashboardScreen() {
           onPress={() => router.push(`/(tabs)/shipments/new?returnTo=${encodeURIComponent('/(tabs)')}` as any)}
           activeOpacity={0.85}
         >
-          <Ionicons name="add" size={28} color="#fff" />
+          <Ionicons name="add" size={28} color={th.snow} />
         </TouchableOpacity>
       )}
 
@@ -1158,86 +1171,86 @@ export default function DashboardScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
-  ratingText:  { fontSize: 12, color: '#F87171', fontWeight: '800' },
+const makeStyles = (t: Theme) => StyleSheet.create({
+  ratingText:  { fontSize: 12, color: t.soft('red'), fontWeight: '800' },
   ratingTrips: { color: 'rgba(248,113,113,0.6)', fontWeight: '600' },
   cancelBtn: {
     marginLeft: 8, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(248,113,113,0.35)',
     paddingHorizontal: 10, paddingVertical: 4,
   },
-  cancelBtnText: { fontSize: 11, fontWeight: '700', color: '#F87171' },
+  cancelBtnText: { fontSize: 11, fontWeight: '700', color: t.soft('red') },
   offerCountPill: {
     backgroundColor: 'rgba(251,191,36,0.12)', borderRadius: 10,
     paddingHorizontal: 8, paddingVertical: 2, marginLeft: 6,
   },
-  offerCountText: { fontSize: 11, fontWeight: '700', color: '#FBBF24' },
-  sortLabel: { fontSize: 12, color: 'rgba(255,255,255,0.5)', fontWeight: '600' },
+  offerCountText: { fontSize: 11, fontWeight: '700', color: t.accentText },
+  sortLabel: { fontSize: 12, color: t.inkText(0.5), fontWeight: '600' },
   sortChip: {
-    borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 10, borderWidth: 1, borderColor: t.ink(0.15),
     paddingHorizontal: 12, paddingVertical: 5,
   },
   sortChipActive: { borderColor: '#FBBF24', backgroundColor: 'rgba(251,191,36,0.12)' },
-  sortChipText: { fontSize: 12, color: 'rgba(255,255,255,0.6)', fontWeight: '600' },
-  sortChipTextActive: { color: '#FBBF24', fontWeight: '800' },
+  sortChipText: { fontSize: 12, color: t.inkText(0.6), fontWeight: '600' },
+  sortChipTextActive: { color: t.accentText, fontWeight: '800' },
   // Header
   header: {
-    backgroundColor: '#0a0a0a',
-    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: t.page,
+    borderBottomWidth: 1, borderBottomColor: t.ink(0.1),
     paddingTop: 56, paddingBottom: 14, paddingHorizontal: 20,
   },
-  headerLogo:    { color: '#fff', fontSize: 18, fontWeight: '900', letterSpacing: -0.5 },
-  headerLogoSub: { color: 'rgba(255,255,255,0.35)', fontSize: 13, fontWeight: '500', marginLeft: 8, alignSelf: 'flex-end', marginBottom: 1 },
-  filterSubtitle: { color: '#FBBF24', fontSize: 13, fontWeight: '600', flexShrink: 1 },
+  headerLogo:    { color: t.inkSolid, fontSize: 18, fontWeight: '900', letterSpacing: -0.5 },
+  headerLogoSub: { color: t.inkText(0.35), fontSize: 13, fontWeight: '500', marginLeft: 8, alignSelf: 'flex-end', marginBottom: 1 },
+  filterSubtitle: { color: t.accentText, fontSize: 13, fontWeight: '600', flexShrink: 1 },
   filterSubtitleBadge: {
     marginLeft: 8, minWidth: 22, height: 22, borderRadius: 11,
     backgroundColor: '#F59E0B', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5,
   },
   filterSubtitleBadgeText: { color: '#000', fontSize: 11, fontWeight: '800' },
-  headerSub:  { color: 'rgba(255,255,255,0.4)', fontSize: 13, marginBottom: 2 },
-  headerName: { color: '#fff', fontSize: 22, fontWeight: '800', letterSpacing: -0.3 },
-  headerDate: { color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 3 },
+  headerSub:  { color: t.inkText(0.4), fontSize: 13, marginBottom: 2 },
+  headerName: { color: t.inkSolid, fontSize: 22, fontWeight: '800', letterSpacing: -0.3 },
+  headerDate: { color: t.inkText(0.4), fontSize: 12, marginTop: 3 },
   badge: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     backgroundColor: 'rgba(245,158,11,0.15)',
     borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5,
   },
-  badgeText: { color: '#F59E0B', fontSize: 12, fontWeight: '600' },
+  badgeText: { color: t.accentText, fontSize: 12, fontWeight: '600' },
 
   // Exit button
   exitBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: t.ink(0.1),
+    borderWidth: 1, borderColor: t.ink(0.2),
     borderRadius: 14, paddingHorizontal: 10, paddingVertical: 5,
   },
-  exitBtnText: { color: 'rgba(255,255,255,0.85)', fontSize: 12, fontWeight: '600' },
+  exitBtnText: { color: t.inkText(0.85), fontSize: 12, fontWeight: '600' },
 
   // Burger button (header)
   burgerBtn: {
     width: 36, height: 36, borderRadius: 18,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1, borderColor: t.ink(0.15),
+    backgroundColor: t.ink(0.06),
     alignItems: 'center', justifyContent: 'center',
   },
-  burgerBtnText: { color: 'rgba(255,255,255,0.8)', fontSize: 22, fontWeight: '700', lineHeight: 26 },
+  burgerBtnText: { color: t.inkText(0.8), fontSize: 22, fontWeight: '700', lineHeight: 26 },
 
   // Burger menu panel
   burgerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
   burgerPanel: {
     position: 'absolute', top: 0, right: 0, bottom: 0,
-    width: 240, backgroundColor: '#111',
+    width: 240, backgroundColor: t.surface,
     paddingTop: 60, paddingBottom: 40,
   },
   burgerHeader: {
     paddingHorizontal: 20, paddingBottom: 20,
-    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)',
+    borderBottomWidth: 1, borderBottomColor: t.ink(0.1),
     marginBottom: 8,
   },
-  burgerLogo: { color: '#fff', fontSize: 20, fontWeight: '900', letterSpacing: -0.5 },
-  burgerUser: { color: 'rgba(255,255,255,0.55)', fontSize: 13, marginTop: 4 },
-  burgerDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.1)', marginVertical: 8, marginHorizontal: 20 },
+  burgerLogo: { color: t.inkSolid, fontSize: 20, fontWeight: '900', letterSpacing: -0.5 },
+  burgerUser: { color: t.inkText(0.55), fontSize: 13, marginTop: 4 },
+  burgerDivider: { height: 1, backgroundColor: t.ink(0.1), marginVertical: 8, marginHorizontal: 20 },
   burgerItem: { paddingHorizontal: 20, paddingVertical: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  burgerItemText: { color: 'rgba(255,255,255,0.7)', fontSize: 15, flex: 1 },
+  burgerItemText: { color: t.inkText(0.7), fontSize: 15, flex: 1 },
   burgerBadge: {
     minWidth: 28, height: 28, borderRadius: 14,
     backgroundColor: '#F59E0B',
@@ -1245,10 +1258,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   burgerBadgeText: { color: '#000', fontSize: 13, fontWeight: '800' },
-  burgerSep: { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', marginVertical: 8 },
+  burgerSep: { borderTopWidth: 1, borderTopColor: t.ink(0.1), marginVertical: 8 },
 
   // Tab bar (scrollable)
-  tabBarOuter: { flexShrink: 0, borderBottomWidth: 1, backgroundColor: '#111', borderBottomColor: 'rgba(255,255,255,0.1)' },
+  tabBarOuter: { flexShrink: 0, borderBottomWidth: 1, backgroundColor: t.surface, borderBottomColor: t.ink(0.1) },
   tabBarContent: { paddingHorizontal: 4 },
   tab: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
@@ -1257,15 +1270,15 @@ const styles = StyleSheet.create({
     minWidth: 100,
   },
   tabActive:    { borderBottomColor: '#F59E0B' },
-  tabText:      { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.4)' },
-  tabTextActive: { color: '#F59E0B' },
+  tabText:      { fontSize: 12, fontWeight: '600', color: t.inkText(0.4) },
+  tabTextActive: { color: t.accentText },
   tabBadge: {
     minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: t.ink(0.1),
   },
   tabBadgeActive:     { backgroundColor: '#F59E0B' },
-  tabBadgeText:       { fontSize: 10, fontWeight: '700', color: 'rgba(255,255,255,0.4)' },
+  tabBadgeText:       { fontSize: 10, fontWeight: '700', color: t.inkText(0.4) },
   tabBadgeTextActive: { color: '#000' },
 
   // Section header
@@ -1295,52 +1308,52 @@ const styles = StyleSheet.create({
 
   // Card
   card: {
-    borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 12, borderWidth: 1, borderColor: t.ink(0.1),
+    backgroundColor: t.ink(0.03),
     padding: 14, marginBottom: 10,
   },
   row:     { flexDirection: 'row', alignItems: 'center', gap: 8 },
   catIcon: { fontSize: 18, width: 24, textAlign: 'center' },
-  title:   { fontSize: 15, fontWeight: '700', color: '#fff' },
-  sub:     { fontSize: 12, color: 'rgba(255,255,255,0.4)', flexShrink: 1 },
+  title:   { fontSize: 15, fontWeight: '700', color: t.inkSolid },
+  sub:     { fontSize: 12, color: t.inkText(0.4), flexShrink: 1 },
   infoBox: {
-    backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: 10,
+    backgroundColor: t.ink(0.04), borderRadius: 10, padding: 10,
   },
 
   // Offer group section
   groupSection: {
-    borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 12, borderWidth: 1, borderColor: t.ink(0.1),
+    backgroundColor: t.ink(0.03),
     marginBottom: 10, overflow: 'hidden',
   },
   groupShipmentHeader: { padding: 14, paddingBottom: 12 },
   offerRow: {
     paddingHorizontal: 14, paddingVertical: 12,
-    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)',
+    borderTopWidth: 1, borderTopColor: t.ink(0.06),
   },
 
   // Route header (request mode inside OfferRow)
   routeHeader: {
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: t.ink(0.04),
     borderRadius: 8, padding: 8,
   },
-  routeNum:  { fontSize: 11, fontWeight: '700', color: '#F59E0B' },
-  routeCity: { fontSize: 12, fontWeight: '700', color: '#fff' },
+  routeNum:  { fontSize: 11, fontWeight: '700', color: t.accentText },
+  routeCity: { fontSize: 12, fontWeight: '700', color: t.inkSolid },
 
   // carrier_offer mode styles
-  offerCarrierName:  { fontSize: 14, fontWeight: '700', color: '#fff', flexShrink: 1 },
+  offerCarrierName:  { fontSize: 14, fontWeight: '700', color: t.inkSolid, flexShrink: 1 },
   offerPricePill:    { backgroundColor: 'rgba(251,191,36,0.12)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
-  offerPriceText:    { fontSize: 12, fontWeight: '800', color: '#FBBF24' },
-  offerRouteCity:    { fontSize: 13, fontWeight: '700', color: '#fff' },
-  offerRouteDate:    { fontSize: 11, color: 'rgba(255,255,255,0.4)' },
-  offerRouteArrow:   { fontSize: 12, color: 'rgba(255,255,255,0.4)' },
-  offerStopText:     { fontSize: 11, color: 'rgba(255,255,255,0.4)' },
-  offerMessage:      { fontSize: 12, color: 'rgba(255,255,255,0.6)', fontStyle: 'italic', marginBottom: 6, paddingHorizontal: 2 },
-  offerConditionsBox:{ backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 8, marginBottom: 4 },
-  offerConditionLine:{ fontSize: 11, color: 'rgba(255,255,255,0.5)', lineHeight: 17 },
-  offerDocTitle:     { fontSize: 11, fontWeight: '800', color: '#FBBF24', letterSpacing: 0.5, marginBottom: 2 },
-  offerDocSender:    { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.75)', marginBottom: 6 },
-  offerDocNote:      { fontSize: 10, color: 'rgba(255,255,255,0.35)', fontStyle: 'italic', marginTop: 4 },
+  offerPriceText:    { fontSize: 12, fontWeight: '800', color: t.accentText },
+  offerRouteCity:    { fontSize: 13, fontWeight: '700', color: t.inkSolid },
+  offerRouteDate:    { fontSize: 11, color: t.inkText(0.4) },
+  offerRouteArrow:   { fontSize: 12, color: t.inkText(0.4) },
+  offerStopText:     { fontSize: 11, color: t.inkText(0.4) },
+  offerMessage:      { fontSize: 12, color: t.inkText(0.6), fontStyle: 'italic', marginBottom: 6, paddingHorizontal: 2 },
+  offerConditionsBox:{ backgroundColor: t.ink(0.04), borderRadius: 8, padding: 8, marginBottom: 4 },
+  offerConditionLine:{ fontSize: 11, color: t.inkText(0.5), lineHeight: 17 },
+  offerDocTitle:     { fontSize: 11, fontWeight: '800', color: t.accentText, letterSpacing: 0.5, marginBottom: 2 },
+  offerDocSender:    { fontSize: 12, fontWeight: '600', color: t.inkText(0.75), marginBottom: 6 },
+  offerDocNote:      { fontSize: 10, color: t.inkText(0.35), fontStyle: 'italic', marginTop: 4 },
 
   // Action buttons
   actionsCol: { marginTop: 10, gap: 6, marginLeft: 32 },
@@ -1351,54 +1364,54 @@ const styles = StyleSheet.create({
   },
   actionBtnEdit:     { backgroundColor: '#FBBF24' },
   actionBtnEditText: { fontSize: 11, fontWeight: '700', color: '#000' },
-  actionBtnOff: { backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  actionBtnOffText:  { fontSize: 11, fontWeight: '600', color: '#60A5FA' },
-  actionBtnAmber: { backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  actionBtnAmberText:{ fontSize: 11, fontWeight: '600', color: '#60A5FA' },
+  actionBtnOff: { backgroundColor: t.ink(0.03), borderWidth: 1, borderColor: t.ink(0.1) },
+  actionBtnOffText:  { fontSize: 11, fontWeight: '600', color: t.soft('blue') },
+  actionBtnAmber: { backgroundColor: t.ink(0.03), borderWidth: 1, borderColor: t.ink(0.1) },
+  actionBtnAmberText:{ fontSize: 11, fontWeight: '600', color: t.soft('blue') },
   actionBtnDanger:     { backgroundColor: 'rgba(239,68,68,0.12)' },
-  actionBtnDangerText: { fontSize: 11, fontWeight: '600', color: '#F87171' } as const,
+  actionBtnDangerText: { fontSize: 11, fontWeight: '600', color: t.soft('red') } as const,
   btnBadge: {
     minWidth: 17, height: 17, borderRadius: 9, paddingHorizontal: 3,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: t.ink(0.08),
   },
-  btnBadgeText:    { fontSize: 10, fontWeight: '700', color: '#60A5FA' },
+  btnBadgeText:    { fontSize: 10, fontWeight: '700', color: t.soft('blue') },
   btnBadgeAmber: {
     minWidth: 17, height: 17, borderRadius: 9, paddingHorizontal: 3,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.25)',
+    backgroundColor: t.shade(0.25),
   },
   btnBadgeAmberText: { fontSize: 10, fontWeight: '800', color: '#000' },
   btnBadgeOff: {
     minWidth: 17, height: 17, borderRadius: 9, paddingHorizontal: 3,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: t.ink(0.08),
   },
-  btnBadgeOffText: { fontSize: 10, fontWeight: '700', color: 'rgba(255,255,255,0.35)' },
+  btnBadgeOffText: { fontSize: 10, fontWeight: '700', color: t.inkText(0.35) },
 
   // Status labels (Row C)
   statusLabel: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: t.ink(0.08),
     borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4,
   },
   statusLabelAccepted: { backgroundColor: 'rgba(74,222,128,0.12)' },
-  statusLabelText: { fontSize: 11, fontWeight: '600', color: '#FBBF24' },
+  statusLabelText: { fontSize: 11, fontWeight: '600', color: t.accentText },
   statusLabelBadge: {
     minWidth: 16, height: 16, borderRadius: 8, paddingHorizontal: 3,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: t.ink(0.12),
   },
-  statusLabelBadgeText: { fontSize: 10, fontWeight: '700', color: '#fff' },
+  statusLabelBadgeText: { fontSize: 10, fontWeight: '700', color: t.inkSolid },
 
   // Empty state
   empty:       { alignItems: 'center', paddingTop: 60 },
-  emptyText:   { fontSize: 15, color: 'rgba(255,255,255,0.3)', marginBottom: 12 },
+  emptyText:   { fontSize: 15, color: t.inkText(0.3), marginBottom: 12 },
   emptyBtn:    { paddingHorizontal: 20, paddingVertical: 10, backgroundColor: '#F59E0B', borderRadius: 12 },
   emptyBtnText:{ color: '#000', fontWeight: '700', fontSize: 14 },
-  errorScreen: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: '#0a0a0a' },
-  errorTitle:  { color: '#fff', fontSize: 18, fontWeight: '800', marginTop: 12 },
-  errorText:   { color: 'rgba(255,255,255,0.4)', fontSize: 13, textAlign: 'center', marginTop: 8, marginBottom: 16 },
+  errorScreen: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: t.page },
+  errorTitle:  { color: t.inkSolid, fontSize: 18, fontWeight: '800', marginTop: 12 },
+  errorText:   { color: t.inkText(0.4), fontSize: 13, textAlign: 'center', marginTop: 8, marginBottom: 16 },
 
   // Route status badge (transit view)
   routeStatusBadge: {
@@ -1409,23 +1422,23 @@ const styles = StyleSheet.create({
   // Offer detail modal
   offerModalCard: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    backgroundColor: '#111', borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: t.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    borderTopWidth: 1, borderTopColor: t.ink(0.1),
     padding: 20, paddingBottom: 36,
     maxHeight: '90%',
   },
-  offerModalLabel: { fontSize: 10, fontWeight: '800', color: '#F59E0B', letterSpacing: 1.5 },
-  offerModalTitle: { fontSize: 17, fontWeight: '800', color: '#fff', marginTop: 2 },
+  offerModalLabel: { fontSize: 10, fontWeight: '800', color: t.accentText, letterSpacing: 1.5 },
+  offerModalTitle: { fontSize: 17, fontWeight: '800', color: t.inkSolid, marginTop: 2 },
   offerModalRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)',
+    paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: t.ink(0.06),
   },
-  offerModalKey:  { fontSize: 12, color: 'rgba(255,255,255,0.4)' },
-  offerModalVal:  { fontSize: 13, fontWeight: '600', color: '#fff' },
-  offerModalMuted:{ fontSize: 12, color: 'rgba(255,255,255,0.4)' },
-  offerModalSection: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)' },
-  offerModalSectionTitle: { fontSize: 10, fontWeight: '800', color: 'rgba(255,255,255,0.4)', letterSpacing: 1, marginBottom: 6, textTransform: 'uppercase' },
-  offerModalBody: { fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 18 },
+  offerModalKey:  { fontSize: 12, color: t.inkText(0.4) },
+  offerModalVal:  { fontSize: 13, fontWeight: '600', color: t.inkSolid },
+  offerModalMuted:{ fontSize: 12, color: t.inkText(0.4) },
+  offerModalSection: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: t.ink(0.06) },
+  offerModalSectionTitle: { fontSize: 10, fontWeight: '800', color: t.inkText(0.4), letterSpacing: 1, marginBottom: 6, textTransform: 'uppercase' },
+  offerModalBody: { fontSize: 12, color: t.inkText(0.6), lineHeight: 18 },
   offerStatusPill: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
   offerStatusPillText: { fontSize: 11, fontWeight: '700' },
 

@@ -6,10 +6,14 @@ import {
 import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { profileApi, SenderProfile } from '@/lib/api'
+import { Theme, useStyles, useTheme } from '@/lib/theme'
 
 // ─── Personal details screen ──────────────────────────────────────────────────
 
 export default function PersonalScreen() {
+  const th = useTheme()
+  const s = useStyles(makeStyles)
+
   const [form, setForm] = useState<SenderProfile>({
     name: '', email: '', username: '', phone: '',
     vatNumber: '', country: '', city: '', address: '',
@@ -52,13 +56,13 @@ export default function PersonalScreen() {
         <Text style={s.headerTitle}>Προσωπικά Στοιχεία</Text>
         <TouchableOpacity onPress={() => router.push('/(tabs)/profile' as any)} style={s.backBtn} hitSlop={12}>
           <Text style={s.backText}>Επιστροφή</Text>
-          <Ionicons name="arrow-forward" size={16} color="rgba(255,255,255,0.6)" />
+          <Ionicons name="arrow-forward" size={16} color={th.inkText(0.6)} />
         </TouchableOpacity>
       </View>
 
       {loading ? (
         <View style={s.center}>
-          <ActivityIndicator color="#F59E0B" size="large" />
+          <ActivityIndicator color={th.accentText} size="large" />
         </View>
       ) : (
         <ScrollView contentContainerStyle={s.body}>
@@ -127,6 +131,9 @@ function Field({ label, value, onChangeText, placeholder, editable = true, keybo
   keyboardType?: 'phone-pad' | 'default'
   isLast?: boolean
 }) {
+  const th = useTheme()
+  const s = useStyles(makeStyles)
+
   return (
     <View style={[s.field, !isLast && s.fieldBorder]}>
       <Text style={s.fieldLabel}>{label}</Text>
@@ -135,7 +142,7 @@ function Field({ label, value, onChangeText, placeholder, editable = true, keybo
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor="rgba(255,255,255,0.25)"
+        placeholderTextColor={th.inkText(0.25)}
         editable={editable}
         keyboardType={keyboardType ?? 'default'}
         autoCapitalize="none"
@@ -146,54 +153,54 @@ function Field({ label, value, onChangeText, placeholder, editable = true, keybo
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const s = StyleSheet.create({
-  root:   { flex: 1, backgroundColor: '#0a0a0a' },
+const makeStyles = (t: Theme) => StyleSheet.create({
+  root:   { flex: 1, backgroundColor: t.page },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
   header: {
-    backgroundColor: '#0a0a0a',
-    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: t.page,
+    borderBottomWidth: 1, borderBottomColor: t.ink(0.1),
     paddingTop: 56, paddingBottom: 14, paddingHorizontal: 20,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
-  headerTitle: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
+  headerTitle: { color: t.inkSolid, fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
   backBtn:     { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  backText:    { color: 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: '600' },
+  backText:    { color: t.inkText(0.6), fontSize: 13, fontWeight: '600' },
 
   body: { padding: 20, paddingBottom: 48 },
 
   sectionLabel: {
-    fontSize: 10, fontWeight: '800', color: 'rgba(255,255,255,0.4)',
+    fontSize: 10, fontWeight: '800', color: t.inkText(0.4),
     textTransform: 'uppercase', letterSpacing: 1.5,
     marginBottom: 10, marginLeft: 2,
     marginTop: 20,
   },
 
   card: {
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: t.ink(0.03),
+    borderRadius: 16, borderWidth: 1, borderColor: t.ink(0.1),
     overflow: 'hidden',
   },
 
   field:       { paddingHorizontal: 16, paddingVertical: 14 },
-  fieldBorder: { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
-  fieldLabel:  { fontSize: 10, fontWeight: '700', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 },
+  fieldBorder: { borderBottomWidth: 1, borderBottomColor: t.ink(0.06) },
+  fieldLabel:  { fontSize: 10, fontWeight: '700', color: t.inkText(0.4), textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 },
   fieldInput: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: t.ink(0.06),
+    borderWidth: 1, borderColor: t.ink(0.12),
     borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10,
-    color: '#fff', fontSize: 14,
+    color: t.inkSolid, fontSize: 14,
   },
   fieldInputDisabled: { opacity: 0.45 },
 
   errorBox:   { backgroundColor: 'rgba(239,68,68,0.1)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.25)', borderRadius: 12, padding: 14, marginTop: 16 },
-  errorText:  { color: '#F87171', fontSize: 13 },
+  errorText:  { color: t.soft('red'), fontSize: 13 },
   successBox: { backgroundColor: 'rgba(74,222,128,0.1)', borderWidth: 1, borderColor: 'rgba(74,222,128,0.25)', borderRadius: 12, padding: 14, marginTop: 16 },
-  successText:{ color: '#4ADE80', fontSize: 13 },
+  successText:{ color: t.soft('green'), fontSize: 13 },
 
   btnRow:         { flexDirection: 'row', gap: 12, marginTop: 24 },
-  cancelBtn:      { flex: 1, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
-  cancelBtnText:  { color: 'rgba(255,255,255,0.5)', fontSize: 14, fontWeight: '600' },
+  cancelBtn:      { flex: 1, borderWidth: 1, borderColor: t.ink(0.12), borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
+  cancelBtnText:  { color: t.inkText(0.5), fontSize: 14, fontWeight: '600' },
   saveBtn:        { flex: 1, backgroundColor: '#F59E0B', borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
   saveBtnDisabled:{ opacity: 0.5 },
   saveBtnText:    { color: '#000', fontWeight: '700', fontSize: 14 },

@@ -13,6 +13,7 @@ import { Colors } from '@/constants/colors'
 import { useMessageTemplates, renderTemplate, templateKindForCategory } from '@/lib/templates'
 import { carrierRating, recurrenceNote } from '@/lib/display'
 import { fCity } from '@/lib/cityDisplay'
+import { Theme, useStyles, useTheme } from '@/lib/theme'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -47,6 +48,9 @@ type RouteCardProps = {
 }
 
 function RouteCard({ route, offerStatus, onRequest, onMessage, onViewOffer }: RouteCardProps) {
+  const th = useTheme()
+  const styles = useStyles(makeStyles)
+
   const { t, language } = useI18n()
   const isRequestOnly = offerStatus === 'REQUEST'
   const hasQuote = Boolean(offerStatus) && !isRequestOnly
@@ -136,7 +140,7 @@ function RouteCard({ route, offerStatus, onRequest, onMessage, onViewOffer }: Ro
           </View>
         ) : isRequestOnly ? (
           <View style={styles.sentBadge}>
-            <Ionicons name="checkmark-circle" size={14} color="#4ADE80" />
+            <Ionicons name="checkmark-circle" size={14} color={th.soft('green')} />
             <Text style={styles.sentText}>{t('match.btn_sent')}</Text>
           </View>
         ) : (
@@ -153,6 +157,9 @@ function RouteCard({ route, offerStatus, onRequest, onMessage, onViewOffer }: Ro
 // ─── Matches screen ───────────────────────────────────────────────────────────
 
 export default function MatchesScreen() {
+  const th = useTheme()
+  const styles = useStyles(makeStyles)
+
   const { id: shipmentId, title: titleParam, returnTo } = useLocalSearchParams<{ id: string; title?: string; returnTo?: string }>()
   const goBack = () => router.replace((returnTo ? decodeURIComponent(returnTo) : '/(tabs)') as any)
   const queryClient = useQueryClient()
@@ -319,10 +326,10 @@ export default function MatchesScreen() {
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#0a0a0a' }}>
+      <View style={{ flex: 1, backgroundColor: th.page }}>
         <View style={styles.header}>
           <TouchableOpacity onPress={goBack} style={styles.backBtn} hitSlop={12}>
-            <Ionicons name="arrow-back" size={22} color="#fff" />
+            <Ionicons name="arrow-back" size={22} color={th.inkSolid} />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
             <Text style={styles.headerTitle}>{t('match.title')}</Text>
@@ -332,7 +339,7 @@ export default function MatchesScreen() {
           </View>
         </View>
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#FBBF24" />
+          <ActivityIndicator size="large" color={th.accentText} />
           <Text style={styles.loadingText}>{t('match.loading')}</Text>
         </View>
       </View>
@@ -340,11 +347,11 @@ export default function MatchesScreen() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#0a0a0a' }}>
+    <View style={{ flex: 1, backgroundColor: th.page }}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={goBack} style={styles.backBtn} hitSlop={12}>
-          <Ionicons name="arrow-back" size={22} color="#fff" />
+          <Ionicons name="arrow-back" size={22} color={th.inkSolid} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>{sectionTitle}</Text>
@@ -374,9 +381,9 @@ export default function MatchesScreen() {
             {!!shipmentData.description && <Text style={styles.summaryMuted}>{shipmentData.description}</Text>}
             {(shipmentData.isFragile || shipmentData.requiresCooling || shipmentData.isHazardous) && (
               <View style={[styles.row, { gap: 6, marginTop: 6, flexWrap: 'wrap' }]}>
-                {shipmentData.isFragile && <Text style={[styles.flagPill, { color: '#FB923C', backgroundColor: 'rgba(251,146,60,0.12)' }]}>{t('ship.info.fragile')}</Text>}
-                {shipmentData.requiresCooling && <Text style={[styles.flagPill, { color: '#60A5FA', backgroundColor: 'rgba(96,165,250,0.12)' }]}>{t('ship.info.cooling')}</Text>}
-                {shipmentData.isHazardous && <Text style={[styles.flagPill, { color: '#F87171', backgroundColor: 'rgba(248,113,113,0.12)' }]}>{t('ship.info.hazardous')}</Text>}
+                {shipmentData.isFragile && <Text style={[styles.flagPill, { color: th.soft('orange'), backgroundColor: 'rgba(251,146,60,0.12)' }]}>{t('ship.info.fragile')}</Text>}
+                {shipmentData.requiresCooling && <Text style={[styles.flagPill, { color: th.soft('blue'), backgroundColor: 'rgba(96,165,250,0.12)' }]}>{t('ship.info.cooling')}</Text>}
+                {shipmentData.isHazardous && <Text style={[styles.flagPill, { color: th.soft('red'), backgroundColor: 'rgba(248,113,113,0.12)' }]}>{t('ship.info.hazardous')}</Text>}
               </View>
             )}
             <View style={[styles.row, { gap: 12, marginTop: 8, flexWrap: 'wrap' }]}>
@@ -386,7 +393,7 @@ export default function MatchesScreen() {
               {!!shipmentData.weight && <Text style={styles.summaryMuted}>⚖️ {shipmentData.weight} kg</Text>}
               {!!shipmentData.volume && <Text style={styles.summaryMuted}>📦 {shipmentData.volume} m³</Text>}
               {!!shipmentData.desiredDelivery && <Text style={styles.summaryMuted}>📅 {fDate(shipmentData.desiredDelivery)}</Text>}
-              {!!shipmentData.maxBudget && <Text style={[styles.summaryMuted, { color: '#FBBF24', fontWeight: '700' }]}>{t('ship.info.up_to')} €{shipmentData.maxBudget}</Text>}
+              {!!shipmentData.maxBudget && <Text style={[styles.summaryMuted, { color: th.accentText, fontWeight: '700' }]}>{t('ship.info.up_to')} €{shipmentData.maxBudget}</Text>}
             </View>
             {!!(shipmentData.recipientName || shipmentData.recipientPhone) && (
               <Text style={[styles.summaryMuted, { marginTop: 6 }]}>
@@ -407,7 +414,7 @@ export default function MatchesScreen() {
               </View>
               {card.offerStatus ? (
                 <View style={[styles.sentBadge, { alignSelf: 'flex-start' }]}>
-                  <Ionicons name="checkmark-circle" size={14} color="#4ADE80" />
+                  <Ionicons name="checkmark-circle" size={14} color={th.soft('green')} />
                   <Text style={styles.sentText}>{card.offerStatus === 'REQUEST' ? t('match.btn_sent') : t('match.btn_view_offer')}</Text>
                 </View>
               ) : (
@@ -427,7 +434,7 @@ export default function MatchesScreen() {
         ) : undefined}
         ListFooterComponent={hiddenCards.length > 0 ? (
           // Κάρτες που έκρυψε ο αποστολέας: δεν ξαναεμφανίζονται, εκτός αν τις επαναφέρει
-          <View style={{ marginTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', paddingTop: 14 }}>
+          <View style={{ marginTop: 16, borderTopWidth: 1, borderTopColor: th.ink(0.1), paddingTop: 14 }}>
             <Text style={styles.summaryLabel}>{t('match.hidden_title')} ({hiddenCards.length})</Text>
             {hiddenCards.map(card => (
               <View key={card.id} style={[styles.row, styles.hiddenRow]}>
@@ -477,7 +484,7 @@ export default function MatchesScreen() {
                 <Text style={styles.modalTitle}>{t('match.modal.req_title')}</Text>
               </View>
               <TouchableOpacity onPress={closeModal} hitSlop={12}>
-                <Ionicons name="close" size={22} color="rgba(255,255,255,0.4)" />
+                <Ionicons name="close" size={22} color={th.inkText(0.4)} />
               </TouchableOpacity>
             </View>
 
@@ -534,7 +541,7 @@ export default function MatchesScreen() {
               value={messageText}
               onChangeText={setMessageText}
               placeholder={t('match.modal.req_placeholder')}
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={th.inkText(0.4)}
               multiline
               numberOfLines={4}
               style={styles.messageInput}
@@ -574,7 +581,7 @@ export default function MatchesScreen() {
                 <Text style={styles.modalTitle}>{t('match.modal.msg_title')}</Text>
               </View>
               <TouchableOpacity onPress={() => setMsgModal(null)} hitSlop={12}>
-                <Ionicons name="close" size={22} color="rgba(255,255,255,0.4)" />
+                <Ionicons name="close" size={22} color={th.inkText(0.4)} />
               </TouchableOpacity>
             </View>
 
@@ -619,7 +626,7 @@ export default function MatchesScreen() {
               value={msgText}
               onChangeText={setMsgText}
               placeholder={t('match.modal.msg_placeholder')}
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={th.inkText(0.4)}
               multiline
               numberOfLines={4}
               style={styles.messageInput}
@@ -654,138 +661,138 @@ export default function MatchesScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) => StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  loadingText: { color: 'rgba(255,255,255,0.4)', fontSize: 14 },
+  loadingText: { color: t.inkText(0.4), fontSize: 14 },
 
   // Header
   header: {
-    backgroundColor: '#0a0a0a',
-    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: t.page,
+    borderBottomWidth: 1, borderBottomColor: t.ink(0.1),
     paddingTop: 56, paddingBottom: 16, paddingHorizontal: 20,
     flexDirection: 'row', alignItems: 'center', gap: 12,
   },
   backBtn: { padding: 4 },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '800' },
-  headerSub: { color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2 },
+  headerTitle: { color: t.inkSolid, fontSize: 18, fontWeight: '800' },
+  headerSub: { color: t.inkText(0.4), fontSize: 12, marginTop: 2 },
   countBadge: {
-    backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 14,
+    backgroundColor: t.ink(0.1), borderRadius: 14,
     minWidth: 28, height: 28, alignItems: 'center', justifyContent: 'center',
-    paddingHorizontal: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)'
+    paddingHorizontal: 8, borderWidth: 1, borderColor: t.ink(0.2)
   },
-  countText: { color: '#fff', fontWeight: '800', fontSize: 13 },
+  countText: { color: t.inkSolid, fontWeight: '800', fontSize: 13 },
 
   // Shipment summary
   shipmentCard: {
-    backgroundColor: 'rgba(255,255,255,0.03)', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: t.ink(0.03), borderBottomWidth: 1, borderBottomColor: t.ink(0.1),
     paddingHorizontal: 16, paddingVertical: 12,
   },
-  shipmentRoute: { fontSize: 14, fontWeight: '700', color: '#fff', flex: 1 },
-  shipmentDetail: { fontSize: 13, color: 'rgba(255,255,255,0.5)' },
+  shipmentRoute: { fontSize: 14, fontWeight: '700', color: t.inkSolid, flex: 1 },
+  shipmentDetail: { fontSize: 13, color: t.inkText(0.5) },
 
   summaryCard: {
     backgroundColor: 'rgba(251,191,36,0.05)', borderRadius: 16,
     borderWidth: 1, borderColor: 'rgba(251,191,36,0.2)',
     padding: 14, marginBottom: 14,
   },
-  summaryLabel: { fontSize: 10, fontWeight: '800', color: '#FBBF24', letterSpacing: 1.2, marginBottom: 4, textTransform: 'uppercase' },
-  summaryRoute: { fontSize: 15, fontWeight: '800', color: '#fff' },
-  summaryMuted: { fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 2 },
+  summaryLabel: { fontSize: 10, fontWeight: '800', color: t.accentText, letterSpacing: 1.2, marginBottom: 4, textTransform: 'uppercase' },
+  summaryRoute: { fontSize: 15, fontWeight: '800', color: t.inkSolid },
+  summaryMuted: { fontSize: 12, color: t.inkText(0.5), marginTop: 2 },
   flagPill: { fontSize: 11, fontWeight: '700', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2, overflow: 'hidden' },
 
   // Route card
   card: {
-    backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: t.ink(0.03), borderRadius: 16,
+    borderWidth: 1, borderColor: t.ink(0.1),
     padding: 14, marginBottom: 10,
   },
   row: { flexDirection: 'row', alignItems: 'center' },
-  routeNum: { fontSize: 12, fontWeight: '700', color: '#FBBF24', fontVariant: ['tabular-nums'] },
+  routeNum: { fontSize: 12, fontWeight: '700', color: t.accentText, fontVariant: ['tabular-nums'] },
   carrierChip: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 20,
+    backgroundColor: t.ink(0.05), borderRadius: 20,
     paddingHorizontal: 8, paddingVertical: 3,
   },
-  carrierName: { fontSize: 15, fontWeight: '700', color: '#fff' },
-  carrierText: { fontSize: 12, color: '#fff', fontWeight: '600' },
-  ratingText:  { fontSize: 12, color: '#F87171', fontWeight: '800' },
+  carrierName: { fontSize: 15, fontWeight: '700', color: t.inkSolid },
+  carrierText: { fontSize: 12, color: t.inkSolid, fontWeight: '600' },
+  ratingText:  { fontSize: 12, color: t.soft('red'), fontWeight: '800' },
   ratingTrips: { color: 'rgba(248,113,113,0.6)', fontWeight: '600' },
-  recurrenceNote: { fontSize: 12, color: '#60A5FA', marginBottom: 6 },
+  recurrenceNote: { fontSize: 12, color: t.soft('blue'), marginBottom: 6 },
   recurringChip: {
     backgroundColor: 'rgba(251,191,36,0.1)', borderRadius: 20,
     paddingHorizontal: 8, paddingVertical: 3,
   },
-  recurringText: { fontSize: 11, color: '#FBBF24', fontWeight: '600' },
+  recurringText: { fontSize: 11, color: t.accentText, fontWeight: '600' },
   distChip: {
     flexDirection: 'row', alignItems: 'center', gap: 3,
     backgroundColor: 'rgba(96,165,250,0.1)', borderRadius: 20,
     paddingHorizontal: 8, paddingVertical: 3,
   },
-  distText: { fontSize: 11, color: '#60A5FA', fontWeight: '600' },
-  cityText:  { fontSize: 13, fontWeight: '700', color: '#fff' },
-  dateText:  { fontSize: 12, color: 'rgba(255,255,255,0.4)' },
-  arrow:     { fontSize: 12, color: 'rgba(255,255,255,0.4)' },
-  stopsText: { fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2, marginLeft: 2 },
-  capacityText: { fontSize: 12, color: 'rgba(255,255,255,0.4)' },
-  priceText:    { fontSize: 16, fontWeight: '800', color: '#FBBF24' },
-  priceSubText: { fontSize: 12, color: 'rgba(255,255,255,0.4)' },
+  distText: { fontSize: 11, color: t.soft('blue'), fontWeight: '600' },
+  cityText:  { fontSize: 13, fontWeight: '700', color: t.inkSolid },
+  dateText:  { fontSize: 12, color: t.inkText(0.4) },
+  arrow:     { fontSize: 12, color: t.inkText(0.4) },
+  stopsText: { fontSize: 11, color: t.inkText(0.4), marginTop: 2, marginLeft: 2 },
+  capacityText: { fontSize: 12, color: t.inkText(0.4) },
+  priceText:    { fontSize: 16, fontWeight: '800', color: t.accentText },
+  priceSubText: { fontSize: 12, color: t.inkText(0.4) },
   sentBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     backgroundColor: 'rgba(74,222,128,0.1)', borderRadius: 10,
     paddingHorizontal: 12, paddingVertical: 7,
   },
-  sentText: { fontSize: 12, fontWeight: '700', color: '#4ADE80' },
+  sentText: { fontSize: 12, fontWeight: '700', color: t.soft('green') },
   requestBtn: {
     backgroundColor: '#FBBF24', borderRadius: 10,
     paddingHorizontal: 14, paddingVertical: 9,
   },
   requestBtnText: { fontSize: 13, fontWeight: '700', color: '#000' },
   ghostBtn: {
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', borderRadius: 10,
+    borderWidth: 1, borderColor: t.ink(0.15), borderRadius: 10,
     paddingHorizontal: 12, paddingVertical: 8,
   },
-  ghostBtnText:  { fontSize: 13, fontWeight: '700', color: 'rgba(255,255,255,0.65)' },
+  ghostBtnText:  { fontSize: 13, fontWeight: '700', color: t.inkText(0.65) },
   transshipText: { fontSize: 11, fontWeight: '800', color: '#EF4444' },
   otherDateChip: {
-    fontSize: 11, fontWeight: '600', color: '#C4B5FD', backgroundColor: 'rgba(139,92,246,0.15)',
+    fontSize: 11, fontWeight: '600', color: t.soft('violet', 300), backgroundColor: 'rgba(139,92,246,0.15)',
     borderWidth: 1, borderColor: 'rgba(139,92,246,0.3)', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, overflow: 'hidden',
   },
-  cardTitle:   { fontSize: 15, fontWeight: '800', color: '#FBBF24' },
-  cardError:   { color: '#F87171', fontSize: 13, marginBottom: 10 },
-  hiddenRow:   { gap: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', borderRadius: 12, padding: 10, marginTop: 8 },
-  hiddenTitle: { fontSize: 13, fontWeight: '700', color: 'rgba(255,255,255,0.8)' },
+  cardTitle:   { fontSize: 15, fontWeight: '800', color: t.accentText },
+  cardError:   { color: t.soft('red'), fontSize: 13, marginBottom: 10 },
+  hiddenRow:   { gap: 10, borderWidth: 1, borderColor: t.ink(0.1), borderRadius: 12, padding: 10, marginTop: 8 },
+  hiddenTitle: { fontSize: 13, fontWeight: '700', color: t.inkText(0.8) },
   viewOfferBtn: {
     backgroundColor: 'rgba(96,165,250,0.1)', borderRadius: 10,
     paddingHorizontal: 14, paddingVertical: 9,
   },
-  viewOfferBtnText: { fontSize: 13, fontWeight: '700', color: '#60A5FA' },
+  viewOfferBtnText: { fontSize: 13, fontWeight: '700', color: t.soft('blue') },
 
   msgBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9,
     borderWidth: 1,
   },
-  msgBtnOff: { backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.1)' },
-  msgBtnActive: { backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.1)' },
-  msgBtnOffText: { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.5)' },
-  msgBtnActiveText: { fontSize: 12, fontWeight: '600', color: '#60A5FA' },
+  msgBtnOff: { backgroundColor: t.ink(0.03), borderColor: t.ink(0.1) },
+  msgBtnActive: { backgroundColor: t.ink(0.03), borderColor: t.ink(0.1) },
+  msgBtnOffText: { fontSize: 12, fontWeight: '600', color: t.inkText(0.5) },
+  msgBtnActiveText: { fontSize: 12, fontWeight: '600', color: t.soft('blue') },
   msgBadgeOff: {
     minWidth: 17, height: 17, borderRadius: 9, paddingHorizontal: 3,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: t.ink(0.08),
   },
-  msgBadgeOffText: { fontSize: 10, fontWeight: '700', color: 'rgba(255,255,255,0.35)' },
+  msgBadgeOffText: { fontSize: 10, fontWeight: '700', color: t.inkText(0.35) },
   msgBadge: {
     minWidth: 17, height: 17, borderRadius: 9, paddingHorizontal: 3,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: t.ink(0.08),
   },
-  msgBadgeText: { fontSize: 10, fontWeight: '700', color: '#60A5FA' },
+  msgBadgeText: { fontSize: 10, fontWeight: '700', color: t.soft('blue') },
 
   // Empty
   empty: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 24 },
-  emptyTitle:    { fontSize: 16, fontWeight: '700', color: '#fff', marginBottom: 8 },
-  emptySubtitle: { fontSize: 13, color: 'rgba(255,255,255,0.4)', textAlign: 'center', lineHeight: 20 },
+  emptyTitle:    { fontSize: 16, fontWeight: '700', color: t.inkSolid, marginBottom: 8 },
+  emptySubtitle: { fontSize: 13, color: t.inkText(0.4), textAlign: 'center', lineHeight: 20 },
 
   // Modal
   modalOverlay: {
@@ -793,37 +800,37 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalCard: {
-    backgroundColor: '#111', borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', borderBottomWidth: 0,
+    backgroundColor: t.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    borderWidth: 1, borderColor: t.ink(0.1), borderBottomWidth: 0,
     paddingHorizontal: 20, paddingTop: 20, paddingBottom: 36,
   },
-  modalLabel: { fontSize: 10, fontWeight: '800', color: '#FBBF24', letterSpacing: 1.5 },
-  modalTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginTop: 2 },
+  modalLabel: { fontSize: 10, fontWeight: '800', color: t.accentText, letterSpacing: 1.5 },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: t.inkSolid, marginTop: 2 },
   modalRouteInfo: {
-    backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12,
+    backgroundColor: t.ink(0.03), borderRadius: 12,
     padding: 12, marginBottom: 14,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 1, borderColor: t.ink(0.1),
   },
-  modalRouteNum:    { fontSize: 12, fontWeight: '700', color: '#FBBF24' },
-  modalCarrierName: { fontSize: 13, fontWeight: '600', color: '#fff' },
-  modalCityText:    { fontSize: 14, fontWeight: '700', color: '#fff' },
+  modalRouteNum:    { fontSize: 12, fontWeight: '700', color: t.accentText },
+  modalCarrierName: { fontSize: 13, fontWeight: '600', color: t.inkSolid },
+  modalCityText:    { fontSize: 14, fontWeight: '700', color: t.inkSolid },
   messageInput: {
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', borderRadius: 12,
-    padding: 12, fontSize: 14, color: '#fff',
-    minHeight: 100, backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1, borderColor: t.ink(0.15), borderRadius: 12,
+    padding: 12, fontSize: 14, color: t.inkSolid,
+    minHeight: 100, backgroundColor: t.ink(0.04),
   },
   cancelBtn: {
-    flex: 1, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', borderRadius: 12,
+    flex: 1, borderWidth: 1, borderColor: t.ink(0.2), borderRadius: 12,
     paddingVertical: 13, alignItems: 'center',
   },
-  cancelBtnText: { fontSize: 14, color: '#fff', fontWeight: '600' },
+  cancelBtnText: { fontSize: 14, color: t.inkSolid, fontWeight: '600' },
   sendBtn: {
     flex: 1, backgroundColor: '#FBBF24', borderRadius: 12,
     paddingVertical: 13, alignItems: 'center',
   },
   sendBtnText: { fontSize: 14, fontWeight: '800', color: '#000' },
   templateHeaderLabel: {
-    fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.4)',
+    fontSize: 11, fontWeight: '700', color: t.inkText(0.4),
     textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6,
   },
   templateChip: {
@@ -831,5 +838,5 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(251,191,36,0.3)',
     borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6,
   },
-  templateChipText: { fontSize: 12, fontWeight: '600', color: '#FBBF24' },
+  templateChipText: { fontSize: 12, fontWeight: '600', color: t.accentText },
 })

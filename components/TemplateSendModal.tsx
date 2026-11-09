@@ -6,6 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import { useI18n } from '@/lib/i18n'
 import { useMessageTemplates, renderTemplate, MessageTemplate, TemplateData, type TemplateKind } from '@/lib/templates'
+import { Theme, useStyles, useTheme } from '@/lib/theme'
 
 const FREE_TEXT_ID = '__free_text__'
 
@@ -26,6 +27,9 @@ export function TemplateSendModal({
   onClose: () => void
   onSend: (subject: string, content: string) => Promise<void>
 }) {
+  const th = useTheme()
+  const styles = useStyles(makeStyles)
+
   const { t } = useI18n()
   const { all: templates, loading } = useMessageTemplates(role, category, kind)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -81,7 +85,7 @@ export function TemplateSendModal({
           <View style={styles.header}>
             <Text style={styles.title}>{t('tplflow.title')}</Text>
             <TouchableOpacity onPress={onClose} hitSlop={12}>
-              <Ionicons name="close" size={22} color="#94A3B8" />
+              <Ionicons name="close" size={22} color={th.inkText(0.5)} />
             </TouchableOpacity>
           </View>
 
@@ -90,13 +94,13 @@ export function TemplateSendModal({
             <Text style={styles.comboText} numberOfLines={1}>
               {loading ? t('tplflow.loading') : selected ? `${selected.icon ?? '📋'} ${selected.title}` : t('tplflow.pick')}
             </Text>
-            <Ionicons name={pickerOpen ? 'chevron-up' : 'chevron-down'} size={18} color="#94A3B8" />
+            <Ionicons name={pickerOpen ? 'chevron-up' : 'chevron-down'} size={18} color={th.inkText(0.5)} />
           </TouchableOpacity>
           {pickerOpen && (
             <ScrollView style={styles.dropdown} nestedScrollEnabled>
               {options.map(tpl => (
                 <TouchableOpacity key={tpl.id} style={styles.dropdownItem} onPress={() => select(tpl)}>
-                  <Text style={[styles.dropdownText, tpl.id === selectedId && { color: '#FBBF24' }]}>
+                  <Text style={[styles.dropdownText, tpl.id === selectedId && { color: th.accentText }]}>
                     {tpl.icon ?? '📋'} {tpl.title}
                   </Text>
                 </TouchableOpacity>
@@ -105,18 +109,18 @@ export function TemplateSendModal({
           )}
 
           {loading ? (
-            <ActivityIndicator style={{ marginVertical: 24 }} color="#FBBF24" />
+            <ActivityIndicator style={{ marginVertical: 24 }} color={th.accentText} />
           ) : (
             <ScrollView style={{ maxHeight: 300 }} keyboardShouldPersistTaps="handled">
               <Text style={styles.label}>{t('tplflow.subject')}</Text>
-              <TextInput style={styles.input} value={subject} onChangeText={setSubject} placeholderTextColor="#64748B" />
+              <TextInput style={styles.input} value={subject} onChangeText={setSubject} placeholderTextColor={th.inkText(0.4)} />
               <Text style={styles.label}>{t('tplflow.body')}</Text>
               <TextInput
                 style={[styles.input, { minHeight: 120, textAlignVertical: 'top' }]}
                 value={content}
                 onChangeText={setContent}
                 multiline
-                placeholderTextColor="#64748B"
+                placeholderTextColor={th.inkText(0.4)}
               />
             </ScrollView>
           )}
@@ -141,32 +145,32 @@ export function TemplateSendModal({
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) => StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', padding: 16 },
-  card: { backgroundColor: '#111', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', padding: 16 },
+  card: { backgroundColor: t.surface, borderRadius: 16, borderWidth: 1, borderColor: t.ink(0.12), padding: 16 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  title: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  title: { color: t.inkSolid, fontSize: 16, fontWeight: '800' },
   combo: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8,
-    backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: t.ink(0.06), borderWidth: 1, borderColor: t.ink(0.15),
     borderRadius: 12, paddingHorizontal: 12, paddingVertical: 11,
   },
-  comboText: { color: '#fff', fontSize: 14, fontWeight: '600', flex: 1 },
+  comboText: { color: t.inkSolid, fontSize: 14, fontWeight: '600', flex: 1 },
   dropdown: {
-    maxHeight: 180, marginTop: 6, backgroundColor: '#1a1a1a', borderRadius: 12,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+    maxHeight: 180, marginTop: 6, backgroundColor: t.raised, borderRadius: 12,
+    borderWidth: 1, borderColor: t.ink(0.12),
   },
-  dropdownItem: { paddingHorizontal: 12, paddingVertical: 11, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(255,255,255,0.08)' },
-  dropdownText: { color: '#E2E8F0', fontSize: 14 },
-  label: { color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: '700', textTransform: 'uppercase', marginTop: 12, marginBottom: 6 },
+  dropdownItem: { paddingHorizontal: 12, paddingVertical: 11, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: t.ink(0.08) },
+  dropdownText: { color: t.inkSolid, fontSize: 14 },
+  label: { color: t.inkText(0.5), fontSize: 11, fontWeight: '700', textTransform: 'uppercase', marginTop: 12, marginBottom: 6 },
   input: {
-    backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, color: '#fff', fontSize: 14,
+    backgroundColor: t.ink(0.06), borderWidth: 1, borderColor: t.ink(0.15),
+    borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, color: t.inkSolid, fontSize: 14,
   },
-  error: { color: '#FCA5A5', fontSize: 12, marginTop: 10 },
+  error: { color: t.soft('red', 300), fontSize: 12, marginTop: 10 },
   footer: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 14 },
-  btnGhost: { paddingHorizontal: 16, paddingVertical: 11, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
-  btnGhostText: { color: 'rgba(255,255,255,0.7)', fontSize: 14, fontWeight: '600' },
+  btnGhost: { paddingHorizontal: 16, paddingVertical: 11, borderRadius: 12, borderWidth: 1, borderColor: t.ink(0.15) },
+  btnGhostText: { color: t.inkText(0.7), fontSize: 14, fontWeight: '600' },
   btnSend: { paddingHorizontal: 20, paddingVertical: 11, borderRadius: 12, backgroundColor: '#FBBF24', minWidth: 90, alignItems: 'center' },
   btnSendText: { color: '#000', fontSize: 14, fontWeight: '800' },
 })

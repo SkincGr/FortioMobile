@@ -4,8 +4,12 @@ import { router } from 'expo-router'
 import { useAuth } from '@/lib/auth'
 import { useI18n } from '@/lib/i18n'
 import { Ionicons } from '@expo/vector-icons'
+import { Theme, useStyles, useTheme } from '@/lib/theme'
 
 export default function LoginScreen() {
+  const th = useTheme()
+  const s = useStyles(makeStyles)
+
   const { login } = useAuth()
   const { t } = useI18n()
   const [identifier, setIdentifier] = useState('')
@@ -50,7 +54,7 @@ export default function LoginScreen() {
           <TextInput
             style={s.input}
             placeholder="email ή username"
-            placeholderTextColor="rgba(255,255,255,0.25)"
+            placeholderTextColor={th.inkText(0.25)}
             keyboardType="default"
             autoComplete="username"
             autoCapitalize="none"
@@ -64,7 +68,7 @@ export default function LoginScreen() {
             <TextInput
               style={s.pwInput}
               placeholder="••••••••"
-              placeholderTextColor="rgba(255,255,255,0.25)"
+              placeholderTextColor={th.inkText(0.25)}
               secureTextEntry={!showPw}
               autoComplete="current-password"
               value={password}
@@ -72,7 +76,7 @@ export default function LoginScreen() {
               onSubmitEditing={handleLogin}
             />
             <TouchableOpacity style={s.eyeBtn} onPress={() => setShowPw(v => !v)} hitSlop={8}>
-              <Ionicons name={showPw ? 'eye-off-outline' : 'eye-outline'} size={18} color="rgba(255,255,255,0.4)" />
+              <Ionicons name={showPw ? 'eye-off-outline' : 'eye-outline'} size={18} color={th.inkText(0.4)} />
             </TouchableOpacity>
           </View>
 
@@ -104,50 +108,50 @@ export default function LoginScreen() {
   )
 }
 
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0a0a0a' },
+const makeStyles = (t: Theme) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: t.page },
 
   logoArea: { alignItems: 'center', justifyContent: 'center', paddingTop: 72, paddingBottom: 36 },
-  logo:     { color: '#fff', fontSize: 48, fontWeight: '900', letterSpacing: -1 },
-  logoSub:  { color: 'rgba(255,255,255,0.4)', fontSize: 13, marginTop: 4 },
+  logo:     { color: t.inkSolid, fontSize: 48, fontWeight: '900', letterSpacing: -1 },
+  logoSub:  { color: t.inkText(0.4), fontSize: 13, marginTop: 4 },
 
   card: {
     flex: 1,
-    backgroundColor: '#111',
+    backgroundColor: t.surface,
     borderTopLeftRadius: 28, borderTopRightRadius: 28,
-    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)',
+    borderTopWidth: 1, borderTopColor: t.ink(0.1),
     paddingHorizontal: 24, paddingTop: 32, paddingBottom: 40,
   },
-  title: { fontSize: 24, fontWeight: '700', color: '#fff', marginBottom: 4 },
-  sub:   { fontSize: 14, color: 'rgba(255,255,255,0.4)', marginBottom: 24 },
-  label: { fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 },
+  title: { fontSize: 24, fontWeight: '700', color: t.inkSolid, marginBottom: 4 },
+  sub:   { fontSize: 14, color: t.inkText(0.4), marginBottom: 24 },
+  label: { fontSize: 12, fontWeight: '700', color: t.inkText(0.4), textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 },
 
   input: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: t.ink(0.06),
+    borderWidth: 1, borderColor: t.ink(0.12),
     borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12,
-    fontSize: 15, color: '#fff', marginBottom: 16,
+    fontSize: 15, color: t.inkSolid, marginBottom: 16,
   },
   pwRow: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: t.ink(0.06),
+    borderWidth: 1, borderColor: t.ink(0.12),
     borderRadius: 12, marginBottom: 4,
   },
-  pwInput: { flex: 1, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: '#fff' },
+  pwInput: { flex: 1, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: t.inkSolid },
   eyeBtn:  { paddingHorizontal: 14, paddingVertical: 12 },
 
   forgotRow: { alignSelf: 'flex-end', marginBottom: 20, marginTop: 8 },
-  forgotTxt: { color: '#F59E0B', fontSize: 13 },
+  forgotTxt: { color: t.accentText, fontSize: 13 },
 
   errorBox: { backgroundColor: 'rgba(239,68,68,0.1)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.25)', borderRadius: 12, padding: 12, marginBottom: 16 },
-  errorTxt: { color: '#F87171', fontSize: 13 },
+  errorTxt: { color: t.soft('red'), fontSize: 13 },
 
   submitBtn:         { backgroundColor: '#F59E0B', borderRadius: 14, paddingVertical: 15, alignItems: 'center', justifyContent: 'center' },
   submitBtnDisabled: { opacity: 0.5 },
   submitBtnText:     { color: '#000', fontSize: 16, fontWeight: '700' },
 
   footer:     { flexDirection: 'row', justifyContent: 'center', marginTop: 24 },
-  footerTxt:  { color: 'rgba(255,255,255,0.4)', fontSize: 14 },
-  footerLink: { color: '#F59E0B', fontSize: 14, fontWeight: '600' },
+  footerTxt:  { color: t.inkText(0.4), fontSize: 14 },
+  footerLink: { color: t.accentText, fontSize: 14, fontWeight: '600' },
 })

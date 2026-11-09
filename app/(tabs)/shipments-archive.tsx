@@ -10,6 +10,7 @@ import { archiveApi, reviewsApi, ArchiveShipment } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
 import { LoadingScreen } from '@/components/ui/LoadingScreen'
 import { fCity } from '@/lib/cityDisplay'
+import { Theme, useStyles, useTheme } from '@/lib/theme'
 
 function fDate(v?: string | null) {
   if (!v) return null
@@ -18,10 +19,12 @@ function fDate(v?: string | null) {
 
 
 function Stars({ rating }: { rating: number }) {
+  const th = useTheme()
+
   return (
     <View style={{ flexDirection: 'row', gap: 2 }}>
       {[1, 2, 3, 4, 5].map(n => (
-        <Ionicons key={n} name={n <= rating ? 'star' : 'star-outline'} size={13} color="#F59E0B" />
+        <Ionicons key={n} name={n <= rating ? 'star' : 'star-outline'} size={13} color={th.accentText} />
       ))}
     </View>
   )
@@ -37,6 +40,9 @@ type ReviewTarget = {
 }
 
 function ArchiveCard({ item, onRate }: { item: ArchiveShipment; onRate: (t: ReviewTarget) => void }) {
+  const th = useTheme()
+  const s = useStyles(makeStyles)
+
   const { t } = useI18n()
   const offer = item.offers[0]
   const topDate = offer?.deliveryDate ?? offer?.route?.estimatedArrival ?? item.updatedAt
@@ -55,7 +61,7 @@ function ArchiveCard({ item, onRate }: { item: ArchiveShipment; onRate: (t: Revi
       {/* Row 2: carrier + origin (date) - dest (date) */}
       {offer && (
         <View style={[s.row, { marginTop: 6, flexWrap: 'wrap', gap: 4 }]}>
-          <Ionicons name="business-outline" size={13} color="rgba(255,255,255,0.4)" />
+          <Ionicons name="business-outline" size={13} color={th.inkText(0.4)} />
           <Text style={s.carrier}>{carrierName}</Text>
           <Text style={s.sub}>
             {'  '}{fCity(offer.route?.originCity, offer.route?.originPlace)}{originDate ? ` (${originDate})` : ''} — {fCity(offer.route?.destCity, offer.route?.destPlace)}{destDate ? ` (${destDate})` : ''}
@@ -109,6 +115,9 @@ function ArchiveCard({ item, onRate }: { item: ArchiveShipment; onRate: (t: Revi
 }
 
 export default function ShipmentsArchiveScreen() {
+  const th = useTheme()
+  const s = useStyles(makeStyles)
+
   const { t } = useI18n()
   const qc = useQueryClient()
   const [reviewTarget, setReviewTarget] = useState<ReviewTarget | null>(null)
@@ -137,7 +146,7 @@ export default function ShipmentsArchiveScreen() {
     <View style={s.root}>
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.replace('/(tabs)' as any)} style={s.backBtn} hitSlop={12}>
-          <Ionicons name="arrow-back" size={22} color="#fff" />
+          <Ionicons name="arrow-back" size={22} color={th.inkSolid} />
         </TouchableOpacity>
         <Text style={[s.headerTitle, { flex: 1 }]}>{t('archive.title')}</Text>
         {shipments.length > 0 && (
@@ -149,10 +158,10 @@ export default function ShipmentsArchiveScreen() {
         data={shipments}
         keyExtractor={item => item.id}
         contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
-        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => { void refetch() }} tintColor="#F59E0B" />}
+        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => { void refetch() }} tintColor={th.accentText} />}
         ListEmptyComponent={
           <View style={s.empty}>
-            <Ionicons name="archive-outline" size={56} color="rgba(255,255,255,0.2)" />
+            <Ionicons name="archive-outline" size={56} color={th.inkText(0.2)} />
             <Text style={s.emptyText}>{t('archive.empty')}</Text>
           </View>
         }
@@ -168,7 +177,7 @@ export default function ShipmentsArchiveScreen() {
                 {reviewTarget?.reviewId ? t('archive.edit_title') : t('archive.rate_title')}
               </Text>
               <TouchableOpacity onPress={() => setReviewTarget(null)} hitSlop={12}>
-                <Ionicons name="close" size={22} color="rgba(255,255,255,0.4)" />
+                <Ionicons name="close" size={22} color={th.inkText(0.4)} />
               </TouchableOpacity>
             </View>
             <Text style={s.modalShipment} numberOfLines={1}>{reviewTarget?.shipmentTitle}</Text>
@@ -180,7 +189,7 @@ export default function ShipmentsArchiveScreen() {
                   <Ionicons
                     name={reviewTarget && n <= reviewTarget.rating ? 'star' : 'star-outline'}
                     size={32}
-                    color="#F59E0B"
+                    color={th.accentText}
                   />
                 </TouchableOpacity>
               ))}
@@ -190,7 +199,7 @@ export default function ShipmentsArchiveScreen() {
               value={reviewTarget?.comment ?? ''}
               onChangeText={v => reviewTarget && setReviewTarget({ ...reviewTarget, comment: v })}
               placeholder={t('archive.comment_placeholder')}
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={th.inkText(0.4)}
               multiline
               numberOfLines={4}
               style={s.commentInput}
@@ -219,43 +228,43 @@ export default function ShipmentsArchiveScreen() {
   )
 }
 
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0a0a0a' },
+const makeStyles = (t: Theme) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: t.page },
 
   header: {
-    backgroundColor: '#0a0a0a',
-    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: t.page,
+    borderBottomWidth: 1, borderBottomColor: t.ink(0.1),
     paddingTop: 56, paddingBottom: 18, paddingHorizontal: 20,
     flexDirection: 'row', alignItems: 'center', gap: 10,
   },
   backBtn:     { padding: 4 },
-  headerTitle: { color: '#fff', fontSize: 22, fontWeight: '800' },
+  headerTitle: { color: t.inkSolid, fontSize: 22, fontWeight: '800' },
   countBadge:  { backgroundColor: 'rgba(245,158,11,0.15)', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 2 },
-  countText:   { color: '#F59E0B', fontSize: 13, fontWeight: '700' },
+  countText:   { color: t.accentText, fontSize: 13, fontWeight: '700' },
 
   empty:     { alignItems: 'center', paddingTop: 80 },
-  emptyText: { fontSize: 15, color: 'rgba(255,255,255,0.3)', marginTop: 12, textAlign: 'center', paddingHorizontal: 24 },
+  emptyText: { fontSize: 15, color: t.inkText(0.3), marginTop: 12, textAlign: 'center', paddingHorizontal: 24 },
 
   row: { flexDirection: 'row', alignItems: 'center' },
 
   card: {
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: t.ink(0.03),
+    borderRadius: 12, borderWidth: 1, borderColor: t.ink(0.1),
     padding: 14, marginBottom: 10,
   },
-  title:   { fontSize: 15, fontWeight: '800', color: '#fff' },
-  date:    { fontSize: 12, color: 'rgba(255,255,255,0.4)' },
-  carrier: { fontSize: 13, fontWeight: '700', color: '#fff' },
-  sub:     { fontSize: 12, color: 'rgba(255,255,255,0.5)' },
-  comment: { fontSize: 12, color: 'rgba(255,255,255,0.55)', fontStyle: 'italic', flex: 1, marginLeft: 8 },
-  noReview:{ fontSize: 12, color: 'rgba(255,255,255,0.3)', fontStyle: 'italic' },
+  title:   { fontSize: 15, fontWeight: '800', color: t.inkSolid },
+  date:    { fontSize: 12, color: t.inkText(0.4) },
+  carrier: { fontSize: 13, fontWeight: '700', color: t.inkSolid },
+  sub:     { fontSize: 12, color: t.inkText(0.5) },
+  comment: { fontSize: 12, color: t.inkText(0.55), fontStyle: 'italic', flex: 1, marginLeft: 8 },
+  noReview:{ fontSize: 12, color: t.inkText(0.3), fontStyle: 'italic' },
 
   replyBox: {
-    backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: t.ink(0.04), borderWidth: 1, borderColor: t.ink(0.1),
     borderRadius: 8, padding: 10, marginTop: 8,
   },
-  replyLabel: { fontSize: 10, fontWeight: '700', color: '#F59E0B', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 3 },
-  replyText:  { fontSize: 12, color: 'rgba(255,255,255,0.7)' },
+  replyLabel: { fontSize: 10, fontWeight: '700', color: t.accentText, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 3 },
+  replyText:  { fontSize: 12, color: t.inkText(0.7) },
 
   rateBtn: {
     backgroundColor: '#F59E0B', borderRadius: 10,
@@ -266,23 +275,23 @@ const s = StyleSheet.create({
   // Review modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },
   modalCard: {
-    backgroundColor: '#111', borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', borderBottomWidth: 0,
+    backgroundColor: t.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    borderWidth: 1, borderColor: t.ink(0.1), borderBottomWidth: 0,
     paddingHorizontal: 20, paddingTop: 20, paddingBottom: 36,
   },
-  modalLabel:    { fontSize: 16, fontWeight: '800', color: '#fff' },
-  modalShipment: { fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 8 },
-  modalCarrier:  { fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: 2 },
+  modalLabel:    { fontSize: 16, fontWeight: '800', color: t.inkSolid },
+  modalShipment: { fontSize: 13, color: t.inkText(0.6), marginTop: 8 },
+  modalCarrier:  { fontSize: 13, color: t.inkText(0.4), marginTop: 2 },
   commentInput: {
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', borderRadius: 12,
-    padding: 12, fontSize: 14, color: '#fff',
-    minHeight: 90, backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1, borderColor: t.ink(0.15), borderRadius: 12,
+    padding: 12, fontSize: 14, color: t.inkSolid,
+    minHeight: 90, backgroundColor: t.ink(0.04),
   },
   cancelBtn: {
-    flex: 1, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', borderRadius: 12,
+    flex: 1, borderWidth: 1, borderColor: t.ink(0.2), borderRadius: 12,
     paddingVertical: 13, alignItems: 'center',
   },
-  cancelBtnText: { fontSize: 14, color: '#fff', fontWeight: '600' },
+  cancelBtnText: { fontSize: 14, color: t.inkSolid, fontWeight: '600' },
   saveBtn: {
     flex: 1, backgroundColor: '#F59E0B', borderRadius: 12,
     paddingVertical: 13, alignItems: 'center',

@@ -5,19 +5,24 @@ import {
   type BoatDetails, type TransportDetails, type VehicleDetails,
 } from '@/lib/shared/transportCards'
 import type { FormT } from '@/lib/useFormT'
-import { Check, ChoiceField, NumberField, Section, TextField, YesNoField, s } from './ui'
+import { Check, ChoiceField, NumberField, Section, TextField, YesNoField, useFormStyles } from './ui'
+import { useTheme } from '@/lib/theme'
 
 // Ίδια πεδία και κανόνες εμφάνισης με το components/shipment-form/VehicleBoatFields.tsx του Fortio
 
 /** 🚗 Στοιχεία αυτοκινήτου */
 export function VehicleSection({ t, value, onChange }: { t: FormT; value: VehicleDetails; onChange: (next: VehicleDetails) => void }) {
+  const s = useFormStyles()
+
+  const th = useTheme()
+
   const set = <K extends keyof VehicleDetails>(key: K, v: VehicleDetails[K]) => onChange({ ...value, [key]: v })
   return (
     <Section title={t('transportCard.vehicle_title')}>
       <TextField label={t('transportCard.make_model')} value={value.makeModel} onChangeText={v => set('makeModel', v)} placeholder={t('transportCard.make_model_ph')} />
       <NumberField integer label={t('transportCard.year')} value={value.year} onChangeText={v => set('year', v)} placeholder="π.χ. 2018" />
 
-      <Text style={s.labelSmall}>{t('transportCard.dimensions_cm')} <Text style={{ fontWeight: '400', color: '#94A3B8' }}>— {t('transportCard.dimensions_or_class')}</Text></Text>
+      <Text style={s.labelSmall}>{t('transportCard.dimensions_cm')} <Text style={{ fontWeight: '400', color: th.inkText(0.4) }}>— {t('transportCard.dimensions_or_class')}</Text></Text>
       <View style={s.row}>
         <NumberField style={{ flex: 1 }} label={t('transportCard.length')} value={value.length} onChangeText={v => set('length', v)} />
         <NumberField style={{ flex: 1 }} label={t('transportCard.width')} value={value.width} onChangeText={v => set('width', v)} />
@@ -40,6 +45,8 @@ export function VehicleSection({ t, value, onChange }: { t: FormT; value: Vehicl
 
 /** 🚤 Στοιχεία σκάφους */
 export function BoatSection({ t, value, onChange }: { t: FormT; value: BoatDetails; onChange: (next: BoatDetails) => void }) {
+  const s = useFormStyles()
+
   const set = <K extends keyof BoatDetails>(key: K, v: BoatDetails[K]) => onChange({ ...value, [key]: v })
   return (
     <Section title={t('transportCard.boat_title')}>
@@ -69,6 +76,8 @@ export function BoatSection({ t, value, onChange }: { t: FormT; value: BoatDetai
 
 /** 📍 Στοιχεία μεταφοράς (αυτοκίνητο και σκάφος): σημείο και τρόπος φόρτωσης/εκφόρτωσης, ευελιξία ημερομηνίας */
 export function TransportSection({ t, value, onChange }: { t: FormT; value: TransportDetails; onChange: (next: TransportDetails) => void }) {
+  const s = useFormStyles()
+
   const set = <K extends keyof TransportDetails>(key: K, v: TransportDetails[K]) => onChange({ ...value, [key]: v })
   // «Κανένα από αυτά» αποκλείει τα υπόλοιπα, και το αντίστροφο (όπως στο web)
   const toggleMethod = (method: string, on: boolean) => {

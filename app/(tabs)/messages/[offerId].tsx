@@ -12,6 +12,7 @@ import { LoadingScreen } from '@/components/ui/LoadingScreen'
 import { useI18n, translateText } from '@/lib/i18n'
 import { useMessageTemplates, renderTemplate } from '@/lib/templates'
 import { fCity } from '@/lib/cityDisplay'
+import { Theme, useStyles, useTheme } from '@/lib/theme'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -54,6 +55,9 @@ function parseContent(content: string) {
 // ─── Chat screen ────────────────────────────────────────────────────────────────
 
 export default function ChatScreen() {
+  const th = useTheme()
+  const s = useStyles(makeStyles)
+
   const { offerId, returnTo } = useLocalSearchParams<{ offerId: string; returnTo?: string }>()
   const { user } = useAuth()
   const { t, language, autoTranslate } = useI18n()
@@ -170,7 +174,7 @@ export default function ChatScreen() {
           onPress={() => returnTo ? router.replace(decodeURIComponent(returnTo) as any) : router.back()}
           style={s.backBtn} hitSlop={10}
         >
-          <Ionicons name="arrow-back" size={20} color="#fff" />
+          <Ionicons name="arrow-back" size={20} color={th.inkSolid} />
           <Text style={s.backBtnText}>{t('msg.back')}</Text>
         </TouchableOpacity>
         <View style={s.sep} />
@@ -196,7 +200,7 @@ export default function ChatScreen() {
         contentContainerStyle={{ padding: 14, paddingBottom: 8 }}
         ListEmptyComponent={
           <View style={s.empty}>
-            <Ionicons name="chatbubbles-outline" size={48} color="rgba(255,255,255,0.15)" />
+            <Ionicons name="chatbubbles-outline" size={48} color={th.inkText(0.15)} />
             <Text style={s.emptyText}>{t('msg.empty')}</Text>
           </View>
         }
@@ -243,7 +247,7 @@ export default function ChatScreen() {
           ref={subjectRef}
           style={s.subjectInput}
           placeholder={t('msg.ph.subject')}
-          placeholderTextColor="rgba(255,255,255,0.3)"
+          placeholderTextColor={th.inkText(0.3)}
           value={subject}
           onChangeText={setSubject}
         />
@@ -251,7 +255,7 @@ export default function ChatScreen() {
           <TextInput
             style={s.input}
             placeholder={t('msg.ph.body')}
-            placeholderTextColor="rgba(255,255,255,0.3)"
+            placeholderTextColor={th.inkText(0.3)}
             value={text}
             onChangeText={setText}
             multiline
@@ -291,6 +295,8 @@ function MessageRow({ msg, myId, carrierName, route, onToggleRead, onReply, onNe
   onReply: () => void
   onNew: () => void
 }) {
+  const s = useStyles(makeStyles)
+
   const { t } = useI18n()
   const isOutgoing = msg.sender?.id === myId
   const { subject, body } = parseContent(msg.content)
@@ -369,85 +375,85 @@ function MessageRow({ msg, myId, carrierName, route, onToggleRead, onReply, onNe
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0a0a0a' },
+const makeStyles = (t: Theme) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: t.page },
 
   header: {
-    backgroundColor: '#0a0a0a',
-    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: t.page,
+    borderBottomWidth: 1, borderBottomColor: t.ink(0.1),
     paddingTop: 56, paddingBottom: 14, paddingHorizontal: 20,
     flexDirection: 'row', alignItems: 'center', gap: 10,
   },
   backBtn:      { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  backBtnText:  { color: '#fff', fontSize: 14, fontWeight: '600' },
-  sep:          { width: 1, height: 14, backgroundColor: 'rgba(255,255,255,0.2)' },
-  headerTitle:  { color: '#fff', fontSize: 14, fontWeight: '800' },
-  headerSub:    { color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 2 },
+  backBtnText:  { color: t.inkSolid, fontSize: 14, fontWeight: '600' },
+  sep:          { width: 1, height: 14, backgroundColor: t.ink(0.2) },
+  headerTitle:  { color: t.inkSolid, fontSize: 14, fontWeight: '800' },
+  headerSub:    { color: t.inkText(0.4), fontSize: 11, marginTop: 2 },
 
   empty:     { alignItems: 'center', paddingTop: 60, gap: 12 },
-  emptyText: { color: 'rgba(255,255,255,0.25)', fontSize: 14 },
+  emptyText: { color: t.inkText(0.25), fontSize: 14 },
 
   card: {
     borderRadius: 10, borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: t.ink(0.1),
+    backgroundColor: t.ink(0.04),
     padding: 14, marginBottom: 8,
   },
-  cardRead: { borderColor: 'rgba(255,255,255,0.05)', backgroundColor: 'rgba(255,255,255,0.015)' },
+  cardRead: { borderColor: t.ink(0.05), backgroundColor: t.ink(0.015) },
   cardHeader:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 },
   senderRow:   { flexDirection: 'row', alignItems: 'center', gap: 3, flex: 1, flexWrap: 'wrap' },
-  dirLabel:    { fontSize: 11, color: 'rgba(255,255,255,0.35)' },
+  dirLabel:    { fontSize: 11, color: t.inkText(0.35) },
   senderName:  { fontSize: 12, fontWeight: '700' },
-  senderOut:   { color: '#60A5FA' },
-  senderIn:    { color: '#4ADE80' },
+  senderOut:   { color: t.soft('blue') },
+  senderIn:    { color: t.soft('green') },
   dirDiamond:  { width: 5, height: 5, transform: [{ rotate: '45deg' }] },
-  cardTime:    { fontSize: 10, color: 'rgba(255,255,255,0.3)', marginLeft: 4 },
+  cardTime:    { fontSize: 10, color: t.inkText(0.3), marginLeft: 4 },
   readBadge:   { borderRadius: 20, paddingHorizontal: 8, paddingVertical: 2, borderWidth: 1 },
   readBadgeRead:      { backgroundColor: 'rgba(74,222,128,0.1)', borderColor: 'rgba(74,222,128,0.25)' },
   readBadgeUnread:    { backgroundColor: 'rgba(245,158,11,0.1)', borderColor: 'rgba(245,158,11,0.25)' },
   readBadgeText:      { fontSize: 10, fontWeight: '700' },
-  readBadgeReadText:  { color: '#4ADE80' },
-  readBadgeUnreadText:{ color: '#F59E0B' },
+  readBadgeReadText:  { color: t.soft('green') },
+  readBadgeUnreadText:{ color: t.accentText },
 
-  routeLine:    { fontSize: 11, color: 'rgba(255,255,255,0.55)', marginBottom: 4 },
-  routeNumText: { fontFamily: 'monospace', fontWeight: '700', color: '#fff' },
-  routeMeta:    { color: 'rgba(255,255,255,0.4)' },
+  routeLine:    { fontSize: 11, color: t.inkText(0.55), marginBottom: 4 },
+  routeNumText: { fontFamily: 'monospace', fontWeight: '700', color: t.inkSolid },
+  routeMeta:    { color: t.inkText(0.4) },
 
-  msgSubject: { fontSize: 13, fontWeight: '700', color: '#F59E0B', marginBottom: 5 },
-  msgBody:    { fontSize: 14, color: '#fff', lineHeight: 20 },
+  msgSubject: { fontSize: 13, fontWeight: '700', color: t.accentText, marginBottom: 5 },
+  msgBody:    { fontSize: 14, color: t.inkSolid, lineHeight: 20 },
 
-  actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
+  actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: t.ink(0.08) },
   actionBtn:     { backgroundColor: '#F59E0B', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
   actionBtnText: { fontSize: 11, fontWeight: '700', color: '#000' },
 
   footer: {
-    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)',
-    backgroundColor: '#111', padding: 12, gap: 8,
+    borderTopWidth: 1, borderTopColor: t.ink(0.1),
+    backgroundColor: t.surface, padding: 12, gap: 8,
   },
   subjectInput: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: t.ink(0.06),
+    borderWidth: 1, borderColor: t.ink(0.12),
     borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8,
-    color: '#fff', fontSize: 13,
+    color: t.inkSolid, fontSize: 13,
   },
   replyRow:        { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
   input: {
     flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: t.ink(0.06),
+    borderWidth: 1, borderColor: t.ink(0.12),
     borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10,
-    color: '#fff', fontSize: 14, maxHeight: 100,
+    color: t.inkSolid, fontSize: 14, maxHeight: 100,
   },
   replyBtns:       { gap: 6 },
   sendBtn:         { backgroundColor: '#F59E0B', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9, alignItems: 'center' },
   sendBtnDisabled: { backgroundColor: 'rgba(245,158,11,0.25)' },
   sendBtnText:     { color: '#000', fontWeight: '700', fontSize: 12 },
-  cancelBtn:       { backgroundColor: 'rgba(255,255,255,0.08)' },
-  cancelBtnText:   { color: '#fff', fontWeight: '600', fontSize: 12 },
+  cancelBtn:       { backgroundColor: t.ink(0.08) },
+  cancelBtnText:   { color: t.inkSolid, fontWeight: '600', fontSize: 12 },
   templateChip: {
     backgroundColor: 'rgba(245,158,11,0.1)',
     borderWidth: 1, borderColor: 'rgba(245,158,11,0.25)',
     borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5,
   },
-  templateChipText: { fontSize: 11, fontWeight: '600', color: '#F59E0B' },
+  templateChipText: { fontSize: 11, fontWeight: '600', color: t.accentText },
 })

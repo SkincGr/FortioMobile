@@ -11,6 +11,7 @@ import { LoadingScreen } from '@/components/ui/LoadingScreen'
 import { useI18n } from '@/lib/i18n'
 import { Colors } from '@/constants/colors'
 import { fCity } from '@/lib/cityDisplay'
+import { Theme, useStyles, useTheme } from '@/lib/theme'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -52,6 +53,8 @@ function fRouteNum(routeNumber?: string | null, routeId?: string | null, company
 // ─── Section header ───────────────────────────────────────────────────────────
 
 function SectionHeader({ title, count }: { title: string; count: number }) {
+  const styles = useStyles(makeStyles)
+
   return (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -71,6 +74,9 @@ function OfferCard({
   shipmentId: string
   onView: (o: Offer) => void
 }) {
+  const th = useTheme()
+  const styles = useStyles(makeStyles)
+
   const qc = useQueryClient()
   const { t } = useI18n()
 
@@ -194,7 +200,7 @@ function OfferCard({
               disabled={acceptMut.isPending}
             >
               {acceptMut.isPending
-                ? <ActivityIndicator size="small" color="#fff" />
+                ? <ActivityIndicator size="small" color={th.snow} />
                 : <Text style={styles.btnAcceptText}>{t('ship.btn.accept')}</Text>}
             </TouchableOpacity>
             <TouchableOpacity
@@ -248,6 +254,8 @@ function ViewOfferModal({
   shipmentTitle?: string
   onClose: () => void
 }) {
+  const styles = useStyles(makeStyles)
+
   const { t } = useI18n()
   if (!offer) return null
   const companyName = offer.carrier?.company?.name ?? offer.carrier?.name ?? offer.carrier?.email ?? '—'
@@ -317,6 +325,9 @@ const CATEGORY_LABEL: Record<string, string> = {
 }
 
 function ShipmentInfoCard({ s }: { s: Shipment }) {
+  const th = useTheme()
+  const styles = useStyles(makeStyles)
+
   const { t } = useI18n()
   const recipient = [s.recipientName, s.recipientPhone, s.recipientEmail].filter(Boolean).join(' · ')
   const properties = [
@@ -345,7 +356,7 @@ function ShipmentInfoCard({ s }: { s: Shipment }) {
       {rows.map(r => (
         <View key={r.label} style={styles.infoRow}>
           <Text style={styles.infoLabel}>{r.label}</Text>
-          <Text style={[styles.infoValue, r.accent && { color: '#F59E0B', fontWeight: '800' }]}>{r.value}</Text>
+          <Text style={[styles.infoValue, r.accent && { color: th.accentText, fontWeight: '800' }]}>{r.value}</Text>
         </View>
       ))}
     </View>
@@ -355,6 +366,9 @@ function ShipmentInfoCard({ s }: { s: Shipment }) {
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function ShipmentDetailScreen() {
+  const th = useTheme()
+  const styles = useStyles(makeStyles)
+
   const { id, returnTo } = useLocalSearchParams<{ id: string; returnTo?: string }>()
   const goBack = () => router.replace((returnTo ? decodeURIComponent(returnTo) : '/(tabs)') as any)
   const [viewOffer, setViewOffer] = useState<Offer | null>(null)
@@ -368,9 +382,9 @@ export default function ShipmentDetailScreen() {
 
   if (isLoading) return <LoadingScreen message={t('ship.loading')} />
   if (!data) return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0a0a0a' }}>
-      <Ionicons name="alert-circle-outline" size={40} color="rgba(255,255,255,0.3)" />
-      <Text style={{ color: 'rgba(255,255,255,0.3)', marginTop: 12 }}>{t('ship.not_found')}</Text>
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: th.page }}>
+      <Ionicons name="alert-circle-outline" size={40} color={th.inkText(0.3)} />
+      <Text style={{ color: th.inkText(0.3), marginTop: 12 }}>{t('ship.not_found')}</Text>
     </View>
   )
 
@@ -380,13 +394,13 @@ export default function ShipmentDetailScreen() {
   const totalActive   = requestOffers.length + carrierOffers.length
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#0a0a0a' }}>
+    <View style={{ flex: 1, backgroundColor: th.page }}>
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={goBack} style={styles.backBtn} hitSlop={12}>
-          <Ionicons name="arrow-back" size={22} color="#fff" />
+          <Ionicons name="arrow-back" size={22} color={th.inkSolid} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>{t('ship.title')}</Text>
@@ -397,7 +411,7 @@ export default function ShipmentDetailScreen() {
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
-        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => { void refetch() }} tintColor="#F59E0B" />}
+        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => { void refetch() }} tintColor={th.accentText} />}
       >
         <ShipmentInfoCard s={data} />
 
@@ -447,81 +461,81 @@ export default function ShipmentDetailScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) => StyleSheet.create({
   header: {
-    backgroundColor: '#0a0a0a',
-    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: t.page,
+    borderBottomWidth: 1, borderBottomColor: t.ink(0.1),
     paddingTop: 56, paddingBottom: 16, paddingHorizontal: 20,
     flexDirection: 'row', alignItems: 'center', gap: 12,
   },
   backBtn:     { padding: 4 },
-  headerTitle: { color: '#fff', fontSize: 14, fontWeight: '800', lineHeight: 18 },
-  headerSub:   { color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 4 },
+  headerTitle: { color: t.inkSolid, fontSize: 14, fontWeight: '800', lineHeight: 18 },
+  headerSub:   { color: t.inkText(0.5), fontSize: 12, marginTop: 4 },
 
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
-  sectionTitle:     { fontSize: 14, fontWeight: '700', color: 'rgba(255,255,255,0.7)' },
-  sectionBadge:     { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 2 },
-  sectionBadgeText: { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.4)' },
+  sectionTitle:     { fontSize: 14, fontWeight: '700', color: t.inkText(0.7) },
+  sectionBadge:     { backgroundColor: t.ink(0.1), borderRadius: 12, paddingHorizontal: 8, paddingVertical: 2 },
+  sectionBadgeText: { fontSize: 12, fontWeight: '600', color: t.inkText(0.4) },
 
   card: {
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: t.ink(0.03),
+    borderRadius: 12, borderWidth: 1, borderColor: t.ink(0.1),
     padding: 14, marginBottom: 10,
   },
   cardAccepted: { borderColor: 'rgba(74,222,128,0.3)', backgroundColor: 'rgba(74,222,128,0.05)' },
   cardRejected: { opacity: 0.45 },
 
   row:         { flexDirection: 'row', alignItems: 'center' },
-  routeNum:    { fontSize: 13, fontWeight: '800', color: '#F59E0B', fontVariant: ['tabular-nums'] },
+  routeNum:    { fontSize: 13, fontWeight: '800', color: t.accentText, fontVariant: ['tabular-nums'] },
   statusBadge: { borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 },
   statusText:  { fontSize: 11, fontWeight: '700' },
-  awaitingText:{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginTop: 2 },
-  priceText:   { fontSize: 20, fontWeight: '900', color: '#F59E0B', marginTop: 2 },
+  awaitingText:{ fontSize: 10, color: t.inkText(0.35), marginTop: 2 },
+  priceText:   { fontSize: 20, fontWeight: '900', color: t.accentText, marginTop: 2 },
 
   carrierRow: { fontSize: 12, marginTop: 6, lineHeight: 18 },
-  bold:       { fontWeight: '600', color: '#fff' },
-  muted:      { color: 'rgba(255,255,255,0.4)' },
+  bold:       { fontWeight: '600', color: t.inkSolid },
+  muted:      { color: t.inkText(0.4) },
 
-  cityText:  { fontSize: 13, fontWeight: '700', color: '#fff' },
-  dateText:  { fontSize: 11, color: 'rgba(255,255,255,0.4)' },
-  arrow:     { fontSize: 12, color: 'rgba(255,255,255,0.4)', marginHorizontal: 4 },
-  stopsText: { fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 4 },
+  cityText:  { fontSize: 13, fontWeight: '700', color: t.inkSolid },
+  dateText:  { fontSize: 11, color: t.inkText(0.4) },
+  arrow:     { fontSize: 12, color: t.inkText(0.4), marginHorizontal: 4 },
+  stopsText: { fontSize: 11, color: t.inkText(0.4), marginTop: 4 },
 
-  divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginVertical: 10 },
+  divider: { height: 1, backgroundColor: t.ink(0.08), marginVertical: 10 },
 
-  btnView:      { backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7 },
-  btnViewText:  { fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.7)' },
+  btnView:      { backgroundColor: t.ink(0.08), borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7 },
+  btnViewText:  { fontSize: 12, fontWeight: '700', color: t.inkText(0.7) },
   btnAccept:    { backgroundColor: '#22C55E', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7 },
-  btnAcceptText:{ fontSize: 12, fontWeight: '700', color: '#fff' },
+  btnAcceptText:{ fontSize: 12, fontWeight: '700', color: t.snow },
   btnReject:    { backgroundColor: 'rgba(239,68,68,0.12)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7 },
-  btnRejectText:{ fontSize: 12, fontWeight: '700', color: '#F87171' },
+  btnRejectText:{ fontSize: 12, fontWeight: '700', color: t.soft('red') },
   acceptedBadge:{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(74,222,128,0.12)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7 },
-  acceptedText: { fontSize: 12, fontWeight: '700', color: '#4ADE80' },
+  acceptedText: { fontSize: 12, fontWeight: '700', color: t.soft('green') },
   btnMessage:    { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#F59E0B', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
   btnMessageText:{ fontSize: 11, fontWeight: '700', color: '#000' },
-  btnMessageOff: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
-  btnMessageOffText: { fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.35)' },
-  msgBadge:     { backgroundColor: 'rgba(0,0,0,0.25)', borderRadius: 9, minWidth: 17, height: 17, paddingHorizontal: 3, alignItems: 'center', justifyContent: 'center' },
+  btnMessageOff: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: t.ink(0.06), borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
+  btnMessageOffText: { fontSize: 11, fontWeight: '600', color: t.inkText(0.35) },
+  msgBadge:     { backgroundColor: t.shade(0.25), borderRadius: 9, minWidth: 17, height: 17, paddingHorizontal: 3, alignItems: 'center', justifyContent: 'center' },
   msgBadgeText: { fontSize: 10, fontWeight: '800', color: '#000' },
-  msgBadgeOff:  { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 9, minWidth: 17, height: 17, paddingHorizontal: 3, alignItems: 'center', justifyContent: 'center' },
-  msgBadgeOffText: { fontSize: 10, fontWeight: '700', color: 'rgba(255,255,255,0.35)' },
+  msgBadgeOff:  { backgroundColor: t.ink(0.1), borderRadius: 9, minWidth: 17, height: 17, paddingHorizontal: 3, alignItems: 'center', justifyContent: 'center' },
+  msgBadgeOffText: { fontSize: 10, fontWeight: '700', color: t.inkText(0.35) },
 
   infoRow:   { flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginBottom: 7 },
-  infoLabel: { fontSize: 12, color: 'rgba(255,255,255,0.45)', flexShrink: 0 },
-  infoValue: { fontSize: 12, color: '#fff', fontWeight: '600', flex: 1, textAlign: 'right' },
+  infoLabel: { fontSize: 12, color: t.inkText(0.45), flexShrink: 0 },
+  infoValue: { fontSize: 12, color: t.inkSolid, fontWeight: '600', flex: 1, textAlign: 'right' },
 
   emptyState:    { alignItems: 'center', paddingTop: 30 },
-  emptyTitle:    { fontSize: 16, fontWeight: '700', color: '#fff', marginBottom: 8 },
-  emptySubtitle: { fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 20, textAlign: 'center' },
+  emptyTitle:    { fontSize: 16, fontWeight: '700', color: t.inkSolid, marginBottom: 8 },
+  emptySubtitle: { fontSize: 13, color: t.inkText(0.4), marginBottom: 20, textAlign: 'center' },
   routesBtn:     { backgroundColor: '#F59E0B', borderRadius: 12, paddingHorizontal: 20, paddingVertical: 11 },
   routesBtnText: { fontSize: 14, fontWeight: '700', color: '#000' },
 
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
-  modalCard:    { backgroundColor: '#111', borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 20, paddingTop: 20, paddingBottom: 36 },
+  modalCard:    { backgroundColor: t.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTopWidth: 1, borderTopColor: t.ink(0.1), paddingHorizontal: 20, paddingTop: 20, paddingBottom: 36 },
   modalRow:     { marginBottom: 14 },
-  modalLabel:   { fontSize: 10, fontWeight: '800', letterSpacing: 1.5, color: 'rgba(255,255,255,0.4)', marginBottom: 4 },
-  modalValue:   { fontSize: 15, fontWeight: '600', color: '#fff' },
-  modalPrice:   { fontSize: 28, fontWeight: '900', color: '#F59E0B' },
-  btnClose:     { marginTop: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
-  btnCloseText: { fontSize: 14, color: 'rgba(255,255,255,0.5)', fontWeight: '600' },
+  modalLabel:   { fontSize: 10, fontWeight: '800', letterSpacing: 1.5, color: t.inkText(0.4), marginBottom: 4 },
+  modalValue:   { fontSize: 15, fontWeight: '600', color: t.inkSolid },
+  modalPrice:   { fontSize: 28, fontWeight: '900', color: t.accentText },
+  btnClose:     { marginTop: 16, borderWidth: 1, borderColor: t.ink(0.12), borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
+  btnCloseText: { fontSize: 14, color: t.inkText(0.5), fontWeight: '600' },
 })

@@ -13,6 +13,22 @@ api.interceptors.request.use(async (config) => {
   return config
 })
 
+// Όταν ο server απορρίψει το αποθηκευμένο token (401: αλλαγή κωδικού, λήξη, ανενεργός λογαριασμός), η εφαρμογή
+// αποσυνδέει τον χρήστη ώστε να γυρίσει στο login αντί να μένει σε οθόνες που δεν φορτώνουν.
+// Το AuthProvider καταχωρεί εδώ το logout.
+let onUnauthorized: (() => void) | null = null
+export function setUnauthorizedHandler(handler: (() => void) | null) {
+  onUnauthorized = handler
+}
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error?.response?.status === 401 && (await getToken())) onUnauthorized?.()
+    return Promise.reject(error)
+  }
+)
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type AuthUser = {

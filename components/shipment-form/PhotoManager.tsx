@@ -3,7 +3,8 @@ import { View, Text, Image, TouchableOpacity, TextInput, Modal, Pressable, Alert
 import { Colors } from '@/constants/colors'
 import { PhotoPermissionError, cleanRoomName, photosApi, pickPhotos, type ShipmentPhoto } from '@/lib/photos'
 import type { FormT } from '@/lib/useFormT'
-import { Chip, inputStyle, s } from './ui'
+import { Chip, useFormStyles, useInputStyle } from './ui'
+import { useTheme } from '@/lib/theme'
 
 /**
  * Φωτογραφίες αποστολής. Απλή λίστα (PhotoUpload του web) ή, για τη μετακόμιση, ανά δωμάτιο (MovePhotoRooms του web): κάθε
@@ -21,6 +22,11 @@ export function PhotoManager({ t, shipmentId, initialPhotos = [], rooms: withRoo
   onPhotosChange?: (photos: ShipmentPhoto[]) => void
   onRoomsChange?: (rooms: Record<string, string>) => void
 }) {
+  const s = useFormStyles()
+  const inputStyle = useInputStyle()
+
+  const th = useTheme()
+
   const [photos, setPhotos] = useState<ShipmentPhoto[]>(initialPhotos)
   const photosRef = useRef(initialPhotos)
   const [rooms, setRooms] = useState<Record<string, string>>(initialRooms)
@@ -142,21 +148,21 @@ export function PhotoManager({ t, shipmentId, initialPhotos = [], rooms: withRoo
           <View style={[s.row, { alignItems: 'center', marginBottom: 10 }]}>
             {newRoom === null ? (
               <TouchableOpacity onPress={() => setNewRoom('')} style={{ borderWidth: 1, borderStyle: 'dashed', borderColor: Colors.accent, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8 }}>
-                <Text style={{ fontSize: 13, fontWeight: '700', color: '#B45309' }}>+ {t('photoUpload.add_room')}</Text>
+                <Text style={{ fontSize: 13, fontWeight: '700', color: th.accentText }}>+ {t('photoUpload.add_room')}</Text>
               </TouchableOpacity>
             ) : null}
-            <Text style={{ marginLeft: 'auto', fontSize: 12, color: '#94A3B8' }}>{photos.length}/{maxPhotos}</Text>
+            <Text style={{ marginLeft: 'auto', fontSize: 12, color: th.inkText(0.4) }}>{photos.length}/{maxPhotos}</Text>
           </View>
           {newRoom !== null && (
             <View style={{ marginBottom: 10 }}>
               <View style={[s.row, { alignItems: 'center' }]}>
                 <TextInput autoFocus style={[inputStyle, { flex: 1, paddingVertical: 8 }]} maxLength={60} value={newRoom} onChangeText={setNewRoom}
-                  placeholder={t('photoUpload.add_room_ph')} placeholderTextColor="#94A3B8" onSubmitEditing={() => addRoom(newRoom)} />
+                  placeholder={t('photoUpload.add_room_ph')} placeholderTextColor={th.inkText(0.4)} onSubmitEditing={() => addRoom(newRoom)} />
                 <TouchableOpacity onPress={() => addRoom(newRoom)} disabled={!cleanRoomName(newRoom)}
                   style={{ backgroundColor: Colors.accent, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, opacity: cleanRoomName(newRoom) ? 1 : 0.4 }}>
                   <Text style={{ fontWeight: '700', color: '#000' }}>{t('photoUpload.add_room_confirm')}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => setNewRoom(null)} style={{ padding: 8 }}><Text style={{ color: '#64748B' }}>✕</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => setNewRoom(null)} style={{ padding: 8 }}><Text style={{ color: th.inkText(0.6) }}>✕</Text></TouchableOpacity>
               </View>
               <View style={[s.wrap, { marginTop: 8 }]}>
                 {suggestions.map(x => <Chip key={x} label={`+ ${x}`} onPress={() => addRoom(x)} />)}
@@ -181,10 +187,10 @@ export function PhotoManager({ t, shipmentId, initialPhotos = [], rooms: withRoo
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
           {shown.map(photo => (
             <TouchableOpacity key={photo.id} onPress={() => setLightbox(photo.url)} onLongPress={withRooms ? () => setMoving(photo.id) : undefined} activeOpacity={0.85}>
-              <Image source={{ uri: photo.url }} style={{ width: 92, height: 92, borderRadius: 12, backgroundColor: '#E2E8F0' }} />
+              <Image source={{ uri: photo.url }} style={{ width: 92, height: 92, borderRadius: 12, backgroundColor: th.raised }} />
               <TouchableOpacity onPress={() => deletePhoto(photo.id)} hitSlop={6}
                 style={{ position: 'absolute', top: 4, right: 4, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ color: '#fff', fontSize: 12 }}>✕</Text>
+                <Text style={{ color: th.snow, fontSize: 12 }}>✕</Text>
               </TouchableOpacity>
             </TouchableOpacity>
           ))}
@@ -194,11 +200,11 @@ export function PhotoManager({ t, shipmentId, initialPhotos = [], rooms: withRoo
       {(!withRooms || groups.length > 0 || named.length > 0) && (
         <View style={[s.row, { alignItems: 'center' }]}>
           <TouchableOpacity onPress={chooseSource} disabled={full || busy}
-            style={{ borderWidth: 1, borderColor: Colors.border, backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, opacity: full || busy ? 0.5 : 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            style={{ borderWidth: 1, borderColor: th.ink(0.12), backgroundColor: th.surface, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, opacity: full || busy ? 0.5 : 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             {busy && <ActivityIndicator size="small" color={Colors.primary} />}
-            <Text style={{ fontSize: 14, fontWeight: '600', color: '#1E293B' }}>{busy ? t('photoUpload.compressing') : `📷 ${t('photoUpload.add_photos')}`}</Text>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: th.inkSolid }}>{busy ? t('photoUpload.compressing') : `📷 ${t('photoUpload.add_photos')}`}</Text>
           </TouchableOpacity>
-          {!withRooms && <Text style={{ fontSize: 12, color: '#94A3B8' }}>{photos.length}/{maxPhotos}</Text>}
+          {!withRooms && <Text style={{ fontSize: 12, color: th.inkText(0.4) }}>{photos.length}/{maxPhotos}</Text>}
         </View>
       )}
       {full && <Text style={[s.hint, { marginTop: 6 }]}>{t('photoUpload.max_reached')}</Text>}

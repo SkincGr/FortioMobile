@@ -8,10 +8,14 @@ import { Ionicons } from '@expo/vector-icons'
 import { profileApi } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
 import { useI18n } from '@/lib/i18n'
+import { Theme, useStyles, useTheme } from '@/lib/theme'
 
 // ─── Change password screen ───────────────────────────────────────────────────
 
 export default function ChangePasswordScreen() {
+  const th = useTheme()
+  const s = useStyles(makeStyles)
+
   const { t } = useI18n()
   const { replaceToken } = useAuth()
   const [form, setForm] = useState({
@@ -67,7 +71,7 @@ export default function ChangePasswordScreen() {
         <Text style={s.headerTitle}>{t('profile.change_pass')}</Text>
         <TouchableOpacity onPress={() => router.push('/(tabs)/profile' as any)} style={s.backBtn} hitSlop={12}>
           <Text style={s.backText}>{t('pass.back')}</Text>
-          <Ionicons name="arrow-forward" size={16} color="rgba(255,255,255,0.6)" />
+          <Ionicons name="arrow-forward" size={16} color={th.inkText(0.6)} />
         </TouchableOpacity>
       </View>
 
@@ -87,13 +91,13 @@ export default function ChangePasswordScreen() {
                 value={form.currentPassword}
                 onChangeText={set('currentPassword')}
                 placeholder={t('pass.current_ph')}
-                placeholderTextColor="rgba(255,255,255,0.25)"
+                placeholderTextColor={th.inkText(0.25)}
                 secureTextEntry={!showCurrent}
                 autoCapitalize="none"
                 autoComplete="current-password"
               />
               <TouchableOpacity onPress={() => setShowCurrent(v => !v)} hitSlop={8} style={s.eyeBtn}>
-                <Ionicons name={showCurrent ? 'eye-off-outline' : 'eye-outline'} size={18} color="rgba(255,255,255,0.4)" />
+                <Ionicons name={showCurrent ? 'eye-off-outline' : 'eye-outline'} size={18} color={th.inkText(0.4)} />
               </TouchableOpacity>
             </View>
           </View>
@@ -107,13 +111,13 @@ export default function ChangePasswordScreen() {
                 value={form.newPassword}
                 onChangeText={set('newPassword')}
                 placeholder={t('pass.hint')}
-                placeholderTextColor="rgba(255,255,255,0.25)"
+                placeholderTextColor={th.inkText(0.25)}
                 secureTextEntry={!showNew}
                 autoCapitalize="none"
                 autoComplete="new-password"
               />
               <TouchableOpacity onPress={() => setShowNew(v => !v)} hitSlop={8} style={s.eyeBtn}>
-                <Ionicons name={showNew ? 'eye-off-outline' : 'eye-outline'} size={18} color="rgba(255,255,255,0.4)" />
+                <Ionicons name={showNew ? 'eye-off-outline' : 'eye-outline'} size={18} color={th.inkText(0.4)} />
               </TouchableOpacity>
             </View>
             <Text style={s.hint}>{t('pass.hint')}</Text>
@@ -128,13 +132,13 @@ export default function ChangePasswordScreen() {
                 value={form.confirmPassword}
                 onChangeText={set('confirmPassword')}
                 placeholder={t('pass.confirm_ph')}
-                placeholderTextColor="rgba(255,255,255,0.25)"
+                placeholderTextColor={th.inkText(0.25)}
                 secureTextEntry={!showConfirm}
                 autoCapitalize="none"
                 autoComplete="new-password"
               />
               <TouchableOpacity onPress={() => setShowConfirm(v => !v)} hitSlop={8} style={s.eyeBtn}>
-                <Ionicons name={showConfirm ? 'eye-off-outline' : 'eye-outline'} size={18} color="rgba(255,255,255,0.4)" />
+                <Ionicons name={showConfirm ? 'eye-off-outline' : 'eye-outline'} size={18} color={th.inkText(0.4)} />
               </TouchableOpacity>
             </View>
           </View>
@@ -171,48 +175,48 @@ export default function ChangePasswordScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0a0a0a' },
+const makeStyles = (t: Theme) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: t.page },
 
   header: {
-    backgroundColor: '#0a0a0a',
-    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: t.page,
+    borderBottomWidth: 1, borderBottomColor: t.ink(0.1),
     paddingTop: 56, paddingBottom: 14, paddingHorizontal: 20,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
-  headerTitle: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
+  headerTitle: { color: t.inkSolid, fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
   backBtn:     { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  backText:    { color: 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: '600' },
+  backText:    { color: t.inkText(0.6), fontSize: 13, fontWeight: '600' },
 
   body:     { padding: 20, paddingBottom: 48 },
-  subtitle: { color: 'rgba(255,255,255,0.4)', fontSize: 13, marginBottom: 20, lineHeight: 20 },
+  subtitle: { color: t.inkText(0.4), fontSize: 13, marginBottom: 20, lineHeight: 20 },
 
   card: {
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: t.ink(0.03),
+    borderRadius: 16, borderWidth: 1, borderColor: t.ink(0.1),
     overflow: 'hidden', marginBottom: 20,
   },
 
   field:       { paddingHorizontal: 16, paddingVertical: 14 },
-  fieldBorder: { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
-  fieldLabel:  { fontSize: 10, fontWeight: '700', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 },
+  fieldBorder: { borderBottomWidth: 1, borderBottomColor: t.ink(0.06) },
+  fieldLabel:  { fontSize: 10, fontWeight: '700', color: t.inkText(0.4), textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 },
 
   inputRow: { flexDirection: 'row', alignItems: 'center' },
   fieldInput: {
     flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: t.ink(0.06),
+    borderWidth: 1, borderColor: t.ink(0.12),
     borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10,
-    color: '#fff', fontSize: 14,
+    color: t.inkSolid, fontSize: 14,
   },
   eyeBtn: { position: 'absolute', right: 12, top: 0, bottom: 0, justifyContent: 'center', paddingHorizontal: 4 },
 
-  hint: { fontSize: 11, color: 'rgba(255,255,255,0.25)', marginTop: 6 },
+  hint: { fontSize: 11, color: t.inkText(0.25), marginTop: 6 },
 
   errorBox:   { backgroundColor: 'rgba(239,68,68,0.1)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.25)', borderRadius: 12, padding: 14, marginBottom: 16 },
-  errorText:  { color: '#F87171', fontSize: 13 },
+  errorText:  { color: t.soft('red'), fontSize: 13 },
   successBox: { backgroundColor: 'rgba(74,222,128,0.1)', borderWidth: 1, borderColor: 'rgba(74,222,128,0.25)', borderRadius: 12, padding: 14, marginBottom: 16 },
-  successText:{ color: '#4ADE80', fontSize: 13 },
+  successText:{ color: t.soft('green'), fontSize: 13 },
 
   saveBtn:        { backgroundColor: '#F59E0B', borderRadius: 12, paddingVertical: 15, alignItems: 'center' },
   saveBtnDisabled:{ opacity: 0.5 },

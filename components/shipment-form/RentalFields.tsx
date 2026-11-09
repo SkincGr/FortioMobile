@@ -5,10 +5,15 @@ import {
   RENTAL_PAYLOADS, RENTAL_VEHICLE_SPECS, RENTAL_VEHICLE_TYPES, RENTAL_VOLUMES, RENTAL_WIDTHS, type RentalDetails,
 } from '@/lib/shared/rentalCard'
 import type { FormT } from '@/lib/useFormT'
-import { ChoiceField, Section, TextField, YesNoField, s } from './ui'
+import { ChoiceField, Section, TextField, YesNoField, useFormStyles } from './ui'
+import { useTheme } from '@/lib/theme'
 
 /** 🚐 Ενοικίαση Van / Οχήματος: το όχημα που ζητά ο αποστολέας και, προαιρετικά, η παροχή οδηγού (όπως το RentalFields του web) */
 export function RentalSection({ t, value, onChange }: { t: FormT; value: RentalDetails; onChange: (next: RentalDetails) => void }) {
+  const s = useFormStyles()
+
+  const th = useTheme()
+
   const set = <K extends keyof RentalDetails>(key: K, v: RentalDetails[K]) => onChange({ ...value, [key]: v })
   const choice = (field: keyof RentalDetails & string, options: readonly string[], label: string) => (
     <ChoiceField
@@ -26,8 +31,8 @@ export function RentalSection({ t, value, onChange }: { t: FormT; value: RentalD
 
         {/* Ενδεικτικά χαρακτηριστικά του τύπου που διαλέχτηκε */}
         {specs && (
-          <View style={{ borderWidth: 1, borderColor: '#E2E8F0', backgroundColor: '#fff', borderRadius: 12, padding: 12, marginBottom: 12 }}>
-            <Text style={{ fontSize: 12, fontWeight: '700', color: '#B45309', marginBottom: 6 }}>{t('rentalCard.specs_title')}</Text>
+          <View style={{ borderWidth: 1, borderColor: th.ink(0.12), backgroundColor: th.surface, borderRadius: 12, padding: 12, marginBottom: 12 }}>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: th.accentText, marginBottom: 6 }}>{t('rentalCard.specs_title')}</Text>
             {[
               [t('rentalCard.specs_dims'), `${specs.dims} m`],
               [t('rentalCard.specs_volume'), `${specs.volume} m³`],
@@ -35,15 +40,15 @@ export function RentalSection({ t, value, onChange }: { t: FormT; value: RentalD
               [t('rentalCard.specs_license'), t(`rentalCard.licenseShort_${specs.license}`)],
             ].map(([k, v]) => (
               <View key={k} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10, marginBottom: 3 }}>
-                <Text style={{ fontSize: 12, color: '#64748B' }}>{k}</Text>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#1E293B' }}>{v}</Text>
+                <Text style={{ fontSize: 12, color: th.inkText(0.6) }}>{k}</Text>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: th.inkSolid }}>{v}</Text>
               </View>
             ))}
             <Text style={[s.hint, { marginTop: 6 }]}>{t('rentalCard.specs_note')}</Text>
           </View>
         )}
 
-        <Text style={s.labelSmall}>{t('rentalCard.dimensions')} <Text style={{ fontWeight: '400', color: '#94A3B8' }}>— {t('rentalCard.dimensions_or_volume')}</Text></Text>
+        <Text style={s.labelSmall}>{t('rentalCard.dimensions')} <Text style={{ fontWeight: '400', color: th.inkText(0.4) }}>— {t('rentalCard.dimensions_or_volume')}</Text></Text>
         {choice('length', RENTAL_LENGTHS, `${t('rentalCard.length')} (m)`)}
         {choice('width', RENTAL_WIDTHS, `${t('rentalCard.width')} (m)`)}
         {choice('height', RENTAL_HEIGHTS, `${t('rentalCard.height')} (m)`)}

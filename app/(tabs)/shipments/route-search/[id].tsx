@@ -12,6 +12,7 @@ import { useI18n } from '@/lib/i18n'
 import { Colors } from '@/constants/colors'
 import { useMessageTemplates, renderTemplate, templateKindForCategory } from '@/lib/templates'
 import { fCity } from '@/lib/cityDisplay'
+import { Theme, useStyles, useTheme } from '@/lib/theme'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -45,6 +46,9 @@ type RouteCardProps = {
 }
 
 function RouteCard({ route, isSent, onRequest, onMessage }: RouteCardProps) {
+  const th = useTheme()
+  const styles = useStyles(makeStyles)
+
   const { t } = useI18n()
   const icon = VEHICLE_ICON[route.vehicle?.type ?? ''] ?? '🚛'
   const carrier = route.company?.name ?? t('match.carrier_fallback')
@@ -69,7 +73,7 @@ function RouteCard({ route, isSent, onRequest, onMessage }: RouteCardProps) {
         </View>
         {route.distanceKm != null && (
           <View style={styles.distChip}>
-            <Ionicons name="navigate-outline" size={11} color="#60A5FA" />
+            <Ionicons name="navigate-outline" size={11} color={th.soft('blue')} />
             <Text style={styles.distText}>{route.distanceKm} km</Text>
           </View>
         )}
@@ -131,7 +135,7 @@ function RouteCard({ route, isSent, onRequest, onMessage }: RouteCardProps) {
       <View style={[styles.row, { gap: 8, flexWrap: 'wrap', marginTop: 10, justifyContent: 'flex-start' }]}>
         {isSent ? (
           <View style={styles.sentBadge}>
-            <Ionicons name="checkmark-circle" size={14} color="#4ADE80" />
+            <Ionicons name="checkmark-circle" size={14} color={th.soft('green')} />
             <Text style={styles.sentText}>{t('match.btn_sent')}</Text>
           </View>
         ) : (
@@ -163,6 +167,9 @@ function RouteCard({ route, isSent, onRequest, onMessage }: RouteCardProps) {
 // ─── Route Search Screen ──────────────────────────────────────────────────────
 
 export default function RouteSearchScreen() {
+  const th = useTheme()
+  const styles = useStyles(makeStyles)
+
   const { id: shipmentId, title: titleParam, returnTo } = useLocalSearchParams<{ id: string; title?: string; returnTo?: string }>()
   const goBack = () => router.replace((returnTo ? decodeURIComponent(returnTo) : '/(tabs)') as any)
   const queryClient = useQueryClient()
@@ -275,10 +282,10 @@ export default function RouteSearchScreen() {
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#0a0a0a' }}>
+      <View style={{ flex: 1, backgroundColor: th.page }}>
         <View style={styles.header}>
           <TouchableOpacity onPress={goBack} style={styles.backBtn} hitSlop={12}>
-            <Ionicons name="arrow-back" size={22} color="#fff" />
+            <Ionicons name="arrow-back" size={22} color={th.inkSolid} />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
             <Text style={styles.headerTitle}>{t('routeSearch.title')}</Text>
@@ -288,7 +295,7 @@ export default function RouteSearchScreen() {
           </View>
         </View>
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#FBBF24" />
+          <ActivityIndicator size="large" color={th.accentText} />
           <Text style={styles.loadingText}>{t('match.loading')}</Text>
         </View>
       </View>
@@ -296,11 +303,11 @@ export default function RouteSearchScreen() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#0a0a0a' }}>
+    <View style={{ flex: 1, backgroundColor: th.page }}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={goBack} style={styles.backBtn} hitSlop={12}>
-          <Ionicons name="arrow-back" size={22} color="#fff" />
+          <Ionicons name="arrow-back" size={22} color={th.inkSolid} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>{t('routeSearch.title')}</Text>
@@ -312,7 +319,7 @@ export default function RouteSearchScreen() {
         </View>
         <View style={styles.countBadge}>
           {fetchingMatches ? (
-            <ActivityIndicator size="small" color="#FBBF24" />
+            <ActivityIndicator size="small" color={th.accentText} />
           ) : (
             <Text style={styles.countText}>{routes.length}</Text>
           )}
@@ -360,7 +367,7 @@ export default function RouteSearchScreen() {
                     <Text style={styles.summaryPill}>📦 {shipmentData.volume} m³</Text>
                   )}
                   {shipmentData.maxBudget && (
-                    <Text style={[styles.summaryPill, { color: '#FBBF24', fontWeight: '700' }]}>
+                    <Text style={[styles.summaryPill, { color: th.accentText, fontWeight: '700' }]}>
                       έως €{shipmentData.maxBudget}
                     </Text>
                   )}
@@ -460,7 +467,7 @@ export default function RouteSearchScreen() {
                 {t('routeSearch.section_routes')}
               </Text>
               {fetchingMatches && (
-                <ActivityIndicator size="small" color="#FBBF24" />
+                <ActivityIndicator size="small" color={th.accentText} />
               )}
             </View>
             )}
@@ -500,7 +507,7 @@ export default function RouteSearchScreen() {
                 <Text style={styles.modalTitle}>{t('match.modal.req_title')}</Text>
               </View>
               <TouchableOpacity onPress={closeModal} hitSlop={12}>
-                <Ionicons name="close" size={22} color="rgba(255,255,255,0.4)" />
+                <Ionicons name="close" size={22} color={th.inkText(0.4)} />
               </TouchableOpacity>
             </View>
 
@@ -552,7 +559,7 @@ export default function RouteSearchScreen() {
               value={messageText}
               onChangeText={setMessageText}
               placeholder={t('match.modal.req_placeholder')}
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={th.inkText(0.4)}
               multiline
               numberOfLines={4}
               style={styles.messageInput}
@@ -591,7 +598,7 @@ export default function RouteSearchScreen() {
                 <Text style={styles.modalTitle}>{t('match.modal.msg_title')}</Text>
               </View>
               <TouchableOpacity onPress={() => setMsgModal(null)} hitSlop={12}>
-                <Ionicons name="close" size={22} color="rgba(255,255,255,0.4)" />
+                <Ionicons name="close" size={22} color={th.inkText(0.4)} />
               </TouchableOpacity>
             </View>
 
@@ -643,7 +650,7 @@ export default function RouteSearchScreen() {
               value={msgText}
               onChangeText={setMsgText}
               placeholder={t('match.modal.msg_placeholder')}
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={th.inkText(0.4)}
               multiline
               numberOfLines={4}
               style={styles.messageInput}
@@ -678,34 +685,34 @@ export default function RouteSearchScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) => StyleSheet.create({
   tabRow: { flexDirection: 'row', paddingHorizontal: 16, paddingTop: 12, gap: 10 },
   tabBtn: {
     flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: t.ink(0.04), borderWidth: 1, borderColor: t.ink(0.08),
   },
   tabBtnActive: { backgroundColor: 'rgba(251,191,36,0.15)', borderColor: '#FBBF24' },
-  tabText: { color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: '700' },
-  tabTextActive: { color: '#FBBF24' },
+  tabText: { color: t.inkText(0.5), fontSize: 13, fontWeight: '700' },
+  tabTextActive: { color: t.accentText },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  loadingText: { color: 'rgba(255,255,255,0.4)', fontSize: 14 },
+  loadingText: { color: t.inkText(0.4), fontSize: 14 },
 
   // Header
   header: {
-    backgroundColor: '#0a0a0a',
-    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: t.page,
+    borderBottomWidth: 1, borderBottomColor: t.ink(0.1),
     paddingTop: 56, paddingBottom: 16, paddingHorizontal: 20,
     flexDirection: 'row', alignItems: 'center', gap: 12,
   },
   backBtn: { padding: 4 },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '800' },
-  headerSub: { color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2 },
+  headerTitle: { color: t.inkSolid, fontSize: 18, fontWeight: '800' },
+  headerSub: { color: t.inkText(0.4), fontSize: 12, marginTop: 2 },
   countBadge: {
-    backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 14,
+    backgroundColor: t.ink(0.1), borderRadius: 14,
     minWidth: 28, height: 28, alignItems: 'center', justifyContent: 'center',
-    paddingHorizontal: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)'
+    paddingHorizontal: 8, borderWidth: 1, borderColor: t.ink(0.2)
   },
-  countText: { color: '#fff', fontWeight: '800', fontSize: 13 },
+  countText: { color: t.inkSolid, fontWeight: '800', fontSize: 13 },
 
   // Shipment Summary Card
   shipmentSummaryCard: {
@@ -713,31 +720,31 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(251,191,36,0.2)',
     borderRadius: 16, padding: 14, marginBottom: 12,
   },
-  summaryLabel: { fontSize: 10, fontWeight: '800', color: '#FBBF24', letterSpacing: 1 },
-  summaryTitle: { fontSize: 16, fontWeight: '800', color: '#fff', marginTop: 2 },
-  summaryRoute: { fontSize: 13, color: 'rgba(255,255,255,0.7)', fontWeight: '600' },
-  summaryPill: { fontSize: 12, color: 'rgba(255,255,255,0.5)' },
+  summaryLabel: { fontSize: 10, fontWeight: '800', color: t.accentText, letterSpacing: 1 },
+  summaryTitle: { fontSize: 16, fontWeight: '800', color: t.inkSolid, marginTop: 2 },
+  summaryRoute: { fontSize: 13, color: t.inkText(0.7), fontWeight: '600' },
+  summaryPill: { fontSize: 12, color: t.inkText(0.5) },
 
   // Distance Card
   distanceCard: {
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: t.ink(0.03),
+    borderWidth: 1, borderColor: t.ink(0.1),
     borderRadius: 16, padding: 14, marginBottom: 12,
   },
-  distanceLabel: { fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.8)' },
+  distanceLabel: { fontSize: 13, fontWeight: '600', color: t.inkText(0.8) },
   distanceBadge: {
     backgroundColor: 'rgba(251,191,36,0.15)',
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10,
   },
-  distanceBadgeText: { color: '#FBBF24', fontSize: 13, fontWeight: '800' },
+  distanceBadgeText: { color: t.accentText, fontSize: 13, fontWeight: '800' },
   stepperBtn: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: t.ink(0.08),
     borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1, borderColor: t.ink(0.15),
   },
-  stepperBtnText: { color: '#fff', fontWeight: '700', fontSize: 12 },
+  stepperBtnText: { color: t.inkSolid, fontWeight: '700', fontSize: 12 },
   progressTrack: {
-    flex: 1, height: 8, backgroundColor: 'rgba(255,255,255,0.1)',
+    flex: 1, height: 8, backgroundColor: t.ink(0.1),
     borderRadius: 4, overflow: 'hidden',
   },
   progressFill: {
@@ -745,58 +752,58 @@ const styles = StyleSheet.create({
   },
   presetBtn: {
     flex: 1, alignItems: 'center', paddingVertical: 7,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: t.ink(0.04),
+    borderRadius: 8, borderWidth: 1, borderColor: t.ink(0.1),
   },
   presetBtnActive: {
     backgroundColor: '#FBBF24', borderColor: '#FBBF24',
   },
-  presetBtnText: { fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.6)' },
+  presetBtnText: { fontSize: 11, fontWeight: '600', color: t.inkText(0.6) },
   presetBtnTextActive: { color: '#000', fontWeight: '800' },
 
-  sectionTitle: { fontSize: 16, fontWeight: '800', color: '#fff' },
+  sectionTitle: { fontSize: 16, fontWeight: '800', color: t.inkSolid },
 
   // Route card
   card: {
-    backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: t.ink(0.03), borderRadius: 16,
+    borderWidth: 1, borderColor: t.ink(0.1),
     padding: 14, marginBottom: 10,
   },
   row: { flexDirection: 'row', alignItems: 'center' },
-  carrierName: { fontSize: 15, fontWeight: '700', color: '#fff', flexShrink: 1 },
+  carrierName: { fontSize: 15, fontWeight: '700', color: t.inkSolid, flexShrink: 1 },
   ratingBadge: {
     backgroundColor: 'rgba(251,191,36,0.15)', borderRadius: 6,
     paddingHorizontal: 6, paddingVertical: 2,
   },
-  ratingText: { fontSize: 11, color: '#FBBF24', fontWeight: '800' },
+  ratingText: { fontSize: 11, color: t.accentText, fontWeight: '800' },
   distChip: {
     flexDirection: 'row', alignItems: 'center', gap: 3,
     backgroundColor: 'rgba(96,165,250,0.1)', borderRadius: 12,
     paddingHorizontal: 8, paddingVertical: 3,
   },
-  distText: { fontSize: 11, color: '#60A5FA', fontWeight: '700' },
+  distText: { fontSize: 11, color: t.soft('blue'), fontWeight: '700' },
   statusChip: {
-    backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 6,
+    backgroundColor: t.ink(0.06), borderRadius: 6,
     paddingHorizontal: 6, paddingVertical: 2,
   },
-  statusText: { color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: '700' },
+  statusText: { color: t.inkText(0.6), fontSize: 11, fontWeight: '700' },
   recurringChip: {
     backgroundColor: 'rgba(251,191,36,0.1)', borderRadius: 6,
     paddingHorizontal: 6, paddingVertical: 2,
   },
-  recurringText: { fontSize: 11, color: '#FBBF24', fontWeight: '600' },
-  cityText:  { fontSize: 13, fontWeight: '700', color: '#fff' },
-  dateText:  { fontSize: 12, color: 'rgba(255,255,255,0.4)' },
-  arrow:     { fontSize: 12, color: 'rgba(255,255,255,0.4)' },
-  stopsText: { fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2, marginLeft: 2 },
-  priceText:    { fontSize: 16, fontWeight: '800', color: '#FBBF24' },
-  priceSubText: { fontSize: 12, color: 'rgba(255,255,255,0.4)' },
+  recurringText: { fontSize: 11, color: t.accentText, fontWeight: '600' },
+  cityText:  { fontSize: 13, fontWeight: '700', color: t.inkSolid },
+  dateText:  { fontSize: 12, color: t.inkText(0.4) },
+  arrow:     { fontSize: 12, color: t.inkText(0.4) },
+  stopsText: { fontSize: 11, color: t.inkText(0.4), marginTop: 2, marginLeft: 2 },
+  priceText:    { fontSize: 16, fontWeight: '800', color: t.accentText },
+  priceSubText: { fontSize: 12, color: t.inkText(0.4) },
   sentBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     backgroundColor: 'rgba(74,222,128,0.1)', borderRadius: 10,
     paddingHorizontal: 12, paddingVertical: 7,
   },
-  sentText: { fontSize: 12, fontWeight: '700', color: '#4ADE80' },
+  sentText: { fontSize: 12, fontWeight: '700', color: t.soft('green') },
   requestBtn: {
     backgroundColor: '#FBBF24', borderRadius: 10,
     paddingHorizontal: 14, paddingVertical: 9,
@@ -808,27 +815,27 @@ const styles = StyleSheet.create({
     borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9,
     borderWidth: 1,
   },
-  msgBtnOff: { backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.1)' },
-  msgBtnActive: { backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.1)' },
-  msgBtnOffText: { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.5)' },
-  msgBtnActiveText: { fontSize: 12, fontWeight: '600', color: '#60A5FA' },
+  msgBtnOff: { backgroundColor: t.ink(0.03), borderColor: t.ink(0.1) },
+  msgBtnActive: { backgroundColor: t.ink(0.03), borderColor: t.ink(0.1) },
+  msgBtnOffText: { fontSize: 12, fontWeight: '600', color: t.inkText(0.5) },
+  msgBtnActiveText: { fontSize: 12, fontWeight: '600', color: t.soft('blue') },
   msgBadgeOff: {
     minWidth: 17, height: 17, borderRadius: 9, paddingHorizontal: 3,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: t.ink(0.08),
   },
-  msgBadgeOffText: { fontSize: 10, fontWeight: '700', color: 'rgba(255,255,255,0.35)' },
+  msgBadgeOffText: { fontSize: 10, fontWeight: '700', color: t.inkText(0.35) },
   msgBadge: {
     minWidth: 17, height: 17, borderRadius: 9, paddingHorizontal: 3,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: t.ink(0.08),
   },
-  msgBadgeText: { fontSize: 10, fontWeight: '700', color: '#60A5FA' },
+  msgBadgeText: { fontSize: 10, fontWeight: '700', color: t.soft('blue') },
 
   // Empty
   empty: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 24 },
-  emptyTitle:    { fontSize: 16, fontWeight: '700', color: '#fff', marginBottom: 8 },
-  emptySubtitle: { fontSize: 13, color: 'rgba(255,255,255,0.4)', textAlign: 'center', lineHeight: 20 },
+  emptyTitle:    { fontSize: 16, fontWeight: '700', color: t.inkSolid, marginBottom: 8 },
+  emptySubtitle: { fontSize: 13, color: t.inkText(0.4), textAlign: 'center', lineHeight: 20 },
 
   // Modal
   modalOverlay: {
@@ -836,37 +843,37 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalCard: {
-    backgroundColor: '#111', borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', borderBottomWidth: 0,
+    backgroundColor: t.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    borderWidth: 1, borderColor: t.ink(0.1), borderBottomWidth: 0,
     paddingHorizontal: 20, paddingTop: 20, paddingBottom: 36,
   },
-  modalLabel: { fontSize: 10, fontWeight: '800', color: '#FBBF24', letterSpacing: 1.5 },
-  modalTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginTop: 2 },
+  modalLabel: { fontSize: 10, fontWeight: '800', color: t.accentText, letterSpacing: 1.5 },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: t.inkSolid, marginTop: 2 },
   modalRouteInfo: {
-    backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12,
+    backgroundColor: t.ink(0.03), borderRadius: 12,
     padding: 12, marginBottom: 14,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 1, borderColor: t.ink(0.1),
   },
-  modalRouteNum:    { fontSize: 12, fontWeight: '700', color: '#FBBF24' },
-  modalCarrierName: { fontSize: 13, fontWeight: '600', color: '#fff' },
-  modalCityText:    { fontSize: 14, fontWeight: '700', color: '#fff' },
+  modalRouteNum:    { fontSize: 12, fontWeight: '700', color: t.accentText },
+  modalCarrierName: { fontSize: 13, fontWeight: '600', color: t.inkSolid },
+  modalCityText:    { fontSize: 14, fontWeight: '700', color: t.inkSolid },
   messageInput: {
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', borderRadius: 12,
-    padding: 12, fontSize: 14, color: '#fff',
-    minHeight: 100, backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1, borderColor: t.ink(0.15), borderRadius: 12,
+    padding: 12, fontSize: 14, color: t.inkSolid,
+    minHeight: 100, backgroundColor: t.ink(0.04),
   },
   cancelBtn: {
-    flex: 1, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', borderRadius: 12,
+    flex: 1, borderWidth: 1, borderColor: t.ink(0.2), borderRadius: 12,
     paddingVertical: 13, alignItems: 'center',
   },
-  cancelBtnText: { fontSize: 14, color: '#fff', fontWeight: '600' },
+  cancelBtnText: { fontSize: 14, color: t.inkSolid, fontWeight: '600' },
   sendBtn: {
     flex: 1, backgroundColor: '#FBBF24', borderRadius: 12,
     paddingVertical: 13, alignItems: 'center',
   },
   sendBtnText: { fontSize: 14, fontWeight: '800', color: '#000' },
   templateHeaderLabel: {
-    fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.4)',
+    fontSize: 11, fontWeight: '700', color: t.inkText(0.4),
     textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6,
   },
   templateChip: {
@@ -874,5 +881,5 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(251,191,36,0.3)',
     borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6,
   },
-  templateChipText: { fontSize: 12, fontWeight: '600', color: '#FBBF24' },
+  templateChipText: { fontSize: 12, fontWeight: '600', color: t.accentText },
 })

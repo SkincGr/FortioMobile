@@ -10,7 +10,8 @@ import { itemsOfGroup, visibleGroups, withGroupItems } from '@/lib/shared/itemGr
 import { LOAD_ALLOWANCE_PCT, computeVolume, unitM3 } from '@/lib/shared/moveVolume'
 import { overviewOf, roomsOfDetails } from '@/lib/shared/moveInventoryMerge'
 import type { FormT } from '@/lib/useFormT'
-import { Check, Chip, ChoiceField, Collapsible, NumberField, TextField, YesNoField, inputStyle, s } from './ui'
+import { Check, Chip, ChoiceField, Collapsible, NumberField, TextField, YesNoField, useFormStyles, makeInputStyle, useInputStyle } from './ui'
+import { Theme, useStyles, useTheme } from '@/lib/theme'
 
 // Ίδια λογική με το components/shipment-form/MoveCardFields.tsx του Fortio· αλλάζει μόνο η εμφάνιση (React Native)
 
@@ -18,8 +19,8 @@ const fmtM3 = (n: number) => new Intl.NumberFormat(undefined, { maximumFractionD
 const fmtBoxM3 = (n: number) => new Intl.NumberFormat(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 }).format(n)
 const toggle = (list: string[], code: string, on: boolean) => (on ? [...new Set([...list, code])] : list.filter(c => c !== code))
 const qtyOfItem = (item: MoveItem) => Math.max(1, Math.floor(Number(String(item.qty).replace(',', '.'))) || 1)
-const groupTitle = { fontSize: 11, fontWeight: '800' as const, color: '#64748B', textTransform: 'uppercase' as const, letterSpacing: 0.8, marginBottom: 8 }
-const small = { ...inputStyle, paddingHorizontal: 8, paddingVertical: 8, fontSize: 13, textAlign: 'center' as const }
+const makeGroupTitle = (t: Theme) => ({ fontSize: 11, fontWeight: '800' as const, color: t.inkText(0.6), textTransform: 'uppercase' as const, letterSpacing: 0.8, marginBottom: 8 })
+const makeSmall = (t: Theme) => ({ ...makeInputStyle(t), paddingHorizontal: 8, paddingVertical: 8, fontSize: 13, textAlign: 'center' as const })
 
 /**
  * Στοιχεία του χώρου μιας διεύθυνσης: τύπος οικίας, όροφοι, ασανσέρ, κλιμακοστάσιο, ανυψωτικό, στάθμευση φορτηγού. Στην αφετηρία
@@ -29,6 +30,10 @@ export function MoveAddressFields({ t, side, value, onChange, squareMeters, room
   t: FormT; side: 'origin' | 'dest'; value: MoveAddress; onChange: (next: MoveAddress) => void
   squareMeters?: string; rooms?: string; onSquareMeters?: (v: string) => void; onRooms?: (v: string) => void
 }) {
+  const s = useFormStyles()
+
+  const th = useTheme()
+
   const set = <K extends keyof MoveAddress>(key: K, v: MoveAddress[K]) => onChange({ ...value, [key]: v })
   const [open, setOpen] = useState(false)
   const filled = moveAddressFilled(value) || (side === 'origin' && Boolean(squareMeters || rooms))
@@ -37,8 +42,8 @@ export function MoveAddressFields({ t, side, value, onChange, squareMeters, room
     return (
       <TouchableOpacity onPress={() => setOpen(true)} activeOpacity={0.8}
         style={{ borderWidth: 1, borderStyle: 'dashed', borderColor: '#F59E0B', borderRadius: 16, padding: 12, marginBottom: 12 }}>
-        <Text style={{ fontSize: 14, fontWeight: '700', color: '#B45309', textAlign: 'center' }}>{t(`moveCard.${side}_open`)}</Text>
-        <Text style={{ fontSize: 12, color: filled ? Colors.success : '#64748B', textAlign: 'center', marginTop: 4 }}>
+        <Text style={{ fontSize: 14, fontWeight: '700', color: th.accentText, textAlign: 'center' }}>{t(`moveCard.${side}_open`)}</Text>
+        <Text style={{ fontSize: 12, color: filled ? Colors.success : th.inkText(0.6), textAlign: 'center', marginTop: 4 }}>
           {filled ? t('moveCard.site_filled') : t(`moveCard.${side}_hint`)}
         </Text>
       </TouchableOpacity>
@@ -49,7 +54,7 @@ export function MoveAddressFields({ t, side, value, onChange, squareMeters, room
     <View style={[s.section, { borderColor: '#F59E0B' }]}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <Text style={s.sectionTitle}>🏠 {t(side === 'origin' ? 'moveCard.origin_title' : 'moveCard.dest_title')}</Text>
-        <TouchableOpacity onPress={() => setOpen(false)} hitSlop={8}><Text style={{ color: '#64748B', fontSize: 13 }}>{t('moveCard.site_close')}</Text></TouchableOpacity>
+        <TouchableOpacity onPress={() => setOpen(false)} hitSlop={8}><Text style={{ color: th.inkText(0.6), fontSize: 13 }}>{t('moveCard.site_close')}</Text></TouchableOpacity>
       </View>
 
       <ChoiceField label={t('moveCard.home_type')} value={value.homeType} options={HOME_TYPES} labelOf={h => t(`moveCard.home_${h}`)} onChange={v => set('homeType', v)} notSet={t('moveCard.not_set')} />
@@ -102,6 +107,12 @@ function ItemList({ t, items, onChange, suggestions, addLabel, catalogCategories
   /** Όταν δίνεται, μόνο τα αντικείμενα αυτού του δωματίου ('' = χωρίς δωμάτιο) και οι νέες γραμμές το παίρνουν */
   room?: string
 }) {
+  const s = useFormStyles()
+  const inputStyle = useInputStyle()
+
+  const th = useTheme()
+  const small = useStyles(makeSmall)
+
   const [focused, setFocused] = useState<number | null>(null)
   const setRow = (index: number, patch: Partial<MoveItem>) => onChange(items.map((item, i) => (i === index ? { ...item, ...patch } : item)))
   // Αλλαγή ονόματος: ο όγκος και η αντιστοίχιση του προηγούμενου ονόματος δεν ισχύουν πια (εκτός αν βγαίνει από διαστάσεις)
@@ -137,18 +148,18 @@ function ItemList({ t, items, onChange, suggestions, addLabel, catalogCategories
         const variants = matched ? catalogVariants(matched) : []
         const hints = focused === index ? matchesFor(item.name) : []
         return (
-          <View key={index} style={{ borderTopWidth: 1, borderTopColor: '#F1F5F9', paddingTop: 10, marginBottom: 10 }}>
+          <View key={index} style={{ borderTopWidth: 1, borderTopColor: th.ink(0.08), paddingTop: 10, marginBottom: 10 }}>
             <View style={[s.row, { alignItems: 'center' }]}>
               <TextInput
-                style={[inputStyle, { flex: 1, paddingVertical: 8, fontSize: 14 }]} placeholder={t('moveCard.item_name')} placeholderTextColor="#94A3B8"
+                style={[inputStyle, { flex: 1, paddingVertical: 8, fontSize: 14 }]} placeholder={t('moveCard.item_name')} placeholderTextColor={th.inkText(0.4)}
                 value={item.name} onChangeText={v => rename(index, v)} onFocus={() => setFocused(index)} onBlur={() => setTimeout(() => setFocused(f => (f === index ? null : f)), 200)}
               />
               <TextInput style={[small, { width: 52 }]} keyboardType="number-pad" value={item.qty} onChangeText={v => setRow(index, { qty: v })} />
-              <TextInput style={[small, { width: 60 }]} keyboardType="decimal-pad" placeholder={t('moveCard.weight_ph')} placeholderTextColor="#94A3B8"
+              <TextInput style={[small, { width: 60 }]} keyboardType="decimal-pad" placeholder={t('moveCard.weight_ph')} placeholderTextColor={th.inkText(0.4)}
                 value={item.weight ?? ''} onChangeText={v => setRow(index, { weight: v })} />
               <TouchableOpacity onPress={() => onChange(items.filter((_, i) => i !== index))} hitSlop={6}
-                style={{ borderWidth: 1, borderColor: Colors.border, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8 }}>
-                <Text style={{ color: '#94A3B8' }}>✕</Text>
+                style={{ borderWidth: 1, borderColor: th.ink(0.12), borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8 }}>
+                <Text style={{ color: th.inkText(0.4) }}>✕</Text>
               </TouchableOpacity>
             </View>
             {hints.length > 0 && (
@@ -168,16 +179,16 @@ function ItemList({ t, items, onChange, suggestions, addLabel, catalogCategories
             <View style={[s.row, { alignItems: 'center', marginTop: 6, flexWrap: 'wrap' }]}>
               {(['length', 'width', 'height'] as const).map((key, k) => (
                 <React.Fragment key={key}>
-                  {k > 0 && <Text style={{ color: '#94A3B8' }}>×</Text>}
-                  <TextInput style={[small, { width: 56 }]} keyboardType="decimal-pad" placeholder={t(`moveCard.dim_${'lwh'[k]}`)} placeholderTextColor="#94A3B8"
+                  {k > 0 && <Text style={{ color: th.inkText(0.4) }}>×</Text>}
+                  <TextInput style={[small, { width: 56 }]} keyboardType="decimal-pad" placeholder={t(`moveCard.dim_${'lwh'[k]}`)} placeholderTextColor={th.inkText(0.4)}
                     value={item[key] ?? ''} onChangeText={v => setDim(index, key, v)} />
                 </React.Fragment>
               ))}
-              {unit != null && <Text style={{ fontSize: 12, color: '#64748B' }}>~{fmtM3(unit)} m³ {t('moveCard.volume_each')}</Text>}
+              {unit != null && <Text style={{ fontSize: 12, color: th.inkText(0.6) }}>~{fmtM3(unit)} m³ {t('moveCard.volume_each')}</Text>}
             </View>
             {named && unit == null && (
               <View style={[s.row, { alignItems: 'center', marginTop: 6 }]}>
-                <Text style={{ flex: 1, fontSize: 12, color: '#B45309' }}>{t('moveCard.volume_unknown')}</Text>
+                <Text style={{ flex: 1, fontSize: 12, color: th.accentText }}>{t('moveCard.volume_unknown')}</Text>
                 <TextInput style={[small, { width: 80 }]} keyboardType="decimal-pad" value={item.m3 ?? ''} onChangeText={v => setRow(index, { m3: v })} />
               </View>
             )}
@@ -186,7 +197,7 @@ function ItemList({ t, items, onChange, suggestions, addLabel, catalogCategories
       })}
       <TouchableOpacity onPress={() => onChange([...items, { name: '', qty: '1', ...(room ? { room } : {}) }])}
         style={{ borderWidth: 1, borderStyle: 'dashed', borderColor: '#F59E0B', borderRadius: 12, paddingVertical: 9, alignItems: 'center' }}>
-        <Text style={{ fontSize: 13, fontWeight: '700', color: '#B45309' }}>{addLabel}</Text>
+        <Text style={{ fontSize: 13, fontWeight: '700', color: th.accentText }}>{addLabel}</Text>
       </TouchableOpacity>
     </View>
   )
@@ -206,6 +217,9 @@ const ITEM_GROUPS = [
 
 /** «Κουτιά Μετακόμισης»: ένα κουτί ανά τύπο και πόσα τεμάχια (γραμμές των «Άλλων αντικειμένων» με το id του κουτιού) */
 function BoxesTable({ t, items, onChange, room }: { t: FormT; items: MoveItem[]; onChange: (next: MoveItem[]) => void; room?: string }) {
+  const th = useTheme()
+  const small = useStyles(makeSmall)
+
   const here = (item: MoveItem) => room === undefined || (item.room ?? '') === room
   const setQty = (id: string, raw: string) => {
     const match = (item: MoveItem) => item.catalogId === id && here(item)
@@ -223,14 +237,14 @@ function BoxesTable({ t, items, onChange, room }: { t: FormT; items: MoveItem[];
       {MOVING_BOX_IDS.map(id => {
         const qty = items.filter(item => item.catalogId === id && here(item)).reduce((n, item) => n + qtyOfItem(item), 0)
         return (
-          <View key={id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, borderTopWidth: 1, borderTopColor: '#F1F5F9', paddingVertical: 8 }}>
+          <View key={id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, borderTopWidth: 1, borderTopColor: th.ink(0.08), paddingVertical: 8 }}>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 13, fontWeight: '600', color: '#1E293B' }}>{t(`moveCard.box_label_${id}`)}</Text>
-              <Text style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: th.inkSolid }}>{t(`moveCard.box_label_${id}`)}</Text>
+              <Text style={{ fontSize: 11, color: th.inkText(0.6), marginTop: 2 }}>
                 {CATALOG_DIMS_CM[id]?.join(' × ')} cm · {fmtBoxM3(CATALOG_BY_ID.get(id)?.m3 ?? 0)} m³
               </Text>
             </View>
-            <TextInput style={[small, { width: 60 }]} keyboardType="number-pad" value={qty > 0 ? String(qty) : ''} onChangeText={v => setQty(id, v)} placeholder="0" placeholderTextColor="#CBD5E1" />
+            <TextInput style={[small, { width: 60 }]} keyboardType="number-pad" value={qty > 0 ? String(qty) : ''} onChangeText={v => setQty(id, v)} placeholder="0" placeholderTextColor={th.inkText(0.35)} />
           </View>
         )
       })}
@@ -242,6 +256,10 @@ function BoxesTable({ t, items, onChange, room }: { t: FormT; items: MoveItem[];
 function ItemGroups({ t, value, onChange, room, categories }: {
   t: FormT; value: MoveDetails; onChange: (next: MoveDetails) => void; categories?: readonly string[]; room?: string
 }) {
+  const s = useFormStyles()
+
+  const th = useTheme()
+
   const [open, setOpen] = useState<string | null>(null)
   const split = (key: string) => t(key).split('|').map(x => x.trim()).filter(Boolean)
   const shown = categories ? visibleGroups(categories, value) : null
@@ -257,7 +275,7 @@ function ItemGroups({ t, value, onChange, room, categories }: {
         {groups.map(g => <Chip key={g.id} active={open === g.id} label={`${t(g.title)} (${countOf(g.id)})`} onPress={() => setOpen(open === g.id ? null : g.id)} />)}
       </View>
       {groups.map(g => (
-        <View key={g.id} style={open === g.id ? { borderWidth: 1, borderColor: Colors.border, backgroundColor: '#fff', borderRadius: 12, padding: 10, marginBottom: 10 } : { display: 'none' }}>
+        <View key={g.id} style={open === g.id ? { borderWidth: 1, borderColor: th.ink(0.12), backgroundColor: th.surface, borderRadius: 12, padding: 10, marginBottom: 10 } : { display: 'none' }}>
           {g.id === 'BOXES' ? (
             <BoxesTable t={t} items={itemsOfGroup(value, 'BOXES')} onChange={v => onChange(withGroupItems(value, 'BOXES', v))} room={room} />
           ) : (
@@ -274,16 +292,21 @@ function ItemGroups({ t, value, onChange, room, categories }: {
 
 /** Εκτιμώμενος όγκος: καθαρός, όγκος φόρτωσης με το ποσοστό για τα κενά, και ό,τι δεν μετρήθηκε */
 function VolumeBox({ t, items }: { t: FormT; items: readonly MoveItem[] }) {
+  const s = useFormStyles()
+
+  const th = useTheme()
+  const groupTitle = useStyles(makeGroupTitle)
+
   const named = items.filter(i => i.name.trim() !== '')
   if (named.length === 0) return null
   const volume = computeVolume(named)
   if (volume.netM3 <= 0 && volume.unknown.length === 0) return null
   return (
-    <View style={{ borderWidth: 1, borderColor: Colors.border, backgroundColor: '#fff', borderRadius: 12, padding: 10, marginBottom: 12 }}>
+    <View style={{ borderWidth: 1, borderColor: th.ink(0.12), backgroundColor: th.surface, borderRadius: 12, padding: 10, marginBottom: 12 }}>
       <Text style={groupTitle}>{t('moveCard.volume_title')}</Text>
-      <Text style={{ fontSize: 13, color: '#334155' }}>{t('moveCard.volume_net')}: <Text style={{ fontWeight: '700' }}>{fmtM3(volume.netM3)} m³</Text></Text>
-      <Text style={{ fontSize: 13, color: '#334155' }}>{t('moveCard.volume_load')} (+{LOAD_ALLOWANCE_PCT}%): <Text style={{ fontWeight: '700', color: '#B45309' }}>{fmtM3(volume.loadM3)} m³</Text></Text>
-      {volume.unknown.length > 0 && <Text style={{ fontSize: 12, color: '#B45309', marginTop: 2 }}>{t('moveCard.volume_unknown_total')}: {volume.unknown.join(', ')}</Text>}
+      <Text style={{ fontSize: 13, color: th.inkText(0.85) }}>{t('moveCard.volume_net')}: <Text style={{ fontWeight: '700' }}>{fmtM3(volume.netM3)} m³</Text></Text>
+      <Text style={{ fontSize: 13, color: th.inkText(0.85) }}>{t('moveCard.volume_load')} (+{LOAD_ALLOWANCE_PCT}%): <Text style={{ fontWeight: '700', color: th.accentText }}>{fmtM3(volume.loadM3)} m³</Text></Text>
+      {volume.unknown.length > 0 && <Text style={{ fontSize: 12, color: th.accentText, marginTop: 2 }}>{t('moveCard.volume_unknown_total')}: {volume.unknown.join(', ')}</Text>}
       <Text style={[s.hint, { marginTop: 4 }]}>{t('moveCard.volume_hint')}</Text>
     </View>
   )
@@ -309,22 +332,26 @@ const OVERVIEW = '__overview__'
 
 /** Συνολική εικόνα: τα αντικείμενα όλων των δωματίων μαζί, μόνο για ανάγνωση */
 function MoveOverview({ t, value }: { t: FormT; value: MoveDetails }) {
+  const s = useFormStyles()
+
+  const th = useTheme()
+
   const { rows, totalQty } = overviewOf(value)
   if (rows.length === 0) return <Text style={s.hint}>{t('moveCard.overview_empty')}</Text>
   return (
     <View>
       <Text style={[s.hint, { marginBottom: 8 }]}>{t('moveCard.overview_hint')}</Text>
       {rows.map(row => (
-        <View key={row.key} style={{ borderTopWidth: 1, borderTopColor: '#F1F5F9', paddingVertical: 7 }}>
+        <View key={row.key} style={{ borderTopWidth: 1, borderTopColor: th.ink(0.08), paddingVertical: 7 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
-            <Text style={{ flex: 1, fontSize: 13, fontWeight: '600', color: '#1E293B' }}>{row.name}</Text>
-            <Text style={{ fontSize: 13, color: '#334155' }}>{row.qty} {t('moveCard.pieces')}</Text>
-            <Text style={{ fontSize: 13, color: '#64748B', minWidth: 52, textAlign: 'right' }}>{row.totalM3 != null ? `${fmtM3(row.totalM3)} m³` : '—'}</Text>
+            <Text style={{ flex: 1, fontSize: 13, fontWeight: '600', color: th.inkSolid }}>{row.name}</Text>
+            <Text style={{ fontSize: 13, color: th.inkText(0.85) }}>{row.qty} {t('moveCard.pieces')}</Text>
+            <Text style={{ fontSize: 13, color: th.inkText(0.6), minWidth: 52, textAlign: 'right' }}>{row.totalM3 != null ? `${fmtM3(row.totalM3)} m³` : '—'}</Text>
           </View>
-          <Text style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>{row.rooms.map(r => `${r.room || t('photoUpload.no_room')} ${r.qty}`).join(' · ')}</Text>
+          <Text style={{ fontSize: 11, color: th.inkText(0.4), marginTop: 2 }}>{row.rooms.map(r => `${r.room || t('photoUpload.no_room')} ${r.qty}`).join(' · ')}</Text>
         </View>
       ))}
-      <Text style={{ fontSize: 13, color: '#334155', marginVertical: 8 }}>{t('moveCard.total_pieces')}: <Text style={{ fontWeight: '700' }}>{totalQty}</Text></Text>
+      <Text style={{ fontSize: 13, color: th.inkText(0.85), marginVertical: 8 }}>{t('moveCard.total_pieces')}: <Text style={{ fontWeight: '700' }}>{totalQty}</Text></Text>
       <VolumeBox t={t} items={[...value.furniture, ...value.appliances, ...value.otherItems]} />
     </View>
   )
@@ -332,6 +359,11 @@ function MoveOverview({ t, value }: { t: FormT; value: MoveDetails }) {
 
 /** «Περιγραφή Αντικειμένων» της μετακόμισης: λίστες ανά δωμάτιο, ειδικά αντικείμενα, υπηρεσίες, άλλες πληροφορίες */
 export function MoveItemsSection({ t, value, onChange, defaultOpen = false }: { t: FormT; value: MoveDetails; onChange: (next: MoveDetails) => void; defaultOpen?: boolean }) {
+  const s = useFormStyles()
+
+  const th = useTheme()
+  const groupTitle = useStyles(makeGroupTitle)
+
   const set = <K extends keyof MoveDetails>(key: K, v: MoveDetails[K]) => onChange({ ...value, [key]: v })
   const allItems = [...value.furniture, ...value.appliances, ...value.otherItems]
   const rooms = roomsOfDetails(value)
@@ -368,7 +400,7 @@ export function MoveItemsSection({ t, value, onChange, defaultOpen = false }: { 
           <Check key={code} checked={value.specialItems.includes(code)} onChange={v => set('specialItems', toggle(value.specialItems, code, v))} label={t(`moveCard.special_${code}`)} />
         ))}
       </View>
-      <Text style={[s.labelSmall, { color: '#64748B' }]}>{t('moveCard.special_office')}</Text>
+      <Text style={[s.labelSmall, { color: th.inkText(0.6) }]}>{t('moveCard.special_office')}</Text>
       <View style={[s.wrap, { marginBottom: 10 }]}>
         {SPECIAL_ITEMS_OFFICE.map(code => (
           <Check key={code} checked={value.specialItems.includes(code)} onChange={v => set('specialItems', toggle(value.specialItems, code, v))} label={t(`moveCard.special_${code}`)} />

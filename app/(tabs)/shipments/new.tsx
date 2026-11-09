@@ -24,7 +24,7 @@ import { volumeEstimateOf } from '@/lib/shared/moveVolume'
 import { maxPhotosFor, photoMaxEdgeFor } from '@/lib/shared/photoLimits'
 import { planAnalysis } from '@/lib/shared/moveInventoryMerge'
 import type { ShipmentPhoto } from '@/lib/photos'
-import { ChoiceField, Collapsible, errorBorder, inputStyle } from '@/components/shipment-form/ui'
+import { ChoiceField, Collapsible, errorBorder, useInputStyle } from '@/components/shipment-form/ui'
 import { CargoItemsSection, MoveAddressFields, MoveItemsSection } from '@/components/shipment-form/MoveCardFields'
 import { BoatSection, TransportSection, VehicleSection } from '@/components/shipment-form/VehicleBoatFields'
 import { RentalSection } from '@/components/shipment-form/RentalFields'
@@ -32,6 +32,7 @@ import { PhotoManager } from '@/components/shipment-form/PhotoManager'
 import { MoveInventoryAnalysis } from '@/components/shipment-form/MoveInventoryAnalysis'
 import { MoveCardSummary, TransportCardSummary } from '@/components/shipment-form/CardSummary'
 import { MapPickerModal } from '@/components/shipment-form/MapPickerModal'
+import { useTheme } from '@/lib/theme'
 
 // Η φόρμα ακολουθεί το components/ShipmentForm.tsx του Fortio: ίδιες κατηγορίες (πολλαπλή επιλογή), ίδιοι κανόνες ανά
 // κατηγορία (Μετακόμιση, Κάδοι, Όχημα/Σκάφος, Ενοικίαση) και ίδιο σώμα αιτήματος, με τις βιβλιοθήκες του lib/shared.
@@ -89,10 +90,12 @@ const localDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).pad
 const LOCALES = { el: 'el-GR', en: 'en-GB', fr: 'fr-FR' } as const
 
 function Field({ label, optional, t, children }: { label: string; optional?: boolean; t: FormT; children: React.ReactNode }) {
+  const th = useTheme()
+
   return (
     <View style={{ marginBottom: 16 }}>
-      <Text style={{ fontSize: 14, fontWeight: '600', color: '#334155', marginBottom: 6 }}>
-        {label}{optional ? <Text style={{ fontWeight: '400', color: '#94A3B8' }}> {t('shipmentForm.optional')}</Text> : null}
+      <Text style={{ fontSize: 14, fontWeight: '600', color: th.inkText(0.85), marginBottom: 6 }}>
+        {label}{optional ? <Text style={{ fontWeight: '400', color: th.inkText(0.4) }}> {t('shipmentForm.optional')}</Text> : null}
       </Text>
       {children}
     </View>
@@ -100,33 +103,39 @@ function Field({ label, optional, t, children }: { label: string; optional?: boo
 }
 
 function ErrorBox({ t, issues }: { t: FormT; issues: string[] }) {
+  const th = useTheme()
+
   return (
-    <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start', marginBottom: 12, backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FECACA', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12 }}>
+    <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start', marginBottom: 12, backgroundColor: 'rgba(239,68,68,0.1)', borderWidth: 1, borderColor: '#FECACA', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12 }}>
       <Text style={{ color: Colors.danger, fontSize: 15 }}>⚠</Text>
       <View style={{ flex: 1 }}>
-        <Text style={{ color: '#B91C1C', fontSize: 13, fontWeight: '600' }}>{t('shipmentForm.errors_fill')}</Text>
-        {issues.map(m => <Text key={m} style={{ color: '#DC2626', fontSize: 12, marginTop: 3 }}>• {m}</Text>)}
+        <Text style={{ color: th.soft('red', 300), fontSize: 13, fontWeight: '600' }}>{t('shipmentForm.errors_fill')}</Text>
+        {issues.map(m => <Text key={m} style={{ color: th.soft('red'), fontSize: 12, marginTop: 3 }}>• {m}</Text>)}
       </View>
     </View>
   )
 }
 
 function Row({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+  const th = useTheme()
+
   return (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8, gap: 12 }}>
-      <Text style={{ fontSize: 13, color: '#64748B', flexShrink: 0 }}>{label}</Text>
-      <Text style={{ fontSize: 13, fontWeight: '600', color: accent ? Colors.accent : '#1E293B', flex: 1, textAlign: 'right' }}>{value}</Text>
+      <Text style={{ fontSize: 13, color: th.inkText(0.6), flexShrink: 0 }}>{label}</Text>
+      <Text style={{ fontSize: 13, fontWeight: '600', color: accent ? Colors.accent : th.inkSolid, flex: 1, textAlign: 'right' }}>{value}</Text>
     </View>
   )
 }
 
 function Checkbox({ checked, label, onPress, disabled }: { checked: boolean; label: string; onPress: () => void; disabled?: boolean }) {
+  const th = useTheme()
+
   return (
     <TouchableOpacity onPress={onPress} disabled={disabled} activeOpacity={0.8} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, opacity: disabled ? 0.4 : 1 }}>
-      <View style={{ width: 18, height: 18, borderRadius: 4, borderWidth: 2, alignItems: 'center', justifyContent: 'center', borderColor: checked ? Colors.accent : '#CBD5E1', backgroundColor: checked ? Colors.accent : 'transparent' }}>
-        {checked && <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>✓</Text>}
+      <View style={{ width: 18, height: 18, borderRadius: 4, borderWidth: 2, alignItems: 'center', justifyContent: 'center', borderColor: checked ? Colors.accent : th.ink(0.2), backgroundColor: checked ? Colors.accent : 'transparent' }}>
+        {checked && <Text style={{ color: th.snow, fontSize: 10, fontWeight: '700' }}>✓</Text>}
       </View>
-      <Text style={{ fontSize: 13, color: '#334155', fontWeight: '600' }}>{label}</Text>
+      <Text style={{ fontSize: 13, color: th.inkText(0.85), fontWeight: '600' }}>{label}</Text>
     </TouchableOpacity>
   )
 }
@@ -134,8 +143,8 @@ function Checkbox({ checked, label, onPress, disabled }: { checked: boolean; lab
 function BackNext({ t, onBack, onNext, nextLabel, busy }: { t: FormT; onBack: () => void; onNext: () => void; nextLabel?: string; busy?: boolean }) {
   return (
     <View className="flex-row gap-3 mt-2">
-      <TouchableOpacity className="flex-1 border border-slate-200 rounded-2xl py-4 items-center bg-white" onPress={onBack} disabled={busy} activeOpacity={0.8}>
-        <Text className="font-bold text-slate-600">{t('shipmentForm.btn_back')}</Text>
+      <TouchableOpacity className="flex-1 border border-slate-200 dark:border-white/10 rounded-2xl py-4 items-center bg-white dark:bg-[#111111]" onPress={onBack} disabled={busy} activeOpacity={0.8}>
+        <Text className="font-bold text-slate-600 dark:text-white/70">{t('shipmentForm.btn_back')}</Text>
       </TouchableOpacity>
       <TouchableOpacity className={`flex-1 rounded-2xl py-4 items-center ${busy ? 'bg-primary/50' : 'bg-primary'}`} onPress={onNext} disabled={busy} activeOpacity={0.85}>
         <Text className="font-bold text-white">{nextLabel ?? t('shipmentForm.btn_continue')}</Text>
@@ -150,6 +159,10 @@ function CoordGroup({ t, title, latValue, lngValue, latPh, lngPh, onLatChange, o
   t: FormT; title: string; latValue: string; lngValue: string; latPh: string; lngPh: string
   onLatChange: (v: string) => void; onLngChange: (v: string) => void; onOpenMap: () => void
 }) {
+  const inputStyle = useInputStyle()
+
+  const th = useTheme()
+
   const latRef = useRef<TextInputInstance>(null)
   const lngRef = useRef<TextInputInstance>(null)
   const skipAlert = useRef<'lat' | 'lng' | null>(null)
@@ -176,11 +189,11 @@ function CoordGroup({ t, title, latValue, lngValue, latPh, lngPh, onLatChange, o
   return (
     <View>
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
-        <Text style={{ flex: 1, fontSize: 12, fontWeight: '600', color: '#94A3B8' }}>
+        <Text style={{ flex: 1, fontSize: 12, fontWeight: '600', color: th.inkText(0.4) }}>
           {title} <Text style={{ fontWeight: '400' }}>{t('shipmentForm.coord_note')}</Text>
         </Text>
         <TouchableOpacity onPress={onOpenMap} hitSlop={8}>
-          <Text style={{ fontSize: 12, fontWeight: '800', color: '#B45309' }}>📍 {t('shipmentForm.btn_find_on_map')}</Text>
+          <Text style={{ fontSize: 12, fontWeight: '800', color: th.accentText }}>📍 {t('shipmentForm.btn_find_on_map')}</Text>
         </TouchableOpacity>
       </View>
       <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -188,7 +201,7 @@ function CoordGroup({ t, title, latValue, lngValue, latPh, lngPh, onLatChange, o
           <TextInput
             key={f} ref={f === 'lat' ? latRef : lngRef}
             style={[inputStyle, { flex: 1, fontSize: 13 }]}
-            placeholder={f === 'lat' ? latPh : lngPh} placeholderTextColor="#94A3B8"
+            placeholder={f === 'lat' ? latPh : lngPh} placeholderTextColor={th.inkText(0.4)}
             value={f === 'lat' ? latValue : lngValue} onChangeText={f === 'lat' ? onLatChange : onLngChange}
             keyboardType="decimal-pad"
             onFocus={() => { if (skipAlert.current === f) { skipAlert.current = null; return } showPrompt(f) }}
@@ -202,6 +215,10 @@ function CoordGroup({ t, title, latValue, lngValue, latPh, lngPh, onLatChange, o
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function NewShipmentScreen() {
+  const inputStyle = useInputStyle()
+
+  const th = useTheme()
+
   const t = useFormT()
   const { language } = useI18n()
   const locale = LOCALES[language]
@@ -341,7 +358,7 @@ export default function NewShipmentScreen() {
     return (
       <View style={{ alignItems: 'flex-end' }}>
         <Checkbox checked={checked} disabled={!usable} label={t('shipmentForm.my_address')} onPress={() => setForm(f => applyMyAddress(f, side, profileAddress, !checked))} />
-        {profileAddress && !hasProfileAddress(profileAddress) && <Text style={{ fontSize: 10, color: '#94A3B8', marginTop: 2 }}>{t('shipmentForm.my_address_missing')}</Text>}
+        {profileAddress && !hasProfileAddress(profileAddress) && <Text style={{ fontSize: 10, color: th.inkText(0.4), marginTop: 2 }}>{t('shipmentForm.my_address_missing')}</Text>}
       </View>
     )
   }
@@ -515,10 +532,10 @@ export default function NewShipmentScreen() {
       <Field t={t} label={`${t('shipmentForm.delivery_date_label')} *`}>
         <TouchableOpacity onPress={() => setShowDatePicker(true)} activeOpacity={0.8}
           style={[inputStyle, missing('desiredDelivery') && errorBorder, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
-          <Text style={{ fontSize: 15, color: form.desiredDelivery ? '#1E293B' : '#94A3B8' }}>
+          <Text style={{ fontSize: 15, color: form.desiredDelivery ? th.inkSolid : th.inkText(0.4) }}>
             {form.desiredDelivery ? form.desiredDelivery.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' }) : t('mobile.pick_date')}
           </Text>
-          <Ionicons name="calendar-outline" size={18} color={Colors.textMuted} />
+          <Ionicons name="calendar-outline" size={18} color={th.inkText(0.4)} />
         </TouchableOpacity>
         {fieldErrors.desiredDelivery ? <Text style={{ fontSize: 12, color: Colors.danger, marginTop: 4 }}>{fieldErrors.desiredDelivery}</Text> : null}
       </Field>
@@ -534,11 +551,11 @@ export default function NewShipmentScreen() {
           <Field t={t} label={t('shipmentForm.bins_duration_label')}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
               <TextInput style={[inputStyle, { width: 90, textAlign: 'center' }]} keyboardType="number-pad" value={durationDays} onChangeText={setDurationDays} />
-              <Text style={{ color: '#64748B' }}>{t('shipmentForm.bins_duration_unit')}</Text>
+              <Text style={{ color: th.inkText(0.6) }}>{t('shipmentForm.bins_duration_unit')}</Text>
             </View>
           </Field>
           <Field t={t} label={t('shipmentForm.bins_period_label')} optional>
-            <TextInput style={inputStyle} placeholder={t('shipmentForm.bins_period_ph')} placeholderTextColor="#94A3B8" value={form.loadingInfo} onChangeText={v => update('loadingInfo', v)} />
+            <TextInput style={inputStyle} placeholder={t('shipmentForm.bins_period_ph')} placeholderTextColor={th.inkText(0.4)} value={form.loadingInfo} onChangeText={v => update('loadingInfo', v)} />
           </Field>
         </>
       )}
@@ -548,24 +565,24 @@ export default function NewShipmentScreen() {
   // ── Οθόνη επιτυχίας (μετά τη δημιουργία): φωτογραφίες και, όπου γίνεται, λίστα αντικειμένων ──
   if (createdId) {
     return (
-      <View className="flex-1 bg-surface">
+      <View className="flex-1 bg-surface dark:bg-[#0a0a0a]">
         <View style={{ backgroundColor: Colors.primary, paddingTop: 56, paddingBottom: 14, paddingHorizontal: 20 }}>
-          <Text style={{ color: '#fff', fontSize: 19, fontWeight: '800' }}>{headerTitle}</Text>
+          <Text style={{ color: th.snow, fontSize: 19, fontWeight: '800' }}>{headerTitle}</Text>
         </View>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 16, paddingBottom: 48 }}>
           <View style={{ alignItems: 'center', marginBottom: 20 }}>
-            <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: '#DCFCE7', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
+            <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(34,197,94,0.15)', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
               <Text style={{ fontSize: 28, color: Colors.success }}>✓</Text>
             </View>
-            <Text style={{ fontSize: 22, fontWeight: '800', color: '#1E293B' }}>{t('shipmentForm.success_title')}</Text>
-            <Text style={{ fontSize: 14, color: '#64748B', textAlign: 'center', marginTop: 6 }}>
+            <Text style={{ fontSize: 22, fontWeight: '800', color: th.inkSolid }}>{t('shipmentForm.success_title')}</Text>
+            <Text style={{ fontSize: 14, color: th.inkText(0.6), textAlign: 'center', marginTop: 6 }}>
               {t(isRental ? 'shipmentForm.success_desc_rental' : 'shipmentForm.success_desc')}
             </Text>
           </View>
 
           {inventoryFlow ? (
             <>
-              <Text style={{ fontSize: 13, color: '#475569', marginBottom: 12 }}>{t(isMove ? 'moveCard.success_move_hint' : 'moveCard.cargo_hint')}</Text>
+              <Text style={{ fontSize: 13, color: th.inkText(0.7), marginBottom: 12 }}>{t(isMove ? 'moveCard.success_move_hint' : 'moveCard.cargo_hint')}</Text>
               <MoveInventoryAnalysis t={t} shipmentId={createdId} photos={currentPhotos ?? []} details={form.cardDetails} onChange={setMove}
                 onEnabledChange={on => { if (on) setPhotosOpen(true) }} />
               <Collapsible title={photosTitle} badge={photosBadge} open={photosOpen ?? true} onOpenChange={setPhotosOpen}>
@@ -579,19 +596,19 @@ export default function NewShipmentScreen() {
                 <Text style={{ fontWeight: '800', color: '#000' }}>{listSaving ? t('moveCard.list_saving') : t('moveCard.save_list')}</Text>
               </TouchableOpacity>
               {listMessage && <Text style={{ fontSize: 13, marginTop: 8, color: listMessage.ok ? Colors.success : Colors.danger }}>{listMessage.text}</Text>}
-              {listDirty && !listMessage && <Text style={{ fontSize: 13, marginTop: 8, color: '#B45309' }}>{t('moveCard.list_unsaved')}</Text>}
+              {listDirty && !listMessage && <Text style={{ fontSize: 13, marginTop: 8, color: th.accentText }}>{t('moveCard.list_unsaved')}</Text>}
             </>
           ) : isRental ? null : (
-            <View style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: Colors.border, borderRadius: 16, padding: 16 }}>
-              <Text style={{ fontSize: 16, fontWeight: '700', color: '#1E293B', marginBottom: 12 }}>{t('shipmentForm.success_photos_title')}</Text>
+            <View style={{ backgroundColor: th.surface, borderWidth: 1, borderColor: th.ink(0.12), borderRadius: 16, padding: 16 }}>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: th.inkSolid, marginBottom: 12 }}>{t('shipmentForm.success_photos_title')}</Text>
               {photoManager(createdId, [])}
-              <Text style={{ fontSize: 12, color: '#94A3B8', marginTop: 12 }}>{t('shipmentForm.success_photos_desc')}</Text>
+              <Text style={{ fontSize: 12, color: th.inkText(0.4), marginTop: 12 }}>{t('shipmentForm.success_photos_desc')}</Text>
             </View>
           )}
 
           <TouchableOpacity onPress={() => router.replace('/(tabs)' as any)} activeOpacity={0.85}
             style={{ backgroundColor: Colors.primary, borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginTop: 20 }}>
-            <Text style={{ color: '#fff', fontWeight: '800' }}>{t('shipmentForm.success_btn')}</Text>
+            <Text style={{ color: th.snow, fontWeight: '800' }}>{t('shipmentForm.success_btn')}</Text>
           </TouchableOpacity>
         </ScrollView>
       </View>
@@ -633,41 +650,41 @@ export default function NewShipmentScreen() {
   })()
 
   return (
-    <KeyboardAvoidingView className="flex-1 bg-surface" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView className="flex-1 bg-surface dark:bg-[#0a0a0a]" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       {/* Header */}
       <View style={{ backgroundColor: Colors.primary, paddingTop: 56, paddingBottom: 14, paddingHorizontal: 20 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text style={{ color: '#fff', fontSize: 19, fontWeight: '800', flex: 1 }}>{headerTitle}</Text>
+          <Text style={{ color: th.snow, fontSize: 19, fontWeight: '800', flex: 1 }}>{headerTitle}</Text>
           <Text style={{ color: '#93C5FD', fontSize: 13 }}>{step}/3</Text>
         </View>
         <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
           <TouchableOpacity onPress={() => (isEditing ? router.back() : router.replace('/(tabs)' as any))}
-            style={{ backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 5 }}>
-            <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>{t('mobile.edit_cancel')}</Text>
+            style={{ backgroundColor: th.ink(0.15), borderRadius: 8, paddingHorizontal: 12, paddingVertical: 5 }}>
+            <Text style={{ color: th.snow, fontSize: 13, fontWeight: '600' }}>{t('mobile.edit_cancel')}</Text>
           </TouchableOpacity>
           {isEditing && (
             <TouchableOpacity onPress={saveNow} disabled={isSubmitting}
               style={{ backgroundColor: Colors.success, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 5, opacity: isSubmitting ? 0.5 : 1 }}>
-              <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>{isSubmitting ? t('shipmentForm.btn_saving') : t('shipmentForm.btn_save_now')}</Text>
+              <Text style={{ color: th.snow, fontSize: 13, fontWeight: '700' }}>{isSubmitting ? t('shipmentForm.btn_saving') : t('shipmentForm.btn_save_now')}</Text>
             </TouchableOpacity>
           )}
         </View>
       </View>
 
       {/* Step bar */}
-      <View className="bg-white px-4 border-b border-slate-100">
+      <View className="bg-white dark:bg-[#111111] px-4 border-b border-slate-100 dark:border-white/10">
         <View className="flex-row items-center justify-center gap-3 py-4">
           {steps.map((label, i) => {
             const n = i + 1
             return (
               <React.Fragment key={n}>
                 <View className="items-center">
-                  <View className={`w-7 h-7 rounded-full items-center justify-center ${step === n ? 'bg-primary' : step > n ? 'bg-green-500' : 'bg-slate-200'}`}>
-                    <Text className={`text-xs font-bold ${step >= n ? 'text-white' : 'text-slate-400'}`}>{step > n ? '✓' : n}</Text>
+                  <View className={`w-7 h-7 rounded-full items-center justify-center ${step === n ? 'bg-primary' : step > n ? 'bg-green-500' : 'bg-slate-200 dark:bg-white/15'}`}>
+                    <Text className={`text-xs font-bold ${step >= n ? 'text-white' : 'text-slate-400 dark:text-white/40'}`}>{step > n ? '✓' : n}</Text>
                   </View>
-                  <Text className={`text-[10px] mt-1 font-semibold ${step === n ? 'text-primary' : 'text-slate-400'}`}>{label}</Text>
+                  <Text className={`text-[10px] mt-1 font-semibold ${step === n ? 'text-primary dark:text-blue-300' : 'text-slate-400 dark:text-white/40'}`}>{label}</Text>
                 </View>
-                {n < 3 && <View className={`flex-1 h-px mb-4 ${step > n ? 'bg-green-400' : 'bg-slate-200'}`} />}
+                {n < 3 && <View className={`flex-1 h-px mb-4 ${step > n ? 'bg-green-400' : 'bg-slate-200 dark:bg-white/15'}`} />}
               </React.Fragment>
             )
           })}
@@ -677,14 +694,14 @@ export default function NewShipmentScreen() {
       <View className="flex-1 px-4 pt-4">
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 40 }}>
           {error && step !== 3 ? (
-            <View className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4"><Text className="text-red-600 text-sm">{error}</Text></View>
+            <View className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-400/30 rounded-xl p-3 mb-4"><Text className="text-red-600 dark:text-red-400 text-sm">{error}</Text></View>
           ) : null}
 
           {/* ── Βήμα 1: κατηγορία ── */}
           {step === 1 && (
             <>
-              <Text className="text-base font-bold text-slate-700 mb-1">{t('shipmentForm.step1_title')}</Text>
-              <Text style={{ fontSize: 12, color: '#64748B', marginBottom: 10 }}>{t('shipmentForm.step1_hint')}</Text>
+              <Text className="text-base font-bold text-slate-700 dark:text-white/80 mb-1">{t('shipmentForm.step1_title')}</Text>
+              <Text style={{ fontSize: 12, color: th.inkText(0.6), marginBottom: 10 }}>{t('shipmentForm.step1_hint')}</Text>
               <View className="flex-row flex-wrap gap-2 mb-5"
                 style={missing('category') ? { borderWidth: 1, borderColor: Colors.danger, borderRadius: 16, padding: 4 } : undefined}>
                 {[...FORM_CATEGORY_ORDER, ...(form.categories.includes('COURIER') ? ['COURIER'] : [])].map(id => {
@@ -692,10 +709,10 @@ export default function NewShipmentScreen() {
                   const meta = CATEGORY_META[id]
                   return (
                     <TouchableOpacity key={id} onPress={() => selectCategory(id)} style={{ width: '31%' }}
-                      className={`rounded-2xl border p-3 ${on ? 'border-amber-400 bg-amber-50' : 'border-slate-200 bg-white'}`}>
+                      className={`rounded-2xl border p-3 ${on ? 'border-amber-400 bg-amber-50 dark:bg-amber-500/10' : 'border-slate-200 dark:border-white/10 bg-white dark:bg-[#111111]'}`}>
                       <Text className="text-2xl mb-1">{meta?.icon}</Text>
-                      <Text className={`text-xs font-bold leading-tight ${on ? 'text-amber-700' : 'text-slate-700'}`}>{catLabel(t, id)}</Text>
-                      <Text className="text-[10px] text-slate-400 mt-0.5 leading-tight">{meta ? t(`shipmentForm.cat_${meta.key}_sub`) : ''}</Text>
+                      <Text className={`text-xs font-bold leading-tight ${on ? 'text-amber-700 dark:text-amber-300' : 'text-slate-700 dark:text-white/80'}`}>{catLabel(t, id)}</Text>
+                      <Text className="text-[10px] text-slate-400 dark:text-white/40 mt-0.5 leading-tight">{meta ? t(`shipmentForm.cat_${meta.key}_sub`) : ''}</Text>
                     </TouchableOpacity>
                   )
                 })}
@@ -703,16 +720,16 @@ export default function NewShipmentScreen() {
 
               <Field t={t} label={`${t('shipmentForm.title_label')} *`}>
                 <TextInput
-                  style={[inputStyle, missing('title') && errorBorder, (isMove || isBins) && { backgroundColor: '#F1F5F9', color: '#64748B' }]}
-                  placeholder="π.χ. Καναπές 3θέσιος + πολυθρόνα" placeholderTextColor="#94A3B8"
+                  style={[inputStyle, missing('title') && errorBorder, (isMove || isBins) && { backgroundColor: th.raised, color: th.inkText(0.6) }]}
+                  placeholder="π.χ. Καναπές 3θέσιος + πολυθρόνα" placeholderTextColor={th.inkText(0.4)}
                   value={form.title} onChangeText={v => update('title', v)} editable={!isMove && !isBins}
                 />
-                {(isMove || isBins) && <Text style={{ fontSize: 12, color: '#64748B', marginTop: 4 }}>🔒 {t('moveCard.title_locked')}</Text>}
+                {(isMove || isBins) && <Text style={{ fontSize: 12, color: th.inkText(0.6), marginTop: 4 }}>🔒 {t('moveCard.title_locked')}</Text>}
               </Field>
               <Field t={t} label={t('shipmentForm.description_label')} optional>
                 <TextInput
                   style={[inputStyle, { height: 88, textAlignVertical: 'top', paddingTop: 12 }]}
-                  placeholder="Περίγραψε τι στέλνεις με λεπτομέρεια..." placeholderTextColor="#94A3B8"
+                  placeholder="Περίγραψε τι στέλνεις με λεπτομέρεια..." placeholderTextColor={th.inkText(0.4)}
                   value={form.description} onChangeText={v => update('description', v)} multiline numberOfLines={3}
                 />
               </Field>
@@ -729,10 +746,10 @@ export default function NewShipmentScreen() {
             <>
               {!isBins && (
                 <>
-                  <View className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-3"
+                  <View className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-400/30 rounded-2xl p-4 mb-3"
                     style={missing('originCity', 'originCityPlaceId', 'originAddress') ? errorBorder : undefined}>
                     <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <Text className="text-sm font-bold text-amber-700">📍 {isRental ? t('shipmentForm.rental_pickup_city') : t('location.origin')}</Text>
+                      <Text className="text-sm font-bold text-amber-700 dark:text-amber-300">📍 {isRental ? t('shipmentForm.rental_pickup_city') : t('location.origin')}</Text>
                       <MyAddressToggle side="origin" />
                     </View>
                     <PlacesInput label={`${t('location.city')} *`} placeholder={t('mobile.city_ph_origin')} type="city"
@@ -767,10 +784,10 @@ export default function NewShipmentScreen() {
 
               {!isRental && (
                 <>
-                  <View className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-4"
+                  <View className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-400/30 rounded-2xl p-4 mb-4"
                     style={missing('destCity', 'destCityPlaceId', 'destAddress') ? errorBorder : undefined}>
                     <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <Text className="text-sm font-bold text-blue-700">🏁 {t('location.destination')}</Text>
+                      <Text className="text-sm font-bold text-blue-700 dark:text-blue-300">🏁 {t('location.destination')}</Text>
                       {!isMove && <MyAddressToggle side="dest" />}
                     </View>
                     <PlacesInput label={`${t('location.city')} *`} placeholder={t('mobile.city_ph_dest')} type="city"
@@ -796,10 +813,10 @@ export default function NewShipmentScreen() {
               )}
 
               {/* Παραλήπτης */}
-              <View className="bg-white border border-slate-200 rounded-2xl p-4 mb-4"
+              <View className="bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-2xl p-4 mb-4"
                 style={missing('recipientName', 'recipientPhone', 'recipientEmail') ? errorBorder : undefined}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, gap: 8 }}>
-                  <Text className="text-sm font-bold text-slate-700">👤 {t('shipmentForm.recipient_section_title')}</Text>
+                  <Text className="text-sm font-bold text-slate-700 dark:text-white/80">👤 {t('shipmentForm.recipient_section_title')}</Text>
                   <Checkbox checked={form.recipientSameAsSender} label={t('shipmentForm.recipient_same_as_sender')} onPress={() => {
                     // Το τικ αντιγράφει τα στοιχεία του αποστολέα· το ξετσεκάρισμα τα σβήνει
                     const next = !form.recipientSameAsSender
@@ -816,14 +833,14 @@ export default function NewShipmentScreen() {
                 ]).map(f => (
                   <Field key={f.key} t={t} label={f.label} optional={f.optional}>
                     <TextInput
-                      style={[inputStyle, missing(f.key) && errorBorder, form.recipientSameAsSender && { backgroundColor: '#F1F5F9', color: '#94A3B8' }]}
-                      placeholder={f.ph} placeholderTextColor="#94A3B8" value={form[f.key]} onChangeText={v => update(f.key, v)}
+                      style={[inputStyle, missing(f.key) && errorBorder, form.recipientSameAsSender && { backgroundColor: th.raised, color: th.inkText(0.4) }]}
+                      placeholder={f.ph} placeholderTextColor={th.inkText(0.4)} value={form[f.key]} onChangeText={v => update(f.key, v)}
                       keyboardType={f.kb} autoCapitalize={f.key === 'recipientEmail' ? 'none' : 'words'} editable={!form.recipientSameAsSender}
                     />
                     {fieldErrors[f.key] ? <Text style={{ fontSize: 12, color: Colors.danger, marginTop: 4 }}>{fieldErrors[f.key]}</Text> : null}
                   </Field>
                 ))}
-                <Text style={{ fontSize: 11, color: '#94A3B8', marginTop: -6 }}>{t('shipmentForm.recipient_email_hint')}</Text>
+                <Text style={{ fontSize: 11, color: th.inkText(0.4), marginTop: -6 }}>{t('shipmentForm.recipient_email_hint')}</Text>
               </View>
 
               {!isBins && dateAndPeriod}
@@ -846,7 +863,7 @@ export default function NewShipmentScreen() {
                 </>
               )}
               {inventoryFlow && !isEditing && (
-                <Text style={{ fontSize: 12, color: '#64748B', borderWidth: 1, borderColor: Colors.border, borderRadius: 14, padding: 12, marginBottom: 14, backgroundColor: '#fff' }}>
+                <Text style={{ fontSize: 12, color: th.inkText(0.6), borderWidth: 1, borderColor: th.ink(0.12), borderRadius: 14, padding: 12, marginBottom: 14, backgroundColor: th.surface }}>
                   {t(isMove ? 'moveCard.ai_after_create' : 'moveCard.cargo_after_create')}
                 </Text>
               )}
@@ -868,7 +885,7 @@ export default function NewShipmentScreen() {
                       <Field t={t} label={t('shipmentForm.dimensions_label')} optional>
                         <View style={{ flexDirection: 'row', gap: 8 }}>
                           {([['length', 'dim_length'], ['width', 'dim_width'], ['height', 'dim_height']] as const).map(([key, ph]) => (
-                            <TextInput key={key} style={[inputStyle, { flex: 1 }, fieldErrors[key] && errorBorder]} placeholder={t(`shipmentForm.${ph}`)} placeholderTextColor="#94A3B8"
+                            <TextInput key={key} style={[inputStyle, { flex: 1 }, fieldErrors[key] && errorBorder]} placeholder={t(`shipmentForm.${ph}`)} placeholderTextColor={th.inkText(0.4)}
                               value={form[key]} onChangeText={v => update(key, v)} keyboardType="decimal-pad" />
                           ))}
                         </View>
@@ -876,7 +893,7 @@ export default function NewShipmentScreen() {
                       <View style={{ flexDirection: 'row', gap: 12 }}>
                         <View style={{ flex: 1 }}>
                           <Field t={t} label={t('shipmentForm.weight_label')} optional>
-                            <TextInput style={[inputStyle, fieldErrors.weight && errorBorder]} placeholder="π.χ. 120" placeholderTextColor="#94A3B8" value={form.weight} onChangeText={v => update('weight', v)} keyboardType="decimal-pad" />
+                            <TextInput style={[inputStyle, fieldErrors.weight && errorBorder]} placeholder="π.χ. 120" placeholderTextColor={th.inkText(0.4)} value={form.weight} onChangeText={v => update('weight', v)} keyboardType="decimal-pad" />
                           </Field>
                         </View>
                         <View style={{ flex: 1 }}>
@@ -884,7 +901,7 @@ export default function NewShipmentScreen() {
                             {(() => {
                               const locked = Boolean(form.length && form.width && form.height)
                               return (
-                                <TextInput style={[inputStyle, locked && { backgroundColor: '#F1F5F9', color: '#94A3B8' }]} placeholder="π.χ. 1.5" placeholderTextColor="#94A3B8"
+                                <TextInput style={[inputStyle, locked && { backgroundColor: th.raised, color: th.inkText(0.4) }]} placeholder="π.χ. 1.5" placeholderTextColor={th.inkText(0.4)}
                                   value={locked ? String(Number(form.volume || 0).toFixed(3)) : form.volume} onChangeText={v => { if (!locked) update('volume', v) }} keyboardType="decimal-pad" editable={!locked} />
                               )
                             })()}
@@ -894,7 +911,7 @@ export default function NewShipmentScreen() {
                     </>
                   )}
 
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#334155', marginBottom: 8 }}>{t('shipmentForm.properties_label')}</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: th.inkText(0.85), marginBottom: 8 }}>{t('shipmentForm.properties_label')}</Text>
                   <View style={{ gap: 8, marginBottom: 16 }}>
                     {([
                       { key: 'isFragile' as const, label: 'fragile' },
@@ -902,13 +919,13 @@ export default function NewShipmentScreen() {
                       { key: 'isHazardous' as const, label: 'hazardous' },
                     ]).map(f => (
                       <TouchableOpacity key={f.key} onPress={() => update(f.key, !form[f.key])} activeOpacity={0.8}
-                        style={{ flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderRadius: 12, padding: 14, borderColor: form[f.key] ? Colors.accent : Colors.border, backgroundColor: form[f.key] ? '#FFFBEB' : '#fff' }}>
-                        <View style={{ width: 20, height: 20, borderRadius: 4, borderWidth: 2, alignItems: 'center', justifyContent: 'center', borderColor: form[f.key] ? Colors.accent : '#CBD5E1', backgroundColor: form[f.key] ? Colors.accent : 'transparent' }}>
-                          {form[f.key] && <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>✓</Text>}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderRadius: 12, padding: 14, borderColor: form[f.key] ? Colors.accent : th.ink(0.12), backgroundColor: form[f.key] ? '#FFFBEB' : '#fff' }}>
+                        <View style={{ width: 20, height: 20, borderRadius: 4, borderWidth: 2, alignItems: 'center', justifyContent: 'center', borderColor: form[f.key] ? Colors.accent : th.ink(0.2), backgroundColor: form[f.key] ? Colors.accent : 'transparent' }}>
+                          {form[f.key] && <Text style={{ color: th.snow, fontSize: 11, fontWeight: '700' }}>✓</Text>}
                         </View>
                         <View style={{ flex: 1 }}>
-                          <Text style={{ fontSize: 14, fontWeight: '600', color: '#1E293B' }}>{t(`shipmentForm.${f.label}_label`)}</Text>
-                          <Text style={{ fontSize: 12, color: '#94A3B8', marginTop: 2 }}>{t(`shipmentForm.${f.label}_sub`)}</Text>
+                          <Text style={{ fontSize: 14, fontWeight: '600', color: th.inkSolid }}>{t(`shipmentForm.${f.label}_label`)}</Text>
+                          <Text style={{ fontSize: 12, color: th.inkText(0.4), marginTop: 2 }}>{t(`shipmentForm.${f.label}_sub`)}</Text>
                         </View>
                       </TouchableOpacity>
                     ))}
@@ -917,25 +934,25 @@ export default function NewShipmentScreen() {
               )}
 
               <Field t={t} label={t('shipmentForm.budget_label')}>
-                <TextInput style={[inputStyle, fieldErrors.maxBudget && errorBorder]} placeholder="π.χ. 200" placeholderTextColor="#94A3B8" value={form.maxBudget} onChangeText={v => update('maxBudget', v)} keyboardType="decimal-pad" />
-                <Text style={{ fontSize: 11, color: '#94A3B8', marginTop: 4 }}>{t('shipmentForm.budget_hint')}</Text>
+                <TextInput style={[inputStyle, fieldErrors.maxBudget && errorBorder]} placeholder="π.χ. 200" placeholderTextColor={th.inkText(0.4)} value={form.maxBudget} onChangeText={v => update('maxBudget', v)} keyboardType="decimal-pad" />
+                <Text style={{ fontSize: 11, color: th.inkText(0.4), marginTop: 4 }}>{t('shipmentForm.budget_hint')}</Text>
               </Field>
 
               {isBins && isEditing && editId && (
-                <View style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: Colors.border, borderRadius: 16, padding: 14, marginBottom: 16 }}>
-                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#475569', marginBottom: 10 }}>{t('shipmentForm.photos_label')}</Text>
+                <View style={{ backgroundColor: th.surface, borderWidth: 1, borderColor: th.ink(0.12), borderRadius: 16, padding: 14, marginBottom: 16 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: th.inkText(0.7), marginBottom: 10 }}>{t('shipmentForm.photos_label')}</Text>
                   {photoManager(editId, currentPhotos ?? initialPhotos)}
                 </View>
               )}
 
               {/* Περίληψη */}
-              <View style={{ backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 16, padding: 16, marginBottom: 20 }}>
+              <View style={{ backgroundColor: th.page, borderWidth: 1, borderColor: th.ink(0.12), borderRadius: 16, padding: 16, marginBottom: 20 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 1 }}>{t('shipmentForm.summary_title')}</Text>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: th.inkText(0.4), textTransform: 'uppercase', letterSpacing: 1 }}>{t('shipmentForm.summary_title')}</Text>
                   {!isMove && inventoryFlow && (
                     <TouchableOpacity onPress={() => { const u = cargoUpdateNow(); if (u) applyCargoFields(u) }}
-                      style={{ borderWidth: 1, borderColor: Colors.border, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
-                      <Text style={{ fontSize: 12, fontWeight: '600', color: '#475569' }}>↻ {t('shipmentForm.btn_refresh_summary')}</Text>
+                      style={{ borderWidth: 1, borderColor: th.ink(0.12), borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: th.inkText(0.7) }}>↻ {t('shipmentForm.btn_refresh_summary')}</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -949,7 +966,7 @@ export default function NewShipmentScreen() {
                 )}
               </View>
 
-              {error ? <View className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4"><Text className="text-red-600 text-sm">{error}</Text></View> : null}
+              {error ? <View className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-400/30 rounded-xl p-3 mb-4"><Text className="text-red-600 dark:text-red-400 text-sm">{error}</Text></View> : null}
               <BackNext t={t} onBack={() => setStep(2)} onNext={handleSubmit} busy={isSubmitting}
                 nextLabel={isSubmitting
                   ? (isEditing ? t('shipmentForm.btn_saving') : t('shipmentForm.btn_publishing'))

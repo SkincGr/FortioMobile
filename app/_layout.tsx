@@ -15,7 +15,7 @@ const queryClient = new QueryClient({
 })
 
 function AppShell() {
-  const { isDark } = useTheme()
+  const { isDark, page } = useTheme()
 
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => true)
@@ -24,8 +24,8 @@ function AppShell() {
 
   return (
     <>
-      <StatusBar style="light" />
-      <Stack screenOptions={{ headerShown: false }} />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: page } }} />
     </>
   )
 }

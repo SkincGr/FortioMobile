@@ -15,6 +15,7 @@ const TEMPLATE_KINDS = [
 import { useI18n } from '@/lib/i18n'
 import { api } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
+import { Theme, useStyles, useTheme } from '@/lib/theme'
 
 const REST = '__REST__'
 const CATEGORY_LABELS: Record<string, string> = {
@@ -26,6 +27,9 @@ const CATEGORY_LABELS: Record<string, string> = {
 const catLabel = (c: string) => CATEGORY_LABELS[c] ?? c
 
 export default function TemplatesScreen() {
+  const th = useTheme()
+  const s = useStyles(makeStyles)
+
   const { t } = useI18n()
   const { user } = useAuth()
   // Η εφαρμογή είναι μόνο για αποστολείς: πάντα τα πρότυπα του αποστολέα
@@ -174,7 +178,7 @@ export default function TemplatesScreen() {
       {/* Header */}
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-          <Ionicons name="arrow-back" size={22} color="#fff" />
+          <Ionicons name="arrow-back" size={22} color={th.inkSolid} />
         </TouchableOpacity>
         <Text style={s.headerTitle}>
           👤 Πρότυπα Αποστολέα
@@ -217,7 +221,7 @@ export default function TemplatesScreen() {
       <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
         <TouchableOpacity style={s.combo} onPress={() => setComboOpen(o => !o)} activeOpacity={0.8}>
           <Text style={s.comboText} numberOfLines={1}>🏷️ {filterLabel}</Text>
-          <Ionicons name={comboOpen ? 'chevron-up' : 'chevron-down'} size={18} color="rgba(255,255,255,0.6)" />
+          <Ionicons name={comboOpen ? 'chevron-up' : 'chevron-down'} size={18} color={th.inkText(0.6)} />
         </TouchableOpacity>
         {comboOpen && (
           <View style={s.comboList}>
@@ -227,7 +231,7 @@ export default function TemplatesScreen() {
                 style={s.comboItem}
                 onPress={() => { setCategoryFilter(opt); setComboOpen(false) }}
               >
-                <Text style={[s.comboItemText, opt === categoryFilter && { color: '#FBBF24' }]}>
+                <Text style={[s.comboItemText, opt === categoryFilter && { color: th.accentText }]}>
                   {opt === 'ALL' ? 'Όλες οι κατηγορίες' : opt === REST ? 'Ρεστ' : catLabel(opt)}
                 </Text>
               </TouchableOpacity>
@@ -239,7 +243,7 @@ export default function TemplatesScreen() {
       {/* List */}
       {loading ? (
         <View style={s.center}>
-          <ActivityIndicator size="large" color="#FBBF24" />
+          <ActivityIndicator size="large" color={th.accentText} />
         </View>
       ) : list.length === 0 ? (
         <View style={s.center}>
@@ -287,7 +291,7 @@ export default function TemplatesScreen() {
                   )}
                   {tab === 'custom' && (
                     <TouchableOpacity onPress={() => handleDelete(item.id)} hitSlop={10}>
-                      <Ionicons name="trash-outline" size={18} color="#F87171" />
+                      <Ionicons name="trash-outline" size={18} color={th.soft('red')} />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -309,7 +313,7 @@ export default function TemplatesScreen() {
                 {editingId ? 'Επεξεργασία Προτύπου' : 'Νέο Πρότυπο Αποστολέα'}
               </Text>
               <TouchableOpacity onPress={() => { setModalOpen(false); setEditingId(null) }}>
-                <Ionicons name="close" size={24} color="rgba(255,255,255,0.6)" />
+                <Ionicons name="close" size={24} color={th.inkText(0.6)} />
               </TouchableOpacity>
             </View>
 
@@ -317,7 +321,7 @@ export default function TemplatesScreen() {
             <TextInput
               style={s.input}
               placeholder='π.χ. Αίτημα για Δρομολόγιο'
-              placeholderTextColor="rgba(255,255,255,0.3)"
+              placeholderTextColor={th.inkText(0.3)}
               value={title}
               onChangeText={setTitle}
             />
@@ -326,7 +330,7 @@ export default function TemplatesScreen() {
             <TextInput
               style={s.input}
               placeholder="Αν μείνει κενό, χρησιμοποιείται ο τίτλος"
-              placeholderTextColor="rgba(255,255,255,0.3)"
+              placeholderTextColor={th.inkText(0.3)}
               value={subject}
               onChangeText={setSubject}
             />
@@ -334,7 +338,7 @@ export default function TemplatesScreen() {
             <Text style={s.inputLabel}>Κατηγορία</Text>
             {categoryLocked ? (
               <View style={[s.input, { opacity: 0.6 }]}>
-                <Text style={{ color: '#fff', fontSize: 14 }}>🔒 {catLabel(category)}</Text>
+                <Text style={{ color: th.inkSolid, fontSize: 14 }}>🔒 {catLabel(category)}</Text>
               </View>
             ) : (
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
@@ -354,7 +358,7 @@ export default function TemplatesScreen() {
             <TextInput
               style={[s.input, { height: 100, textAlignVertical: 'top' }]}
               placeholder="Γράψτε το κείμενο..."
-              placeholderTextColor="rgba(255,255,255,0.3)"
+              placeholderTextColor={th.inkText(0.3)}
               multiline
               value={content}
               onChangeText={setContent}
@@ -395,37 +399,37 @@ export default function TemplatesScreen() {
   )
 }
 
-const s = StyleSheet.create({
+const makeStyles = (t: Theme) => StyleSheet.create({
   combo: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8,
-    backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: t.ink(0.05), borderWidth: 1, borderColor: t.ink(0.15),
     borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10,
   },
-  comboText: { color: '#fff', fontSize: 13, fontWeight: '600', flex: 1 },
+  comboText: { color: t.inkSolid, fontSize: 13, fontWeight: '600', flex: 1 },
   comboList: {
-    marginTop: 6, backgroundColor: '#1a1a1a', borderRadius: 10,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+    marginTop: 6, backgroundColor: t.raised, borderRadius: 10,
+    borderWidth: 1, borderColor: t.ink(0.12),
   },
-  comboItem: { paddingHorizontal: 12, paddingVertical: 11, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(255,255,255,0.08)' },
-  comboItemText: { color: '#E2E8F0', fontSize: 13 },
+  comboItem: { paddingHorizontal: 12, paddingVertical: 11, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: t.ink(0.08) },
+  comboItemText: { color: t.inkSolid, fontSize: 13 },
   catBadge: { backgroundColor: 'rgba(251,191,36,0.1)', borderWidth: 1, borderColor: 'rgba(251,191,36,0.3)', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
-  catBadgeText: { color: '#FBBF24', fontSize: 10, fontWeight: '800' },
-  customized: { color: '#4ADE80', fontSize: 11, fontWeight: '700', marginBottom: 6 },
-  cardActions: { flexDirection: 'row', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginTop: 12, paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(255,255,255,0.1)' },
-  actionAmber: { color: '#FBBF24', fontSize: 12, fontWeight: '700' },
-  actionMuted: { color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '700' },
-  copiedText: { color: '#4ADE80', fontSize: 12, fontWeight: '700' },
-  chip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+  catBadgeText: { color: t.accentText, fontSize: 10, fontWeight: '800' },
+  customized: { color: t.soft('green'), fontSize: 11, fontWeight: '700', marginBottom: 6 },
+  cardActions: { flexDirection: 'row', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginTop: 12, paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.ink(0.1) },
+  actionAmber: { color: t.accentText, fontSize: 12, fontWeight: '700' },
+  actionMuted: { color: t.inkText(0.7), fontSize: 12, fontWeight: '700' },
+  copiedText: { color: t.soft('green'), fontSize: 12, fontWeight: '700' },
+  chip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: t.ink(0.2) },
   chipActive: { backgroundColor: '#FBBF24', borderColor: '#FBBF24' },
-  chipText: { color: 'rgba(255,255,255,0.75)', fontSize: 12, fontWeight: '700' },
-  root: { flex: 1, backgroundColor: '#0a0a0a' },
+  chipText: { color: t.inkText(0.75), fontSize: 12, fontWeight: '700' },
+  root: { flex: 1, backgroundColor: t.page },
   header: {
     paddingTop: 54, paddingBottom: 16, paddingHorizontal: 16,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: '#111', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: t.surface, borderBottomWidth: 1, borderBottomColor: t.ink(0.1),
   },
   backBtn: { padding: 4 },
-  headerTitle: { color: '#fff', fontSize: 17, fontWeight: '800' },
+  headerTitle: { color: t.inkSolid, fontSize: 17, fontWeight: '800' },
   addBtn: {
     backgroundColor: '#FBBF24', borderRadius: 20, width: 32, height: 32,
     alignItems: 'center', justifyContent: 'center',
@@ -435,56 +439,56 @@ const s = StyleSheet.create({
   },
   tabBtn: {
     flex: 1, paddingVertical: 10, borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: t.ink(0.04),
+    alignItems: 'center', borderWidth: 1, borderColor: t.ink(0.08),
   },
   tabBtnActive: { backgroundColor: 'rgba(251,191,36,0.15)', borderColor: '#FBBF24' },
   kindChip: {
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', borderRadius: 999,
+    borderWidth: 1, borderColor: t.ink(0.12), borderRadius: 999,
     paddingHorizontal: 12, paddingVertical: 6,
   },
-  tabText: { color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: '700' },
-  tabTextActive: { color: '#FBBF24' },
+  tabText: { color: t.inkText(0.5), fontSize: 13, fontWeight: '700' },
+  tabTextActive: { color: t.accentText },
   placeholderBanner: {
     marginHorizontal: 16, marginTop: 12, padding: 10,
-    backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 10,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: t.ink(0.03), borderRadius: 10,
+    borderWidth: 1, borderColor: t.ink(0.06),
   },
-  placeholderTitle: { color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: '700', marginBottom: 2 },
-  placeholderText: { color: '#FBBF24', fontSize: 11, fontWeight: '600' },
+  placeholderTitle: { color: t.inkText(0.6), fontSize: 11, fontWeight: '700', marginBottom: 2 },
+  placeholderText: { color: t.accentText, fontSize: 11, fontWeight: '600' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20 },
-  emptyText: { color: 'rgba(255,255,255,0.4)', fontSize: 14, marginBottom: 16 },
+  emptyText: { color: t.inkText(0.4), fontSize: 14, marginBottom: 16 },
   createBtn: {
     backgroundColor: '#FBBF24', paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12,
   },
   createBtnText: { color: '#000', fontWeight: '800', fontSize: 14 },
   card: {
-    backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 14,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', padding: 14,
+    backgroundColor: t.ink(0.03), borderRadius: 14,
+    borderWidth: 1, borderColor: t.ink(0.1), padding: 14,
   },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  cardTitle: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  cardContent: { color: 'rgba(255,255,255,0.7)', fontSize: 13, lineHeight: 18 },
+  cardTitle: { color: t.inkSolid, fontSize: 15, fontWeight: '700' },
+  cardContent: { color: t.inkText(0.7), fontSize: 13, lineHeight: 18 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' },
   modalCard: {
-    backgroundColor: '#161616', borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    padding: 20, paddingBottom: 36, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: t.raised, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    padding: 20, paddingBottom: 36, borderWidth: 1, borderColor: t.ink(0.1),
   },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  modalTitle: { color: '#fff', fontSize: 18, fontWeight: '800' },
-  inputLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: '700', textTransform: 'uppercase', marginBottom: 6, marginTop: 10 },
+  modalTitle: { color: t.inkSolid, fontSize: 18, fontWeight: '800' },
+  inputLabel: { color: t.inkText(0.5), fontSize: 11, fontWeight: '700', textTransform: 'uppercase', marginBottom: 6, marginTop: 10 },
   input: {
-    backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
-    paddingHorizontal: 12, paddingVertical: 10, color: '#fff', fontSize: 14,
+    backgroundColor: t.ink(0.05), borderRadius: 10,
+    borderWidth: 1, borderColor: t.ink(0.15),
+    paddingHorizontal: 12, paddingVertical: 10, color: t.inkSolid, fontSize: 14,
   },
   tagBtn: {
     backgroundColor: 'rgba(251,191,36,0.1)', borderWidth: 1, borderColor: 'rgba(251,191,36,0.3)',
     borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4,
   },
-  tagText: { color: '#FBBF24', fontSize: 11, fontWeight: '700' },
-  cancelBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', alignItems: 'center' },
-  cancelText: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  tagText: { color: t.accentText, fontSize: 11, fontWeight: '700' },
+  cancelBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, borderWidth: 1, borderColor: t.ink(0.2), alignItems: 'center' },
+  cancelText: { color: t.inkSolid, fontSize: 14, fontWeight: '600' },
   saveBtn: { flex: 1, backgroundColor: '#FBBF24', paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
   saveText: { color: '#000', fontSize: 14, fontWeight: '800' },
 })

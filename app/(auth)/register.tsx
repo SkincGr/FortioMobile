@@ -4,6 +4,7 @@ import { router } from 'expo-router'
 import { authApi, LEGAL_FORMS } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
 import { Ionicons } from '@expo/vector-icons'
+import { Theme, useStyles, useTheme } from '@/lib/theme'
 
 const USERNAME_RE = /^[a-zA-Z0-9._-]{3,30}$/
 
@@ -20,6 +21,9 @@ const EMPTY_COMPANY = {
 // an individual registers in one step; a company (legal entity) adds a
 // second step with its details, and this user becomes its Administrator.
 export default function RegisterScreen() {
+  const th = useTheme()
+  const s = useStyles(makeStyles)
+
   const { t } = useI18n()
   const [entityType, setEntityType] = useState<EntityType>('INDIVIDUAL')
   const [step, setStep]         = useState<Step>('user')
@@ -149,17 +153,17 @@ export default function RegisterScreen() {
 
               <Text style={s.label}>{t('reg.password')}</Text>
               <View style={[s.pwRow, badFields.includes('password') && s.bad, { marginBottom: 16 }]}>
-                <TextInput style={s.pwInput} placeholder={t('reg.password_ph')} placeholderTextColor="rgba(255,255,255,0.25)" secureTextEntry={!showPw} value={user.password} onChangeText={v => updateUser('password', v)} />
+                <TextInput style={s.pwInput} placeholder={t('reg.password_ph')} placeholderTextColor={th.inkText(0.25)} secureTextEntry={!showPw} value={user.password} onChangeText={v => updateUser('password', v)} />
                 <TouchableOpacity onPress={() => setShowPw(v => !v)} style={s.eyeBtn} hitSlop={8}>
-                  <Ionicons name={showPw ? 'eye-off-outline' : 'eye-outline'} size={18} color="rgba(255,255,255,0.4)" />
+                  <Ionicons name={showPw ? 'eye-off-outline' : 'eye-outline'} size={18} color={th.inkText(0.4)} />
                 </TouchableOpacity>
               </View>
 
               <Text style={s.label}>{t('reg.confirm')}</Text>
               <View style={[s.pwRow, badFields.includes('confirm') && s.bad, { marginBottom: 24 }]}>
-                <TextInput style={s.pwInput} placeholder="••••••••" placeholderTextColor="rgba(255,255,255,0.25)" secureTextEntry={!showCf} value={user.confirm} onChangeText={v => updateUser('confirm', v)} />
+                <TextInput style={s.pwInput} placeholder="••••••••" placeholderTextColor={th.inkText(0.25)} secureTextEntry={!showCf} value={user.confirm} onChangeText={v => updateUser('confirm', v)} />
                 <TouchableOpacity onPress={() => setShowCf(v => !v)} style={s.eyeBtn} hitSlop={8}>
-                  <Ionicons name={showCf ? 'eye-off-outline' : 'eye-outline'} size={18} color="rgba(255,255,255,0.4)" />
+                  <Ionicons name={showCf ? 'eye-off-outline' : 'eye-outline'} size={18} color={th.inkText(0.4)} />
                 </TouchableOpacity>
               </View>
 
@@ -240,6 +244,9 @@ function Field({ label, value, onChangeText, placeholder, keyboardType, autoCapi
   label: string; value: string; onChangeText: (v: string) => void
   placeholder: string; keyboardType?: any; autoCapitalize?: any; bad?: boolean
 }) {
+  const th = useTheme()
+  const s = useStyles(makeStyles)
+
   return (
     <>
       <Text style={s.label}>{label}</Text>
@@ -248,7 +255,7 @@ function Field({ label, value, onChangeText, placeholder, keyboardType, autoCapi
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor="rgba(255,255,255,0.25)"
+        placeholderTextColor={th.inkText(0.25)}
         keyboardType={keyboardType ?? 'default'}
         autoCapitalize={autoCapitalize ?? 'none'}
       />
@@ -256,56 +263,56 @@ function Field({ label, value, onChangeText, placeholder, keyboardType, autoCapi
   )
 }
 
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0a0a0a' },
-  successRoot: { flex: 1, backgroundColor: '#0a0a0a', alignItems: 'center', justifyContent: 'center', padding: 32 },
-  successTitle:{ color: '#fff', fontSize: 24, fontWeight: '800', marginBottom: 8 },
-  successSub:  { color: 'rgba(255,255,255,0.4)', fontSize: 14, textAlign: 'center', marginBottom: 32 },
+const makeStyles = (t: Theme) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: t.page },
+  successRoot: { flex: 1, backgroundColor: t.page, alignItems: 'center', justifyContent: 'center', padding: 32 },
+  successTitle:{ color: t.inkSolid, fontSize: 24, fontWeight: '800', marginBottom: 8 },
+  successSub:  { color: t.inkText(0.4), fontSize: 14, textAlign: 'center', marginBottom: 32 },
 
   logoArea: { alignItems: 'center', paddingTop: 60, paddingBottom: 28 },
-  logo:     { color: '#fff', fontSize: 40, fontWeight: '900', letterSpacing: -1 },
-  logoSub:  { color: 'rgba(255,255,255,0.4)', fontSize: 13, marginTop: 4 },
+  logo:     { color: t.inkSolid, fontSize: 40, fontWeight: '900', letterSpacing: -1 },
+  logoSub:  { color: t.inkText(0.4), fontSize: 13, marginTop: 4 },
 
   card: {
-    flex: 1, backgroundColor: '#111',
+    flex: 1, backgroundColor: t.surface,
     borderTopLeftRadius: 28, borderTopRightRadius: 28,
-    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)',
+    borderTopWidth: 1, borderTopColor: t.ink(0.1),
     paddingHorizontal: 24, paddingTop: 28, paddingBottom: 40,
   },
-  title: { fontSize: 22, fontWeight: '700', color: '#fff', marginBottom: 4 },
-  sub:   { fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 20 },
-  label: { fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 },
-  section: { fontSize: 11, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1, marginTop: 8, marginBottom: 12 },
+  title: { fontSize: 22, fontWeight: '700', color: t.inkSolid, marginBottom: 4 },
+  sub:   { fontSize: 13, color: t.inkText(0.4), marginBottom: 20 },
+  label: { fontSize: 11, fontWeight: '700', color: t.inkText(0.4), textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 },
+  section: { fontSize: 11, color: t.inkText(0.3), textTransform: 'uppercase', letterSpacing: 1, marginTop: 8, marginBottom: 12 },
   row: { flexDirection: 'row', gap: 10 },
 
-  toggle: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, padding: 4, marginBottom: 18 },
+  toggle: { flexDirection: 'row', backgroundColor: t.ink(0.06), borderRadius: 12, padding: 4, marginBottom: 18 },
   toggleBtn: { flex: 1, paddingVertical: 10, borderRadius: 9, alignItems: 'center' },
   toggleBtnActive: { backgroundColor: '#F59E0B' },
-  toggleTxt: { color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: '600' },
+  toggleTxt: { color: t.inkText(0.5), fontSize: 13, fontWeight: '600' },
   toggleTxtActive: { color: '#000' },
 
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 14 },
-  chip: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
+  chip: { borderWidth: 1, borderColor: t.ink(0.12), backgroundColor: t.ink(0.06), borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
   chipActive: { borderColor: '#F59E0B', backgroundColor: 'rgba(245,158,11,0.15)' },
-  chipTxt: { color: 'rgba(255,255,255,0.6)', fontSize: 12 },
-  chipTxtActive: { color: '#F59E0B', fontWeight: '600' },
+  chipTxt: { color: t.inkText(0.6), fontSize: 12 },
+  chipTxtActive: { color: t.accentText, fontWeight: '600' },
 
-  input: { backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, color: '#fff', marginBottom: 14 },
+  input: { backgroundColor: t.ink(0.06), borderWidth: 1, borderColor: t.ink(0.12), borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, color: t.inkSolid, marginBottom: 14 },
   bad:   { borderColor: '#EF4444' },
-  pwRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', borderRadius: 12 },
-  pwInput: { flex: 1, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, color: '#fff' },
+  pwRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: t.ink(0.06), borderWidth: 1, borderColor: t.ink(0.12), borderRadius: 12 },
+  pwInput: { flex: 1, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, color: t.inkSolid },
   eyeBtn:  { paddingHorizontal: 14, paddingVertical: 11 },
 
   errorBox: { backgroundColor: 'rgba(239,68,68,0.1)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.25)', borderRadius: 12, padding: 12, marginBottom: 14 },
-  errorTxt: { color: '#F87171', fontSize: 13 },
+  errorTxt: { color: t.soft('red'), fontSize: 13 },
 
   submitBtn:         { backgroundColor: '#F59E0B', borderRadius: 14, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
   submitBtnDisabled: { opacity: 0.5 },
   submitBtnText:     { color: '#000', fontSize: 15, fontWeight: '700' },
-  backBtn:           { borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', borderRadius: 14, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
-  backBtnText:       { color: 'rgba(255,255,255,0.7)', fontSize: 15, fontWeight: '600' },
+  backBtn:           { borderWidth: 1, borderColor: t.ink(0.15), borderRadius: 14, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
+  backBtnText:       { color: t.inkText(0.7), fontSize: 15, fontWeight: '600' },
 
   footer:     { flexDirection: 'row', justifyContent: 'center', marginTop: 20 },
-  footerTxt:  { color: 'rgba(255,255,255,0.4)', fontSize: 13 },
-  footerLink: { color: '#F59E0B', fontSize: 13, fontWeight: '600' },
+  footerTxt:  { color: t.inkText(0.4), fontSize: 13 },
+  footerLink: { color: t.accentText, fontSize: 13, fontWeight: '600' },
 })

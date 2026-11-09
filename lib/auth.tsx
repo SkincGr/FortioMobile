@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
-import { authApi, AuthUser } from './api'
+import { authApi, AuthUser, setUnauthorizedHandler } from './api'
 import { saveToken, saveUser, getToken, getUser, clearAuth } from './storage'
 
 type AuthState = {
@@ -79,6 +79,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await saveToken(token)
     setState(prev => ({ ...prev, token }))
   }, [])
+
+  // 401 από οποιοδήποτε αίτημα = το token δεν ισχύει πια → καθάρισμα και επιστροφή στο login
+  useEffect(() => {
+    setUnauthorizedHandler(() => { void logout() })
+    return () => setUnauthorizedHandler(null)
+  }, [logout])
 
   return (
     <AuthContext.Provider value={{ ...state, login, logout, replaceToken }}>

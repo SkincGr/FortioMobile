@@ -8,6 +8,7 @@ import { useI18n, translateText } from '@/lib/i18n'
 import { ShipmentStatusBadge } from '@/components/ShipmentStatusBadge'
 import { LoadingScreen } from '@/components/ui/LoadingScreen'
 import { fCity } from '@/lib/cityDisplay'
+import { Theme, useStyles, useTheme } from '@/lib/theme'
 
 const CATEGORY_ICON: Record<string, string> = {
   FURNITURE: '🛋️', HOUSE_MOVE: '🏠', SMALL_PACKAGE: '📦', COURIER: '🛵',
@@ -18,6 +19,9 @@ const CATEGORY_ICON: Record<string, string> = {
 
 
 export default function ShipmentsListScreen() {
+  const th = useTheme()
+  const s = useStyles(makeStyles)
+
   const { t, autoTranslate, language } = useI18n()
 
   const { data, isLoading, refetch, isRefetching } = useQuery({
@@ -67,10 +71,10 @@ export default function ShipmentsListScreen() {
         data={shipments}
         keyExtractor={item => item.id}
         contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
-        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => { void refetch() }} tintColor="#F59E0B" />}
+        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => { void refetch() }} tintColor={th.accentText} />}
         ListEmptyComponent={
           <View style={s.empty}>
-            <Ionicons name="cube-outline" size={56} color="rgba(255,255,255,0.2)" />
+            <Ionicons name="cube-outline" size={56} color={th.inkText(0.2)} />
             <Text style={s.emptyText}>{t('ship.list.empty')}</Text>
             <TouchableOpacity style={s.emptyBtn} onPress={() => router.push('/(tabs)/shipments/new')}>
               <Text style={s.emptyBtnText}>{t('ship.list.create')}</Text>
@@ -87,7 +91,7 @@ export default function ShipmentsListScreen() {
               <ShipmentStatusBadge status={item.status} />
             </View>
             <View style={[s.row, { marginBottom: 10, marginLeft: 28 }]}>
-              <Ionicons name="navigate-outline" size={13} color="rgba(255,255,255,0.4)" />
+              <Ionicons name="navigate-outline" size={13} color={th.inkText(0.4)} />
               <Text style={s.route} numberOfLines={1}>
                 {fCity(item.originCity, item.originPlace)} → {fCity(item.destCity, item.destPlace)}
               </Text>
@@ -97,7 +101,7 @@ export default function ShipmentsListScreen() {
               <View style={s.row}>
                 {(item._count?.offers ?? 0) > 0 && (
                   <View style={s.offerChip}>
-                    <Ionicons name="pricetag-outline" size={11} color="#F59E0B" />
+                    <Ionicons name="pricetag-outline" size={11} color={th.accentText} />
                     <Text style={s.offerChipText}>{item._count!.offers}</Text>
                   </View>
                 )}
@@ -113,16 +117,16 @@ export default function ShipmentsListScreen() {
   )
 }
 
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0a0a0a' },
+const makeStyles = (t: Theme) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: t.page },
 
   header: {
-    backgroundColor: '#0a0a0a',
-    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: t.page,
+    borderBottomWidth: 1, borderBottomColor: t.ink(0.1),
     paddingTop: 56, paddingBottom: 16, paddingHorizontal: 20,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
-  headerTitle: { color: '#fff', fontSize: 22, fontWeight: '800' },
+  headerTitle: { color: t.inkSolid, fontSize: 22, fontWeight: '800' },
   newBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     backgroundColor: '#F59E0B', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7,
@@ -130,22 +134,22 @@ const s = StyleSheet.create({
   newBtnText: { color: '#000', fontSize: 13, fontWeight: '700' },
 
   card: {
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: t.ink(0.03),
+    borderRadius: 12, borderWidth: 1, borderColor: t.ink(0.1),
     padding: 14, marginBottom: 10,
   },
   row:     { flexDirection: 'row', alignItems: 'center', gap: 6 },
   catIcon: { fontSize: 16, width: 22, textAlign: 'center' },
-  title:   { fontSize: 14, fontWeight: '700', color: '#fff', flex: 1 },
-  route:   { fontSize: 12, color: 'rgba(255,255,255,0.4)', flex: 1 },
-  date:    { fontSize: 11, color: 'rgba(255,255,255,0.3)' },
+  title:   { fontSize: 14, fontWeight: '700', color: t.inkSolid, flex: 1 },
+  route:   { fontSize: 12, color: t.inkText(0.4), flex: 1 },
+  date:    { fontSize: 11, color: t.inkText(0.3) },
 
   offerChip:     { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: 'rgba(245,158,11,0.12)', borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3 },
-  offerChipText: { fontSize: 11, color: '#F59E0B', fontWeight: '700' },
-  budget:        { fontSize: 12, color: '#4ADE80', fontWeight: '700', marginLeft: 8 },
+  offerChipText: { fontSize: 11, color: t.accentText, fontWeight: '700' },
+  budget:        { fontSize: 12, color: t.soft('green'), fontWeight: '700', marginLeft: 8 },
 
   empty:       { alignItems: 'center', paddingTop: 60 },
-  emptyText:   { color: 'rgba(255,255,255,0.3)', fontSize: 15, marginTop: 12, marginBottom: 16 },
+  emptyText:   { color: t.inkText(0.3), fontSize: 15, marginTop: 12, marginBottom: 16 },
   emptyBtn:    { backgroundColor: '#F59E0B', borderRadius: 12, paddingHorizontal: 20, paddingVertical: 11 },
   emptyBtnText:{ color: '#000', fontWeight: '700', fontSize: 14 },
 })

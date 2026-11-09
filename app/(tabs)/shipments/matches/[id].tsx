@@ -13,6 +13,7 @@ import { Colors } from '@/constants/colors'
 import { useMessageTemplates, renderTemplate, templateKindForCategory } from '@/lib/templates'
 import { carrierRating, recurrenceNote } from '@/lib/display'
 import { fCity } from '@/lib/cityDisplay'
+import { shipmentPlaces } from '@/lib/shipmentPlaces'
 import { Theme, useStyles, useTheme } from '@/lib/theme'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -47,7 +48,12 @@ type RouteCardProps = {
   onViewOffer: () => void
 }
 
-function RouteCard({ route, offerStatus, onRequest, onMessage, onViewOffer }: RouteCardProps) {
+const ROUTE_STATUS_KEY: Record<string, any> = {
+  ACTIVE: 'dash.route.status.active', IN_TRANSIT: 'dash.route.status.in_transit',
+  COMPLETED: 'dash.route.status.completed', CANCELLED: 'dash.route.status.cancelled',
+}
+
+function RouteCard({ route, offerStatus, onRequest, onViewOffer }: RouteCardProps) {
   const th = useTheme()
   const styles = useStyles(makeStyles)
 
@@ -60,30 +66,43 @@ function RouteCard({ route, offerStatus, onRequest, onMessage, onViewOffer }: Ro
   const recurrence = recurrenceNote(route, language)
   const depDate = fDate(route.departureDate)
   const arrDate = fDate(route.estimatedArrival ?? route.departureDate)
-
   const midStops = (route.stops ?? []).slice(1, -1)
+
+  // Ίδια χρώματα κατάστασης με το web (ενεργό πράσινο, σε μεταφορά μπλε, ολοκληρωμένο γκρι, ακυρωμένο κόκκινο)
+  const statusPill = ({
+    ACTIVE:     { bg: 'rgba(74,222,128,0.1)',  color: th.soft('green') },
+    IN_TRANSIT: { bg: 'rgba(96,165,250,0.1)',  color: th.soft('blue') },
+    COMPLETED:  { bg: th.ink(0.1),              color: th.inkText(0.4) },
+    CANCELLED:  { bg: 'rgba(248,113,113,0.1)', color: th.soft('red') },
+  } as Record<string, { bg: string; color: string }>)[route.status] ?? { bg: th.ink(0.1), color: th.inkText(0.4) }
 
   return (
     <View style={styles.card}>
-      {/* Row 1: vehicle icon + company name + status */}
-      <View style={[styles.row, { gap: 8, marginBottom: 4, flexWrap: 'wrap' }]}>
-        <Text style={{ fontSize: 20 }}>{icon}</Text>
-        <Text style={styles.carrierName}>{carrier}</Text>
-        {route.viaTransshipment && <Text style={styles.transshipText}>{t('match.via_transshipment')}</Text>}
-        <Text style={styles.ratingText}>
-          ★ {rating.toFixed(1)}{trips > 0 ? <Text style={styles.ratingTrips}> ({trips})</Text> : null}
-        </Text>
+      {/* Row 1: εικονίδιο + κατάσταση + εταιρεία, και δεξιά η βαθμολογία */}
+      <View style={[styles.row, { justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 8 }]}>
+        <View style={[styles.row, { flex: 1, flexWrap: 'wrap', gap: 8 }]}>
+          <Text style={{ fontSize: 20 }}>{icon}</Text>
+          <View style={[styles.pill, { backgroundColor: statusPill.bg }]}>
+            <Text style={[styles.pillText, { color: statusPill.color }]}>
+              {ROUTE_STATUS_KEY[route.status] ? t(ROUTE_STATUS_KEY[route.status]) : route.status}
+            </Text>
+          </View>
+          <View style={[styles.pill, { backgroundColor: th.ink(0.1) }]}>
+            <Text style={[styles.pillText, { color: th.inkText(0.8) }]}>{carrier}</Text>
+          </View>
+        </View>
+        <View style={[styles.row, { gap: 10 }]}>
+          {route.viaTransshipment && <Text style={styles.transshipText}>{t('match.via_transshipment')}</Text>}
+          <Text style={styles.ratingText}>
+            ★ {rating.toFixed(1)}{trips > 0 ? <Text style={styles.ratingTrips}> ({trips})</Text> : null}
+          </Text>
+        </View>
       </View>
 
-      {/* Row 2: Επαναλαμβανόμενο (μόνο αν ισχύει) + cadence line */}
-      {route.isRecurring && (
-        <View style={[styles.recurringChip, { alignSelf: 'flex-start', marginBottom: 4 }]}>
-          <Text style={styles.recurringText}>{t('match.recurring')}</Text>
-        </View>
-      )}
+      {/* Row 1b: πρόγραμμα επαναλαμβανόμενου */}
       {recurrence && <Text style={styles.recurrenceNote}>{recurrence}</Text>}
 
-      {/* Row 2: origin → dest */}
+      {/* Row 2: αφετηρία → προορισμός */}
       <View style={[styles.row, { marginBottom: 4, flexWrap: 'wrap', gap: 4 }]}>
         <Text style={styles.cityText}>{fCity(route.originCity, route.originPlace)}</Text>
         {depDate && <Text style={styles.dateText}>({depDate})</Text>}
@@ -95,52 +114,36 @@ function RouteCard({ route, offerStatus, onRequest, onMessage, onViewOffer }: Ro
       {/* Άλλες ημερομηνίες του ίδιου επαναλαμβανόμενου δρομολογίου */}
       {(route.otherExecutions?.length ?? 0) > 0 && (
         <View style={[styles.row, { gap: 6, flexWrap: 'wrap', marginBottom: 6 }]}>
-          <Text style={styles.stopsText}>{t('match.other_dates')}</Text>
+          <Text style={styles.otherDatesLabel}>{t('match.other_dates')}</Text>
           {route.otherExecutions!.map(o => (
             <Text key={o.id} style={styles.otherDateChip}>{fDate(o.departureDate)}</Text>
           ))}
         </View>
       )}
 
-      {/* Mid stops */}
+      {/* Row 3: ενδιάμεσες στάσεις */}
       {midStops.length > 0 && (
-        <Text style={styles.stopsText} numberOfLines={2}>
-          {t('ship.stops')}{' '}
+        <Text style={styles.stopsText}>
+          <Text style={styles.stopsLabel}>{t('ship.stops')} </Text>
           {midStops.map(s => {
-            let loc = s.city ?? '—'
-            const country = (s as any).country
-            if (country && !loc.includes(country)) {
-              loc = `${country} / ${loc}`
-            } else if (s.place?.name && s.place.name.includes('/')) {
-              loc = s.place.name
-            }
             const d = s.estimatedDate ? ` (${fDate(s.estimatedDate)})` : ''
-            return `${loc}${d}`
-          }).join(' → ')}
+            return `${fCity(s.city, s.place as any)}${d}`
+          }).join(', ')}
         </Text>
       )}
 
-      {/* Price */}
-      {(route.pricePerKg != null || route.pricePerM3 != null) && (
-        <View style={{ marginTop: 10, marginBottom: 4 }}>
-          {route.pricePerKg != null && (
-            <Text style={styles.priceText}>€{route.pricePerKg}/kg</Text>
-          )}
-          {route.pricePerM3 != null && (
-            <Text style={styles.priceSubText}>€{route.pricePerM3}/m³</Text>
-          )}
+      {/* Row 4: τιμή + κουμπί, χωρισμένα με γραμμή */}
+      <View style={[styles.row, styles.cardFooter]}>
+        <View style={[styles.row, { flex: 1, alignItems: 'baseline', flexWrap: 'wrap', gap: 8 }]}>
+          {route.pricePerKg != null && <Text style={styles.priceText}>€{route.pricePerKg}/kg</Text>}
+          {route.pricePerM3 != null && <Text style={styles.priceSubText}>€{route.pricePerM3}/m³</Text>}
         </View>
-      )}
-
-      {/* CTA */}
-      <View style={[styles.row, { gap: 8, flexWrap: 'wrap', marginTop: 10, justifyContent: 'flex-start' }]}>
         {hasQuote ? (
-          <View style={styles.sentBadge}>
+          <TouchableOpacity style={styles.sentBadge} onPress={onViewOffer} activeOpacity={0.8}>
             <Text style={styles.sentText}>✓ {t('match.btn_view_offer')}</Text>
-          </View>
+          </TouchableOpacity>
         ) : isRequestOnly ? (
           <View style={styles.sentBadge}>
-            <Ionicons name="checkmark-circle" size={14} color={th.soft('green')} />
             <Text style={styles.sentText}>{t('match.btn_sent')}</Text>
           </View>
         ) : (
@@ -148,7 +151,6 @@ function RouteCard({ route, offerStatus, onRequest, onMessage, onViewOffer }: Ro
             <Text style={styles.requestBtnText}>{t('match.btn_request')}</Text>
           </TouchableOpacity>
         )}
-
       </View>
     </View>
   )
@@ -331,12 +333,7 @@ export default function MatchesScreen() {
           <TouchableOpacity onPress={goBack} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="arrow-back" size={22} color={th.inkSolid} />
           </TouchableOpacity>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.headerTitle}>{t('match.title')}</Text>
-            {titleParam ? (
-              <Text style={styles.headerSub} numberOfLines={1}>{decodeURIComponent(titleParam)}</Text>
-            ) : null}
-          </View>
+          <Text style={styles.headerLogo}>FORTIO</Text>
         </View>
         <View style={styles.center}>
           <ActivityIndicator size="large" color={th.accentText} />
@@ -353,17 +350,7 @@ export default function MatchesScreen() {
         <TouchableOpacity onPress={goBack} style={styles.backBtn} hitSlop={12}>
           <Ionicons name="arrow-back" size={22} color={th.inkSolid} />
         </TouchableOpacity>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>{sectionTitle}</Text>
-          {(shipmentData?.title || titleParam) ? (
-            <Text style={styles.headerSub} numberOfLines={1}>
-              {shipmentData?.title ?? decodeURIComponent(titleParam ?? '')}
-            </Text>
-          ) : null}
-        </View>
-        <View style={styles.countBadge}>
-          <Text style={styles.countText}>{routes.length + cards.length}</Text>
-        </View>
+        <Text style={styles.headerLogo}>FORTIO</Text>
       </View>
 
       {/* Route list */}
@@ -374,33 +361,36 @@ export default function MatchesScreen() {
         ListHeaderComponent={shipmentData ? (
           <>
           <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>{t('ship.info.title')}</Text>
-            <Text style={styles.summaryRoute}>
-              {fCity(shipmentData.originCity, shipmentData.originPlace)} → {fCity(shipmentData.destCity, shipmentData.destPlace)}
-            </Text>
+            <Text style={styles.summaryLabel}>{t('match.section_shipment')}</Text>
+            <Text style={styles.summaryTitle}>{shipmentData.title}</Text>
+            <Text style={styles.summaryPlaces}>{shipmentPlaces(shipmentData as any, d => fDate(d) ?? '')}</Text>
             {!!shipmentData.description && <Text style={styles.summaryMuted}>{shipmentData.description}</Text>}
             {(shipmentData.isFragile || shipmentData.requiresCooling || shipmentData.isHazardous) && (
               <View style={[styles.row, { gap: 6, marginTop: 6, flexWrap: 'wrap' }]}>
-                {shipmentData.isFragile && <Text style={[styles.flagPill, { color: th.soft('orange'), backgroundColor: 'rgba(251,146,60,0.12)' }]}>{t('ship.info.fragile')}</Text>}
-                {shipmentData.requiresCooling && <Text style={[styles.flagPill, { color: th.soft('blue'), backgroundColor: 'rgba(96,165,250,0.12)' }]}>{t('ship.info.cooling')}</Text>}
-                {shipmentData.isHazardous && <Text style={[styles.flagPill, { color: th.soft('red'), backgroundColor: 'rgba(248,113,113,0.12)' }]}>{t('ship.info.hazardous')}</Text>}
+                {shipmentData.isFragile && <Text style={[styles.flagPill, { color: th.soft('orange'), backgroundColor: 'rgba(251,146,60,0.1)' }]}>{t('ship.info.fragile')}</Text>}
+                {shipmentData.requiresCooling && <Text style={[styles.flagPill, { color: th.soft('blue'), backgroundColor: 'rgba(96,165,250,0.1)' }]}>{t('ship.info.cooling')}</Text>}
+                {shipmentData.isHazardous && <Text style={[styles.flagPill, { color: th.soft('red'), backgroundColor: 'rgba(248,113,113,0.1)' }]}>{t('ship.info.hazardous')}</Text>}
               </View>
             )}
-            <View style={[styles.row, { gap: 12, marginTop: 8, flexWrap: 'wrap' }]}>
+            {!!(shipmentData.recipientName || shipmentData.recipientPhone || shipmentData.recipientEmail) && (
+              <Text style={[styles.summaryMuted, { marginTop: 6 }]}>
+                👤 {t('ship.info.recipient')}: {[shipmentData.recipientName, shipmentData.recipientPhone, shipmentData.recipientEmail].filter(Boolean).join(' · ')}
+              </Text>
+            )}
+            <View style={[styles.row, { gap: 12, marginTop: 10, flexWrap: 'wrap' }]}>
               {!!(shipmentData.length && shipmentData.width && shipmentData.height) && (
                 <Text style={styles.summaryMuted}>📏 {shipmentData.length}×{shipmentData.width}×{shipmentData.height} cm</Text>
               )}
               {!!shipmentData.weight && <Text style={styles.summaryMuted}>⚖️ {shipmentData.weight} kg</Text>}
               {!!shipmentData.volume && <Text style={styles.summaryMuted}>📦 {shipmentData.volume} m³</Text>}
-              {!!shipmentData.desiredDelivery && <Text style={styles.summaryMuted}>📅 {fDate(shipmentData.desiredDelivery)}</Text>}
               {!!shipmentData.maxBudget && <Text style={[styles.summaryMuted, { color: th.accentText, fontWeight: '700' }]}>{t('ship.info.up_to')} €{shipmentData.maxBudget}</Text>}
+              {!!shipmentData.desiredDelivery && <Text style={styles.summaryMuted}>📅 {fDate(shipmentData.desiredDelivery)}</Text>}
             </View>
-            {!!(shipmentData.recipientName || shipmentData.recipientPhone) && (
-              <Text style={[styles.summaryMuted, { marginTop: 6 }]}>
-                {t('ship.info.recipient')}: {[shipmentData.recipientName, shipmentData.recipientPhone, shipmentData.recipientEmail].filter(Boolean).join(' · ')}
-              </Text>
-            )}
           </View>
+
+          <Text style={styles.sectionHeading}>
+            {sectionTitle}  <Text style={{ color: th.accentText }}>{routes.length + cards.length}</Text>
+          </Text>
 
           {cardError && !modalCard ? <Text style={styles.cardError}>{cardError}</Text> : null}
 
@@ -410,7 +400,9 @@ export default function MatchesScreen() {
               <View style={[styles.row, { gap: 8, flexWrap: 'wrap', marginBottom: 10 }]}>
                 <Text style={{ fontSize: 20 }}>{cardIcon(card.cardId)}</Text>
                 <Text style={styles.cardTitle}>{card.title}</Text>
-                <Text style={styles.carrierName}>{card.companyName}</Text>
+                <View style={[styles.pill, { backgroundColor: th.ink(0.1) }]}>
+                  <Text style={[styles.pillText, { color: th.inkText(0.8) }]}>{card.companyName}</Text>
+                </View>
               </View>
               {card.offerStatus ? (
                 <View style={[styles.sentBadge, { alignSelf: 'flex-start' }]}>
@@ -457,6 +449,9 @@ export default function MatchesScreen() {
             <Text style={styles.emptySubtitle}>
               {t('match.empty_sub')}
             </Text>
+            <TouchableOpacity onPress={goBack} style={{ marginTop: 20 }}>
+              <Text style={styles.backLink}>{t('match.back_dashboard')}</Text>
+            </TouchableOpacity>
           </View>
         )}
         renderItem={({ item }) => (
@@ -673,6 +668,8 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 12,
   },
   backBtn: { padding: 4 },
+  headerLogo: { color: t.inkSolid, fontSize: 18, fontWeight: '900', letterSpacing: -0.5 },
+  sectionHeading: { color: t.inkSolid, fontSize: 22, fontWeight: '900', marginTop: 6, marginBottom: 14 },
   headerTitle: { color: t.inkSolid, fontSize: 18, fontWeight: '800' },
   headerSub: { color: t.inkText(0.4), fontSize: 12, marginTop: 2 },
   countBadge: {
@@ -696,7 +693,8 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     padding: 14, marginBottom: 14,
   },
   summaryLabel: { fontSize: 10, fontWeight: '800', color: t.accentText, letterSpacing: 1.2, marginBottom: 4, textTransform: 'uppercase' },
-  summaryRoute: { fontSize: 15, fontWeight: '800', color: t.inkSolid },
+  summaryTitle: { fontSize: 20, fontWeight: '900', color: t.inkSolid },
+  summaryPlaces: { fontSize: 13, color: t.inkText(0.5), marginTop: 4 },
   summaryMuted: { fontSize: 12, color: t.inkText(0.5), marginTop: 2 },
   flagPill: { fontSize: 11, fontWeight: '700', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2, overflow: 'hidden' },
 
@@ -732,10 +730,16 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   cityText:  { fontSize: 13, fontWeight: '700', color: t.inkSolid },
   dateText:  { fontSize: 12, color: t.inkText(0.4) },
   arrow:     { fontSize: 12, color: t.inkText(0.4) },
-  stopsText: { fontSize: 11, color: t.inkText(0.4), marginTop: 2, marginLeft: 2 },
+  stopsText: { fontSize: 12, color: t.inkText(0.4), marginTop: 2 },
   capacityText: { fontSize: 12, color: t.inkText(0.4) },
-  priceText:    { fontSize: 16, fontWeight: '800', color: t.accentText },
-  priceSubText: { fontSize: 12, color: t.inkText(0.4) },
+  priceText:    { fontSize: 18, fontWeight: '900', color: t.accentText },
+  priceSubText: { fontSize: 13, color: t.accentText, opacity: 0.7 },
+  pill: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
+  pillText: { fontSize: 12, fontWeight: '700' },
+  cardFooter: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: t.ink(0.1), gap: 10 },
+  otherDatesLabel: { fontSize: 12, fontWeight: '600', color: t.inkText(0.5) },
+  stopsLabel: { fontWeight: '600', color: t.inkText(0.5) },
+  backLink: { fontSize: 13, color: t.accentText },
   sentBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     backgroundColor: 'rgba(74,222,128,0.1)', borderRadius: 10,
@@ -757,7 +761,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     fontSize: 11, fontWeight: '600', color: t.soft('violet', 300), backgroundColor: 'rgba(139,92,246,0.15)',
     borderWidth: 1, borderColor: 'rgba(139,92,246,0.3)', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, overflow: 'hidden',
   },
-  cardTitle:   { fontSize: 15, fontWeight: '800', color: t.accentText },
+  cardTitle:   { fontSize: 16, fontWeight: '700', color: t.inkSolid },
   cardError:   { color: t.soft('red'), fontSize: 13, marginBottom: 10 },
   hiddenRow:   { gap: 10, borderWidth: 1, borderColor: t.ink(0.1), borderRadius: 12, padding: 10, marginTop: 8 },
   hiddenTitle: { fontSize: 13, fontWeight: '700', color: t.inkText(0.8) },

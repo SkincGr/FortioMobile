@@ -447,7 +447,12 @@ function ShipmentCard({ item, filter, matchCount, matchCountsLoading, onDelete, 
       )}
 
       {/* Shipments filter: action buttons */}
-      {filter === 'shipments' && (
+      {filter === 'shipments' && (() => {
+        // Ενοικίαση Van → «Ενοικιάσεις Van», Κάδοι → «Προμηθευτές», Μετακόμιση → «Μεταφορείς» (αλλιώς «Δρομολόγια»)
+        const routesLabel = item.category === 'VEHICLE_RENTAL' ? t('dash.btn.routes_rentals')
+          : item.category === 'HOUSE_MOVE' ? t('dash.btn.routes_moves')
+          : item.category === 'WASTE_BINS' ? t('dash.btn.routes_bins') : t('dash.btn.routes')
+        return (
         <View style={[styles.actionsRow, { marginTop: 10, marginLeft: 32 }]}>
           <TouchableOpacity
             style={[styles.actionBtn, styles.actionBtnEdit]}
@@ -459,12 +464,12 @@ function ShipmentCard({ item, filter, matchCount, matchCountsLoading, onDelete, 
 
           {(matchCountsLoading || matchCount === undefined) ? (
             <TouchableOpacity style={[styles.actionBtn, styles.actionBtnOff]} activeOpacity={1} onPress={e => e.stopPropagation?.()}>
-              <Text style={styles.actionBtnOffText}>{t('dash.btn.routes')}</Text>
+              <Text style={styles.actionBtnOffText}>{routesLabel}</Text>
               <View style={styles.btnBadgeOff}><Text style={styles.btnBadgeOffText}>…</Text></View>
             </TouchableOpacity>
           ) : matchCount === 0 ? (
             <TouchableOpacity style={[styles.actionBtn, styles.actionBtnOff]} activeOpacity={1} onPress={e => e.stopPropagation?.()}>
-              <Text style={styles.actionBtnOffText}>{t('dash.btn.routes')}</Text>
+              <Text style={styles.actionBtnOffText}>{routesLabel}</Text>
               <View style={styles.btnBadgeOff}><Text style={styles.btnBadgeOffText}>0</Text></View>
             </TouchableOpacity>
           ) : (
@@ -473,12 +478,13 @@ function ShipmentCard({ item, filter, matchCount, matchCountsLoading, onDelete, 
               activeOpacity={0.75}
               onPress={e => { e.stopPropagation?.(); router.push(`/(tabs)/shipments/matches/${item.id}?title=${encodeURIComponent(item.title)}&returnTo=${encodeURIComponent('/(tabs)')}` as any) }}
             >
-              <Text style={styles.actionBtnEditText}>{t('dash.btn.routes')}</Text>
+              <Text style={styles.actionBtnEditText}>{routesLabel}</Text>
               <View style={styles.btnBadgeAmber}><Text style={styles.btnBadgeAmberText}>{matchCount}</Text></View>
             </TouchableOpacity>
           )}
         </View>
-      )}
+        )
+      })()}
 
       {/* Status labels */}
       {filter === 'shipments' && (

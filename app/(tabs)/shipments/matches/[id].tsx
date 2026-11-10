@@ -13,7 +13,6 @@ import { Colors } from '@/constants/colors'
 import { useMessageTemplates, renderTemplate, templateKindForCategory } from '@/lib/templates'
 import { carrierRating, recurrenceNote } from '@/lib/display'
 import { fCity } from '@/lib/cityDisplay'
-import { shipmentPlaces } from '@/lib/shipmentPlaces'
 import { Theme, useStyles, useTheme } from '@/lib/theme'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -362,30 +361,11 @@ export default function MatchesScreen() {
           <>
           <View style={styles.summaryCard}>
             <Text style={styles.summaryLabel}>{t('match.section_shipment')}</Text>
-            <Text style={styles.summaryTitle}>{shipmentData.title}</Text>
-            <Text style={styles.summaryPlaces}>{shipmentPlaces(shipmentData as any, d => fDate(d) ?? '')}</Text>
+            <Text style={styles.summaryTitle}>
+              {shipmentData.title}
+              {!!shipmentData.desiredDelivery && <Text style={styles.summaryDate}> ({fDate(shipmentData.desiredDelivery)})</Text>}
+            </Text>
             {!!shipmentData.description && <Text style={styles.summaryMuted}>{shipmentData.description}</Text>}
-            {(shipmentData.isFragile || shipmentData.requiresCooling || shipmentData.isHazardous) && (
-              <View style={[styles.row, { gap: 6, marginTop: 6, flexWrap: 'wrap' }]}>
-                {shipmentData.isFragile && <Text style={[styles.flagPill, { color: th.soft('orange'), backgroundColor: 'rgba(251,146,60,0.1)' }]}>{t('ship.info.fragile')}</Text>}
-                {shipmentData.requiresCooling && <Text style={[styles.flagPill, { color: th.soft('blue'), backgroundColor: 'rgba(96,165,250,0.1)' }]}>{t('ship.info.cooling')}</Text>}
-                {shipmentData.isHazardous && <Text style={[styles.flagPill, { color: th.soft('red'), backgroundColor: 'rgba(248,113,113,0.1)' }]}>{t('ship.info.hazardous')}</Text>}
-              </View>
-            )}
-            {!!(shipmentData.recipientName || shipmentData.recipientPhone || shipmentData.recipientEmail) && (
-              <Text style={[styles.summaryMuted, { marginTop: 6 }]}>
-                👤 {t('ship.info.recipient')}: {[shipmentData.recipientName, shipmentData.recipientPhone, shipmentData.recipientEmail].filter(Boolean).join(' · ')}
-              </Text>
-            )}
-            <View style={[styles.row, { gap: 12, marginTop: 10, flexWrap: 'wrap' }]}>
-              {!!(shipmentData.length && shipmentData.width && shipmentData.height) && (
-                <Text style={styles.summaryMuted}>📏 {shipmentData.length}×{shipmentData.width}×{shipmentData.height} cm</Text>
-              )}
-              {!!shipmentData.weight && <Text style={styles.summaryMuted}>⚖️ {shipmentData.weight} kg</Text>}
-              {!!shipmentData.volume && <Text style={styles.summaryMuted}>📦 {shipmentData.volume} m³</Text>}
-              {!!shipmentData.maxBudget && <Text style={[styles.summaryMuted, { color: th.accentText, fontWeight: '700' }]}>{t('ship.info.up_to')} €{shipmentData.maxBudget}</Text>}
-              {!!shipmentData.desiredDelivery && <Text style={styles.summaryMuted}>📅 {fDate(shipmentData.desiredDelivery)}</Text>}
-            </View>
           </View>
 
           <Text style={styles.sectionHeading}>
@@ -694,7 +674,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   },
   summaryLabel: { fontSize: 10, fontWeight: '800', color: t.accentText, letterSpacing: 1.2, marginBottom: 4, textTransform: 'uppercase' },
   summaryTitle: { fontSize: 20, fontWeight: '900', color: t.inkSolid },
-  summaryPlaces: { fontSize: 13, color: t.inkText(0.5), marginTop: 4 },
+  summaryDate: { fontSize: 15, fontWeight: '400', color: t.inkText(0.5) },
   summaryMuted: { fontSize: 12, color: t.inkText(0.5), marginTop: 2 },
   flagPill: { fontSize: 11, fontWeight: '700', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2, overflow: 'hidden' },
 

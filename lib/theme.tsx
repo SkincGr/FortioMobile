@@ -35,7 +35,8 @@ const SOFT = {
   sky:     { 200: ['#bae6fd', '#0c4a6e'], 300: ['#7dd3fc', '#075985'], 400: ['#38bdf8', '#0369a1'] },
   purple:  { 200: ['#e9d5ff', '#581c87'], 300: ['#d8b4fe', '#6b21a8'], 400: ['#c084fc', '#7e22ce'] },
   cyan:    { 200: ['#a5f3fc', '#164e63'], 300: ['#67e8f9', '#155e75'], 400: ['#22d3ee', '#0e7490'] },
-  amber:   { 200: ['#fde68a', '#78350f'], 300: ['#fcd34d', '#92400e'], 400: ['#fbbf24', '#b45309'] },
+  // Το amber είναι το χρώμα έμφασης: στο φωτεινό θέμα το κείμενό του γίνεται σκούρο μπλε (όπως στο web)
+  amber:   { 200: ['#fde68a', '#1e3a8a'], 300: ['#fcd34d', '#1e40af'], 400: ['#fbbf24', '#1d4ed8'] },
 } as const
 
 export type SoftHue = keyof typeof SOFT
@@ -55,8 +56,9 @@ const PALETTES: Record<ThemeMode, Palette> = {
     inkRgb: '255,255,255', shadeRgb: '0,0,0', taBase: 0, taScale: 1,
   },
   light: {
-    page: '#fafaf9', surface: '#ffffff', raised: '#f5f5f4',
-    inkRgb: '28,25,23', shadeRgb: '28,25,23', taBase: 0.3, taScale: 0.7,
+    // Slate (όπως το web): page slate-50, raised slate-100, μελάνι slate-900
+    page: '#f8fafc', surface: '#ffffff', raised: '#f1f5f9',
+    inkRgb: '15,23,42', shadeRgb: '15,23,42', taBase: 0.3, taScale: 0.7,
   },
 }
 
@@ -78,8 +80,16 @@ export type Theme = {
   snow: string
   /** Το κίτρινο της εφαρμογής ως χρώμα κειμένου/εικονιδίου (σκουραίνει στο φωτεινό για να διαβάζεται) */
   accentText: string
-  /** Σταθερά χρώματα (ίδια και στα δύο θέματα) */
+  /** Χρώμα έμφασης (κουμπιά, ενεργά tabs, περιγράμματα): κίτρινο στο σκούρο θέμα, Sapphire Blue στο φωτεινό */
   accent: string
+  /** Το «φωτεινό» κίτρινο (#FBBF24) του σκούρου θέματος· στο φωτεινό ίδιο με το accent */
+  accentBright: string
+  /** Το accent / accentBright με διαφάνεια (φόντα ενεργών chips) */
+  accentA: (alpha: number) => string
+  accentBrightA: (alpha: number) => string
+  /** Κείμενο πάνω σε φόντο accent: μαύρο στο σκούρο θέμα, λευκό στο φωτεινό */
+  onAccent: string
+  /** Σταθερά χρώματα (ίδια και στα δύο θέματα) */
   success: string
   danger: string
   warning: string
@@ -99,7 +109,11 @@ export function makeTheme(mode: ThemeMode): Theme {
   const ink = (a: number) => `rgba(${p.inkRgb},${a})`
   const inkText = (a: number) => `rgba(${p.inkRgb},${round(p.taBase + a * p.taScale)})`
   const soft = (hue: SoftHue, level: SoftLevel = 400) => SOFT[hue][level][isDark ? 0 : 1]
-  const accent = '#F59E0B'
+  const accent = isDark ? '#F59E0B' : '#2563EB'
+  const accentBright = isDark ? '#FBBF24' : '#2563EB'
+  const accentA = (a: number) => (isDark ? `rgba(245,158,11,${a})` : `rgba(37,99,235,${a})`)
+  const accentBrightA = (a: number) => (isDark ? `rgba(251,191,36,${a})` : `rgba(37,99,235,${a})`)
+  const onAccent = isDark ? '#000000' : '#ffffff'
   const success = '#10B981'
   const danger = '#EF4444'
   const warning = '#F59E0B'
@@ -112,7 +126,7 @@ export function makeTheme(mode: ThemeMode): Theme {
     ink, inkText, soft,
     snow: '#ffffff',
     accentText: isDark ? accent : soft('amber', 400),
-    accent, success, danger, warning,
+    accent, accentBright, accentA, accentBrightA, onAccent, success, danger, warning,
     colors: {
       background: p.page, surface: p.surface, card: p.surface, border: ink(0.1),
       textPrimary: `rgb(${p.inkRgb})`, textSecondary: inkText(0.6), textMuted: inkText(0.4),

@@ -170,7 +170,7 @@ function OfferRow({ offer, mode, shipmentId, showMessages, onViewOffer }: {
           </View>
         )}
         {offer.status && (
-          <View style={[styles.offerStatusPill, { backgroundColor: 'rgba(251,191,36,0.12)' }]}>
+          <View style={[styles.offerStatusPill, { backgroundColor: th.accentBrightA(0.12) }]}>
             <Text style={[styles.offerStatusPillText, { color: th.accentText }]}>
               {OFFER_STATUS_KEY[offer.status] ? t(OFFER_STATUS_KEY[offer.status]) : offer.status}
             </Text>
@@ -1186,7 +1186,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   },
   cancelBtnText: { fontSize: 11, fontWeight: '700', color: t.soft('red') },
   offerCountPill: {
-    backgroundColor: 'rgba(251,191,36,0.12)', borderRadius: 10,
+    backgroundColor: t.accentBrightA(0.12), borderRadius: 10,
     paddingHorizontal: 8, paddingVertical: 2, marginLeft: 6,
   },
   offerCountText: { fontSize: 11, fontWeight: '700', color: t.accentText },
@@ -1195,7 +1195,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     borderRadius: 10, borderWidth: 1, borderColor: t.ink(0.15),
     paddingHorizontal: 12, paddingVertical: 5,
   },
-  sortChipActive: { borderColor: '#FBBF24', backgroundColor: 'rgba(251,191,36,0.12)' },
+  sortChipActive: { borderColor: t.accentBright, backgroundColor: t.accentBrightA(0.12) },
   sortChipText: { fontSize: 12, color: t.inkText(0.6), fontWeight: '600' },
   sortChipTextActive: { color: t.accentText, fontWeight: '800' },
   // Header
@@ -1209,15 +1209,15 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   filterSubtitle: { color: t.accentText, fontSize: 13, fontWeight: '600', flexShrink: 1 },
   filterSubtitleBadge: {
     marginLeft: 8, minWidth: 22, height: 22, borderRadius: 11,
-    backgroundColor: '#F59E0B', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5,
+    backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5,
   },
-  filterSubtitleBadgeText: { color: '#000', fontSize: 11, fontWeight: '800' },
+  filterSubtitleBadgeText: { color: t.onAccent, fontSize: 11, fontWeight: '800' },
   headerSub:  { color: t.inkText(0.4), fontSize: 13, marginBottom: 2 },
   headerName: { color: t.inkSolid, fontSize: 22, fontWeight: '800', letterSpacing: -0.3 },
   headerDate: { color: t.inkText(0.4), fontSize: 12, marginTop: 3 },
   badge: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: 'rgba(245,158,11,0.15)',
+    backgroundColor: t.accentA(0.15),
     borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5,
   },
   badgeText: { color: t.accentText, fontSize: 12, fontWeight: '600' },
@@ -1259,11 +1259,11 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   burgerItemText: { color: t.inkText(0.7), fontSize: 15, flex: 1 },
   burgerBadge: {
     minWidth: 28, height: 28, borderRadius: 14,
-    backgroundColor: '#F59E0B',
+    backgroundColor: t.accent,
     alignItems: 'center', justifyContent: 'center',
     paddingHorizontal: 6,
   },
-  burgerBadgeText: { color: '#000', fontSize: 13, fontWeight: '800' },
+  burgerBadgeText: { color: t.onAccent, fontSize: 13, fontWeight: '800' },
   burgerSep: { borderTopWidth: 1, borderTopColor: t.ink(0.1), marginVertical: 8 },
 
   // Tab bar (scrollable)
@@ -1275,7 +1275,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     borderBottomWidth: 2, borderBottomColor: 'transparent',
     minWidth: 100,
   },
-  tabActive:    { borderBottomColor: '#F59E0B' },
+  tabActive:    { borderBottomColor: t.accent },
   tabText:      { fontSize: 12, fontWeight: '600', color: t.inkText(0.4) },
   tabTextActive: { color: t.accentText },
   tabBadge: {
@@ -1283,9 +1283,9 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     backgroundColor: t.ink(0.1),
   },
-  tabBadgeActive:     { backgroundColor: '#F59E0B' },
+  tabBadgeActive:     { backgroundColor: t.accent },
   tabBadgeText:       { fontSize: 10, fontWeight: '700', color: t.inkText(0.4) },
-  tabBadgeTextActive: { color: '#000' },
+  tabBadgeTextActive: { color: t.onAccent },
 
   // Section header
   sectionTitle: { fontSize: 14, fontWeight: '700', color: Colors.textPrimary },
@@ -1348,7 +1348,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
 
   // carrier_offer mode styles
   offerCarrierName:  { fontSize: 14, fontWeight: '700', color: t.inkSolid, flexShrink: 1 },
-  offerPricePill:    { backgroundColor: 'rgba(251,191,36,0.12)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
+  offerPricePill:    { backgroundColor: t.accentBrightA(0.12), borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
   offerPriceText:    { fontSize: 12, fontWeight: '800', color: t.accentText },
   offerRouteCity:    { fontSize: 13, fontWeight: '700', color: t.inkSolid },
   offerRouteDate:    { fontSize: 11, color: t.inkText(0.4) },
@@ -1368,8 +1368,8 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 4,
     borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6,
   },
-  actionBtnEdit:     { backgroundColor: '#FBBF24' },
-  actionBtnEditText: { fontSize: 11, fontWeight: '700', color: '#000' },
+  actionBtnEdit:     { backgroundColor: t.accentBright },
+  actionBtnEditText: { fontSize: 11, fontWeight: '700', color: t.onAccent },
   actionBtnOff: { backgroundColor: t.ink(0.03), borderWidth: 1, borderColor: t.ink(0.1) },
   actionBtnOffText:  { fontSize: 11, fontWeight: '600', color: t.soft('blue') },
   actionBtnAmber: { backgroundColor: t.ink(0.03), borderWidth: 1, borderColor: t.ink(0.1) },
@@ -1387,7 +1387,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     backgroundColor: t.shade(0.25),
   },
-  btnBadgeAmberText: { fontSize: 10, fontWeight: '800', color: '#000' },
+  btnBadgeAmberText: { fontSize: 10, fontWeight: '800', color: t.onAccent },
   btnBadgeOff: {
     minWidth: 17, height: 17, borderRadius: 9, paddingHorizontal: 3,
     alignItems: 'center', justifyContent: 'center',
@@ -1413,8 +1413,8 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   // Empty state
   empty:       { alignItems: 'center', paddingTop: 60 },
   emptyText:   { fontSize: 15, color: t.inkText(0.3), marginBottom: 12 },
-  emptyBtn:    { paddingHorizontal: 20, paddingVertical: 10, backgroundColor: '#F59E0B', borderRadius: 12 },
-  emptyBtnText:{ color: '#000', fontWeight: '700', fontSize: 14 },
+  emptyBtn:    { paddingHorizontal: 20, paddingVertical: 10, backgroundColor: t.accent, borderRadius: 12 },
+  emptyBtnText:{ color: t.onAccent, fontWeight: '700', fontSize: 14 },
   errorScreen: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: t.page },
   errorTitle:  { color: t.inkSolid, fontSize: 18, fontWeight: '800', marginTop: 12 },
   errorText:   { color: t.inkText(0.4), fontSize: 13, textAlign: 'center', marginTop: 8, marginBottom: 16 },
@@ -1452,9 +1452,9 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   fab: {
     position: 'absolute', bottom: 28, right: 20,
     width: 56, height: 56, borderRadius: 28,
-    backgroundColor: '#F59E0B',
+    backgroundColor: t.accent,
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#F59E0B',
+    shadowColor: t.accent,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.4, shadowRadius: 10, elevation: 8,
   },

@@ -41,7 +41,7 @@ export function MoveAddressFields({ t, side, value, onChange, squareMeters, room
   if (!open) {
     return (
       <TouchableOpacity onPress={() => setOpen(true)} activeOpacity={0.8}
-        style={{ borderWidth: 1, borderStyle: 'dashed', borderColor: '#F59E0B', borderRadius: 16, padding: 12, marginBottom: 12 }}>
+        style={{ borderWidth: 1, borderStyle: 'dashed', borderColor: th.accent, borderRadius: 16, padding: 12, marginBottom: 12 }}>
         <Text style={{ fontSize: 14, fontWeight: '700', color: th.accentText, textAlign: 'center' }}>{t(`moveCard.${side}_open`)}</Text>
         <Text style={{ fontSize: 12, color: filled ? Colors.success : th.inkText(0.6), textAlign: 'center', marginTop: 4 }}>
           {filled ? t('moveCard.site_filled') : t(`moveCard.${side}_hint`)}
@@ -51,7 +51,7 @@ export function MoveAddressFields({ t, side, value, onChange, squareMeters, room
   }
 
   return (
-    <View style={[s.section, { borderColor: '#F59E0B' }]}>
+    <View style={[s.section, { borderColor: th.accent }]}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <Text style={s.sectionTitle}>🏠 {t(side === 'origin' ? 'moveCard.origin_title' : 'moveCard.dest_title')}</Text>
         <TouchableOpacity onPress={() => setOpen(false)} hitSlop={8}><Text style={{ color: th.inkText(0.6), fontSize: 13 }}>{t('moveCard.site_close')}</Text></TouchableOpacity>
@@ -196,7 +196,7 @@ function ItemList({ t, items, onChange, suggestions, addLabel, catalogCategories
         )
       })}
       <TouchableOpacity onPress={() => onChange([...items, { name: '', qty: '1', ...(room ? { room } : {}) }])}
-        style={{ borderWidth: 1, borderStyle: 'dashed', borderColor: '#F59E0B', borderRadius: 12, paddingVertical: 9, alignItems: 'center' }}>
+        style={{ borderWidth: 1, borderStyle: 'dashed', borderColor: th.accent, borderRadius: 12, paddingVertical: 9, alignItems: 'center' }}>
         <Text style={{ fontSize: 13, fontWeight: '700', color: th.accentText }}>{addLabel}</Text>
       </TouchableOpacity>
     </View>

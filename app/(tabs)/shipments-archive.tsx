@@ -239,7 +239,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   },
   backBtn:     { padding: 4 },
   headerTitle: { color: t.inkSolid, fontSize: 22, fontWeight: '800' },
-  countBadge:  { backgroundColor: 'rgba(245,158,11,0.15)', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 2 },
+  countBadge:  { backgroundColor: t.accentA(0.15), borderRadius: 12, paddingHorizontal: 8, paddingVertical: 2 },
   countText:   { color: t.accentText, fontSize: 13, fontWeight: '700' },
 
   empty:     { alignItems: 'center', paddingTop: 80 },
@@ -267,10 +267,10 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   replyText:  { fontSize: 12, color: t.inkText(0.7) },
 
   rateBtn: {
-    backgroundColor: '#F59E0B', borderRadius: 10,
+    backgroundColor: t.accent, borderRadius: 10,
     paddingHorizontal: 14, paddingVertical: 7,
   },
-  rateBtnText: { fontSize: 12, fontWeight: '700', color: '#000' },
+  rateBtnText: { fontSize: 12, fontWeight: '700', color: t.onAccent },
 
   // Review modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },
@@ -293,8 +293,8 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   },
   cancelBtnText: { fontSize: 14, color: t.inkSolid, fontWeight: '600' },
   saveBtn: {
-    flex: 1, backgroundColor: '#F59E0B', borderRadius: 12,
+    flex: 1, backgroundColor: t.accent, borderRadius: 12,
     paddingVertical: 13, alignItems: 'center',
   },
-  saveBtnText: { fontSize: 14, fontWeight: '800', color: '#000' },
+  saveBtnText: { fontSize: 14, fontWeight: '800', color: t.onAccent },
 })

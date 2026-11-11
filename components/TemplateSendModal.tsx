@@ -171,6 +171,6 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   footer: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 14 },
   btnGhost: { paddingHorizontal: 16, paddingVertical: 11, borderRadius: 12, borderWidth: 1, borderColor: t.ink(0.15) },
   btnGhostText: { color: t.inkText(0.7), fontSize: 14, fontWeight: '600' },
-  btnSend: { paddingHorizontal: 20, paddingVertical: 11, borderRadius: 12, backgroundColor: '#FBBF24', minWidth: 90, alignItems: 'center' },
-  btnSendText: { color: '#000', fontSize: 14, fontWeight: '800' },
+  btnSend: { paddingHorizontal: 20, paddingVertical: 11, borderRadius: 12, backgroundColor: t.accentBright, minWidth: 90, alignItems: 'center' },
+  btnSendText: { color: t.onAccent, fontSize: 14, fontWeight: '800' },
 })

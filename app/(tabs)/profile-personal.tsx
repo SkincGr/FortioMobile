@@ -201,7 +201,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   btnRow:         { flexDirection: 'row', gap: 12, marginTop: 24 },
   cancelBtn:      { flex: 1, borderWidth: 1, borderColor: t.ink(0.12), borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
   cancelBtnText:  { color: t.inkText(0.5), fontSize: 14, fontWeight: '600' },
-  saveBtn:        { flex: 1, backgroundColor: '#F59E0B', borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
+  saveBtn:        { flex: 1, backgroundColor: t.accent, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
   saveBtnDisabled:{ opacity: 0.5 },
-  saveBtnText:    { color: '#000', fontWeight: '700', fontSize: 14 },
+  saveBtnText:    { color: t.onAccent, fontWeight: '700', fontSize: 14 },
 })

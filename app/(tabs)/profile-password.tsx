@@ -218,7 +218,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   successBox: { backgroundColor: 'rgba(74,222,128,0.1)', borderWidth: 1, borderColor: 'rgba(74,222,128,0.25)', borderRadius: 12, padding: 14, marginBottom: 16 },
   successText:{ color: t.soft('green'), fontSize: 13 },
 
-  saveBtn:        { backgroundColor: '#F59E0B', borderRadius: 12, paddingVertical: 15, alignItems: 'center' },
+  saveBtn:        { backgroundColor: t.accent, borderRadius: 12, paddingVertical: 15, alignItems: 'center' },
   saveBtnDisabled:{ opacity: 0.5 },
-  saveBtnText:    { color: '#000', fontWeight: '700', fontSize: 15 },
+  saveBtnText:    { color: t.onAccent, fontWeight: '700', fontSize: 15 },
 })

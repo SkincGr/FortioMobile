@@ -160,7 +160,7 @@ export function PhotoManager({ t, shipmentId, initialPhotos = [], rooms: withRoo
                   placeholder={t('photoUpload.add_room_ph')} placeholderTextColor={th.inkText(0.4)} onSubmitEditing={() => addRoom(newRoom)} />
                 <TouchableOpacity onPress={() => addRoom(newRoom)} disabled={!cleanRoomName(newRoom)}
                   style={{ backgroundColor: Colors.accent, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, opacity: cleanRoomName(newRoom) ? 1 : 0.4 }}>
-                  <Text style={{ fontWeight: '700', color: '#000' }}>{t('photoUpload.add_room_confirm')}</Text>
+                  <Text style={{ fontWeight: '700', color: th.onAccent }}>{t('photoUpload.add_room_confirm')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => setNewRoom(null)} style={{ padding: 8 }}><Text style={{ color: th.inkText(0.6) }}>✕</Text></TouchableOpacity>
               </View>

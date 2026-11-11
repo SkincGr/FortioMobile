@@ -348,7 +348,7 @@ export default function TemplatesScreen() {
                     style={[s.chip, category === cat && s.chipActive]}
                     onPress={() => setCategory(cat)}
                   >
-                    <Text style={[s.chipText, category === cat && { color: '#000' }]}>{catLabel(cat)}</Text>
+                    <Text style={[s.chipText, category === cat && { color: th.onAccent }]}>{catLabel(cat)}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -412,7 +412,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   },
   comboItem: { paddingHorizontal: 12, paddingVertical: 11, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: t.ink(0.08) },
   comboItemText: { color: t.inkSolid, fontSize: 13 },
-  catBadge: { backgroundColor: 'rgba(251,191,36,0.1)', borderWidth: 1, borderColor: 'rgba(251,191,36,0.3)', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
+  catBadge: { backgroundColor: t.accentBrightA(0.1), borderWidth: 1, borderColor: t.accentBrightA(0.3), borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
   catBadgeText: { color: t.accentText, fontSize: 10, fontWeight: '800' },
   customized: { color: t.soft('green'), fontSize: 11, fontWeight: '700', marginBottom: 6 },
   cardActions: { flexDirection: 'row', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginTop: 12, paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.ink(0.1) },
@@ -420,7 +420,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   actionMuted: { color: t.inkText(0.7), fontSize: 12, fontWeight: '700' },
   copiedText: { color: t.soft('green'), fontSize: 12, fontWeight: '700' },
   chip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: t.ink(0.2) },
-  chipActive: { backgroundColor: '#FBBF24', borderColor: '#FBBF24' },
+  chipActive: { backgroundColor: t.accentBright, borderColor: t.accentBright },
   chipText: { color: t.inkText(0.75), fontSize: 12, fontWeight: '700' },
   root: { flex: 1, backgroundColor: t.page },
   header: {
@@ -431,7 +431,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   backBtn: { padding: 4 },
   headerTitle: { color: t.inkSolid, fontSize: 17, fontWeight: '800' },
   addBtn: {
-    backgroundColor: '#FBBF24', borderRadius: 20, width: 32, height: 32,
+    backgroundColor: t.accentBright, borderRadius: 20, width: 32, height: 32,
     alignItems: 'center', justifyContent: 'center',
   },
   tabRow: {
@@ -442,7 +442,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     backgroundColor: t.ink(0.04),
     alignItems: 'center', borderWidth: 1, borderColor: t.ink(0.08),
   },
-  tabBtnActive: { backgroundColor: 'rgba(251,191,36,0.15)', borderColor: '#FBBF24' },
+  tabBtnActive: { backgroundColor: t.accentBrightA(0.15), borderColor: t.accentBright },
   kindChip: {
     borderWidth: 1, borderColor: t.ink(0.12), borderRadius: 999,
     paddingHorizontal: 12, paddingVertical: 6,
@@ -459,9 +459,9 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20 },
   emptyText: { color: t.inkText(0.4), fontSize: 14, marginBottom: 16 },
   createBtn: {
-    backgroundColor: '#FBBF24', paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12,
+    backgroundColor: t.accentBright, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12,
   },
-  createBtnText: { color: '#000', fontWeight: '800', fontSize: 14 },
+  createBtnText: { color: t.onAccent, fontWeight: '800', fontSize: 14 },
   card: {
     backgroundColor: t.ink(0.03), borderRadius: 14,
     borderWidth: 1, borderColor: t.ink(0.1), padding: 14,
@@ -483,12 +483,12 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 10, color: t.inkSolid, fontSize: 14,
   },
   tagBtn: {
-    backgroundColor: 'rgba(251,191,36,0.1)', borderWidth: 1, borderColor: 'rgba(251,191,36,0.3)',
+    backgroundColor: t.accentBrightA(0.1), borderWidth: 1, borderColor: t.accentBrightA(0.3),
     borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4,
   },
   tagText: { color: t.accentText, fontSize: 11, fontWeight: '700' },
   cancelBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, borderWidth: 1, borderColor: t.ink(0.2), alignItems: 'center' },
   cancelText: { color: t.inkSolid, fontSize: 14, fontWeight: '600' },
-  saveBtn: { flex: 1, backgroundColor: '#FBBF24', paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
-  saveText: { color: '#000', fontSize: 14, fontWeight: '800' },
+  saveBtn: { flex: 1, backgroundColor: t.accentBright, paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
+  saveText: { color: t.onAccent, fontSize: 14, fontWeight: '800' },
 })

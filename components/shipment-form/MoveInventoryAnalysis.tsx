@@ -104,7 +104,7 @@ export function MoveInventoryAnalysis({ t, shipmentId, photos, details, onChange
                 {pendingCount > 0 && (
                   <TouchableOpacity onPress={() => run()} disabled={running}
                     style={{ backgroundColor: Colors.accent, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, opacity: running ? 0.6 : 1 }}>
-                    <Text style={{ fontWeight: '700', color: '#000' }}>
+                    <Text style={{ fontWeight: '700', color: th.onAccent }}>
                       {progress ? `${t('moveCard.ai_running')} ${progress.done + 1}/${progress.total}…` : `${t('moveCard.ai_button')} (${pendingCount})`}
                     </Text>
                   </TouchableOpacity>

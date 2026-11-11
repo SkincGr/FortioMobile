@@ -287,13 +287,13 @@ const makeStyles = (t: Theme) => StyleSheet.create({
 
   toggle: { flexDirection: 'row', backgroundColor: t.ink(0.06), borderRadius: 12, padding: 4, marginBottom: 18 },
   toggleBtn: { flex: 1, paddingVertical: 10, borderRadius: 9, alignItems: 'center' },
-  toggleBtnActive: { backgroundColor: '#F59E0B' },
+  toggleBtnActive: { backgroundColor: t.accent },
   toggleTxt: { color: t.inkText(0.5), fontSize: 13, fontWeight: '600' },
-  toggleTxtActive: { color: '#000' },
+  toggleTxtActive: { color: t.onAccent },
 
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 14 },
   chip: { borderWidth: 1, borderColor: t.ink(0.12), backgroundColor: t.ink(0.06), borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
-  chipActive: { borderColor: '#F59E0B', backgroundColor: 'rgba(245,158,11,0.15)' },
+  chipActive: { borderColor: t.accent, backgroundColor: t.accentA(0.15) },
   chipTxt: { color: t.inkText(0.6), fontSize: 12 },
   chipTxtActive: { color: t.accentText, fontWeight: '600' },
 
@@ -306,9 +306,9 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   errorBox: { backgroundColor: 'rgba(239,68,68,0.1)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.25)', borderRadius: 12, padding: 12, marginBottom: 14 },
   errorTxt: { color: t.soft('red'), fontSize: 13 },
 
-  submitBtn:         { backgroundColor: '#F59E0B', borderRadius: 14, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
+  submitBtn:         { backgroundColor: t.accent, borderRadius: 14, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
   submitBtnDisabled: { opacity: 0.5 },
-  submitBtnText:     { color: '#000', fontSize: 15, fontWeight: '700' },
+  submitBtnText:     { color: t.onAccent, fontSize: 15, fontWeight: '700' },
   backBtn:           { borderWidth: 1, borderColor: t.ink(0.15), borderRadius: 14, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
   backBtnText:       { color: t.inkText(0.7), fontSize: 15, fontWeight: '600' },
 

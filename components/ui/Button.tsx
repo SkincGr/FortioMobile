@@ -23,7 +23,7 @@ export function Button({ title, variant = 'primary', loading, size = 'md', disab
   const s = useStyles(makeStyles)
 
   const VARIANTS: Record<Variant, { bg: string; border?: string; text: string; spinnerColor: string }> = {
-    primary:   { bg: '#F59E0B',          text: '#000',          spinnerColor: '#000' },
+    primary:   { bg: th.accent,       text: th.onAccent,    spinnerColor: th.onAccent },
     secondary: { bg: th.ink(0.06), border: th.ink(0.15), text: th.inkSolid, spinnerColor: th.inkSolid },
     danger:    { bg: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.3)', text: th.soft('red'), spinnerColor: th.soft('red') },
     ghost:     { bg: 'transparent',      text: th.accentText,  spinnerColor: th.accentText },

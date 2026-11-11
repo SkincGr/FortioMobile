@@ -147,9 +147,9 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   errorBox: { backgroundColor: 'rgba(239,68,68,0.1)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.25)', borderRadius: 12, padding: 12, marginBottom: 16 },
   errorTxt: { color: t.soft('red'), fontSize: 13 },
 
-  submitBtn:         { backgroundColor: '#F59E0B', borderRadius: 14, paddingVertical: 15, alignItems: 'center', justifyContent: 'center' },
+  submitBtn:         { backgroundColor: t.accent, borderRadius: 14, paddingVertical: 15, alignItems: 'center', justifyContent: 'center' },
   submitBtnDisabled: { opacity: 0.5 },
-  submitBtnText:     { color: '#000', fontSize: 16, fontWeight: '700' },
+  submitBtnText:     { color: t.onAccent, fontSize: 16, fontWeight: '700' },
 
   footer:     { flexDirection: 'row', justifyContent: 'center', marginTop: 24 },
   footerTxt:  { color: t.inkText(0.4), fontSize: 14 },

@@ -10,7 +10,7 @@ export function Badge({ label, variant = 'default' }: { label: string; variant?:
 
   const VARIANTS: Record<Variant, { bg: string; text: string }> = {
     success: { bg: 'rgba(74,222,128,0.12)',  text: th.soft('green') },
-    warning: { bg: 'rgba(245,158,11,0.12)',  text: th.accentText },
+    warning: { bg: 'rgba(245,158,11,0.12)',  text: th.soft('yellow') },
     danger:  { bg: 'rgba(248,113,113,0.12)', text: th.soft('red') },
     info:    { bg: 'rgba(96,165,250,0.12)',  text: th.soft('blue') },
     default: { bg: th.ink(0.08),             text: th.inkText(0.5) },

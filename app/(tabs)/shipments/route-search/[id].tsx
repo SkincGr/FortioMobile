@@ -691,7 +691,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center',
     backgroundColor: t.ink(0.04), borderWidth: 1, borderColor: t.ink(0.08),
   },
-  tabBtnActive: { backgroundColor: 'rgba(251,191,36,0.15)', borderColor: '#FBBF24' },
+  tabBtnActive: { backgroundColor: t.accentBrightA(0.15), borderColor: t.accentBright },
   tabText: { color: t.inkText(0.5), fontSize: 13, fontWeight: '700' },
   tabTextActive: { color: t.accentText },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
@@ -716,8 +716,8 @@ const makeStyles = (t: Theme) => StyleSheet.create({
 
   // Shipment Summary Card
   shipmentSummaryCard: {
-    backgroundColor: 'rgba(251,191,36,0.05)',
-    borderWidth: 1, borderColor: 'rgba(251,191,36,0.2)',
+    backgroundColor: t.accentBrightA(0.05),
+    borderWidth: 1, borderColor: t.accentBrightA(0.2),
     borderRadius: 16, padding: 14, marginBottom: 12,
   },
   summaryLabel: { fontSize: 10, fontWeight: '800', color: t.accentText, letterSpacing: 1 },
@@ -733,7 +733,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   },
   distanceLabel: { fontSize: 13, fontWeight: '600', color: t.inkText(0.8) },
   distanceBadge: {
-    backgroundColor: 'rgba(251,191,36,0.15)',
+    backgroundColor: t.accentBrightA(0.15),
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10,
   },
   distanceBadgeText: { color: t.accentText, fontSize: 13, fontWeight: '800' },
@@ -748,7 +748,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     borderRadius: 4, overflow: 'hidden',
   },
   progressFill: {
-    height: '100%', backgroundColor: '#FBBF24', borderRadius: 4,
+    height: '100%', backgroundColor: t.accentBright, borderRadius: 4,
   },
   presetBtn: {
     flex: 1, alignItems: 'center', paddingVertical: 7,
@@ -756,10 +756,10 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     borderRadius: 8, borderWidth: 1, borderColor: t.ink(0.1),
   },
   presetBtnActive: {
-    backgroundColor: '#FBBF24', borderColor: '#FBBF24',
+    backgroundColor: t.accentBright, borderColor: t.accentBright,
   },
   presetBtnText: { fontSize: 11, fontWeight: '600', color: t.inkText(0.6) },
-  presetBtnTextActive: { color: '#000', fontWeight: '800' },
+  presetBtnTextActive: { color: t.onAccent, fontWeight: '800' },
 
   sectionTitle: { fontSize: 16, fontWeight: '800', color: t.inkSolid },
 
@@ -772,7 +772,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center' },
   carrierName: { fontSize: 15, fontWeight: '700', color: t.inkSolid, flexShrink: 1 },
   ratingBadge: {
-    backgroundColor: 'rgba(251,191,36,0.15)', borderRadius: 6,
+    backgroundColor: t.accentBrightA(0.15), borderRadius: 6,
     paddingHorizontal: 6, paddingVertical: 2,
   },
   ratingText: { fontSize: 11, color: t.accentText, fontWeight: '800' },
@@ -788,7 +788,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   },
   statusText: { color: t.inkText(0.6), fontSize: 11, fontWeight: '700' },
   recurringChip: {
-    backgroundColor: 'rgba(251,191,36,0.1)', borderRadius: 6,
+    backgroundColor: t.accentBrightA(0.1), borderRadius: 6,
     paddingHorizontal: 6, paddingVertical: 2,
   },
   recurringText: { fontSize: 11, color: t.accentText, fontWeight: '600' },
@@ -805,10 +805,10 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   },
   sentText: { fontSize: 12, fontWeight: '700', color: t.soft('green') },
   requestBtn: {
-    backgroundColor: '#FBBF24', borderRadius: 10,
+    backgroundColor: t.accentBright, borderRadius: 10,
     paddingHorizontal: 14, paddingVertical: 9,
   },
-  requestBtnText: { fontSize: 13, fontWeight: '700', color: '#000' },
+  requestBtnText: { fontSize: 13, fontWeight: '700', color: t.onAccent },
 
   msgBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -868,17 +868,17 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   },
   cancelBtnText: { fontSize: 14, color: t.inkSolid, fontWeight: '600' },
   sendBtn: {
-    flex: 1, backgroundColor: '#FBBF24', borderRadius: 12,
+    flex: 1, backgroundColor: t.accentBright, borderRadius: 12,
     paddingVertical: 13, alignItems: 'center',
   },
-  sendBtnText: { fontSize: 14, fontWeight: '800', color: '#000' },
+  sendBtnText: { fontSize: 14, fontWeight: '800', color: t.onAccent },
   templateHeaderLabel: {
     fontSize: 11, fontWeight: '700', color: t.inkText(0.4),
     textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6,
   },
   templateChip: {
-    backgroundColor: 'rgba(251,191,36,0.1)',
-    borderWidth: 1, borderColor: 'rgba(251,191,36,0.3)',
+    backgroundColor: t.accentBrightA(0.1),
+    borderWidth: 1, borderColor: t.accentBrightA(0.3),
     borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6,
   },
   templateChipText: { fontSize: 12, fontWeight: '600', color: t.accentText },

@@ -728,9 +728,9 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   chipsScroll:   { maxHeight: 48, flexShrink: 0 },
   chipsContent:  { paddingHorizontal: 16, paddingVertical: 8, gap: 8, flexDirection: 'row', alignItems: 'center' },
   chip:          { paddingHorizontal: 14, paddingVertical: 5, borderRadius: 20, borderWidth: 1, borderColor: t.ink(0.12), backgroundColor: t.ink(0.06) },
-  chipActive:    { backgroundColor: '#F59E0B', borderColor: '#F59E0B' },
+  chipActive:    { backgroundColor: t.accent, borderColor: t.accent },
   chipText:      { fontSize: 12, fontWeight: '700', color: t.inkText(0.6) },
-  chipTextActive:{ color: '#000' },
+  chipTextActive:{ color: t.onAccent },
 
   // Shipment info
   shipInfo:  { paddingHorizontal: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: t.ink(0.06) },
@@ -744,13 +744,13 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: t.ink(0.06),
   },
   filterBtn:           { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: t.ink(0.08), backgroundColor: t.ink(0.04) },
-  filterBtnActive:     { backgroundColor: 'rgba(245,158,11,0.12)', borderColor: 'rgba(245,158,11,0.35)' },
+  filterBtnActive:     { backgroundColor: t.accentA(0.12), borderColor: t.accentA(0.35) },
   filterText:          { fontSize: 12, fontWeight: '600', color: t.inkText(0.45) },
   filterTextActive:    { color: t.accentText },
   filterBadge:         { backgroundColor: t.ink(0.1), borderRadius: 10, paddingHorizontal: 5, paddingVertical: 1 },
-  filterBadgeActive:   { backgroundColor: '#F59E0B' },
+  filterBadgeActive:   { backgroundColor: t.accent },
   filterBadgeText:     { fontSize: 10, fontWeight: '700', color: t.inkText(0.5) },
-  filterBadgeTextActive:{ color: '#000' },
+  filterBadgeTextActive:{ color: t.onAccent },
   filterBtnUnread:     { backgroundColor: 'rgba(99,102,241,0.12)', borderColor: 'rgba(99,102,241,0.35)' },
   filterTextUnread:    { color: '#818CF8' },
   unreadDot:           { width: 7, height: 7, borderRadius: 4, backgroundColor: t.ink(0.2) },
@@ -778,7 +778,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   cardTime:   { fontSize: 10, color: t.inkText(0.3), marginLeft: 4 },
   readBadge:  { borderRadius: 20, paddingHorizontal: 8, paddingVertical: 2, borderWidth: 1 },
   readBadgeRead:     { backgroundColor: 'rgba(74,222,128,0.1)', borderColor: 'rgba(74,222,128,0.25)' },
-  readBadgeUnread:   { backgroundColor: 'rgba(245,158,11,0.1)', borderColor: 'rgba(245,158,11,0.25)' },
+  readBadgeUnread:   { backgroundColor: t.accentA(0.1), borderColor: t.accentA(0.25) },
   readBadgeText:     { fontSize: 10, fontWeight: '700' },
   readBadgeReadText: { color: t.soft('green') },
   readBadgeUnreadText:{ color: t.accentText },
@@ -794,13 +794,13 @@ const makeStyles = (t: Theme) => StyleSheet.create({
 
   // Action buttons (per message)
   actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: t.ink(0.08) },
-  actionBtn:     { backgroundColor: '#F59E0B', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
-  actionBtnText: { fontSize: 11, fontWeight: '700', color: '#000' },
+  actionBtn:     { backgroundColor: t.accent, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
+  actionBtnText: { fontSize: 11, fontWeight: '700', color: t.onAccent },
 
   // Header "+" button
   headerAddBtn: {
     width: 30, height: 30, borderRadius: 15,
-    backgroundColor: '#F59E0B', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center',
   },
 
   // ── Compose / Reply popup ──────────────────────────────────────────────────
@@ -857,7 +857,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     borderWidth: 1, borderColor: t.ink(0.15),
   },
   composeCancelText: { color: t.inkSolid, fontSize: 14, fontWeight: '700' },
-  composeSendBtn: { flex: 1, backgroundColor: '#F59E0B', borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
-  composeSendBtnDisabled: { backgroundColor: 'rgba(245,158,11,0.25)' },
-  composeSendText: { color: '#000', fontSize: 14, fontWeight: '800' },
+  composeSendBtn: { flex: 1, backgroundColor: t.accent, borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
+  composeSendBtnDisabled: { backgroundColor: t.accentA(0.25) },
+  composeSendText: { color: t.onAccent, fontSize: 14, fontWeight: '800' },
 })

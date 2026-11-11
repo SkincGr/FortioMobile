@@ -376,7 +376,7 @@ export default function MatchesScreen() {
 
           {/* Κάρτες μεταφορέων (Μετακόμιση, Κάδοι, Ενοικίαση) */}
           {cards.map(card => (
-            <View key={card.id} style={[styles.card, { borderColor: 'rgba(251,191,36,0.35)' }]}>
+            <View key={card.id} style={[styles.card, { borderColor: th.accentBrightA(0.35) }]}>
               <View style={[styles.row, { gap: 8, flexWrap: 'wrap', marginBottom: 10 }]}>
                 <Text style={{ fontSize: 20 }}>{cardIcon(card.cardId)}</Text>
                 <Text style={styles.cardTitle}>{card.title}</Text>
@@ -668,8 +668,8 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   shipmentDetail: { fontSize: 13, color: t.inkText(0.5) },
 
   summaryCard: {
-    backgroundColor: 'rgba(251,191,36,0.05)', borderRadius: 16,
-    borderWidth: 1, borderColor: 'rgba(251,191,36,0.2)',
+    backgroundColor: t.accentBrightA(0.05), borderRadius: 16,
+    borderWidth: 1, borderColor: t.accentBrightA(0.2),
     padding: 14, marginBottom: 14,
   },
   summaryLabel: { fontSize: 10, fontWeight: '800', color: t.accentText, letterSpacing: 1.2, marginBottom: 4, textTransform: 'uppercase' },
@@ -697,7 +697,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   ratingTrips: { color: 'rgba(248,113,113,0.6)', fontWeight: '600' },
   recurrenceNote: { fontSize: 12, color: t.soft('blue'), marginBottom: 6 },
   recurringChip: {
-    backgroundColor: 'rgba(251,191,36,0.1)', borderRadius: 20,
+    backgroundColor: t.accentBrightA(0.1), borderRadius: 20,
     paddingHorizontal: 8, paddingVertical: 3,
   },
   recurringText: { fontSize: 11, color: t.accentText, fontWeight: '600' },
@@ -727,10 +727,10 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   },
   sentText: { fontSize: 12, fontWeight: '700', color: t.soft('green') },
   requestBtn: {
-    backgroundColor: '#FBBF24', borderRadius: 10,
+    backgroundColor: t.accentBright, borderRadius: 10,
     paddingHorizontal: 14, paddingVertical: 9,
   },
-  requestBtnText: { fontSize: 13, fontWeight: '700', color: '#000' },
+  requestBtnText: { fontSize: 13, fontWeight: '700', color: t.onAccent },
   ghostBtn: {
     borderWidth: 1, borderColor: t.ink(0.15), borderRadius: 10,
     paddingHorizontal: 12, paddingVertical: 8,
@@ -809,17 +809,17 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   },
   cancelBtnText: { fontSize: 14, color: t.inkSolid, fontWeight: '600' },
   sendBtn: {
-    flex: 1, backgroundColor: '#FBBF24', borderRadius: 12,
+    flex: 1, backgroundColor: t.accentBright, borderRadius: 12,
     paddingVertical: 13, alignItems: 'center',
   },
-  sendBtnText: { fontSize: 14, fontWeight: '800', color: '#000' },
+  sendBtnText: { fontSize: 14, fontWeight: '800', color: t.onAccent },
   templateHeaderLabel: {
     fontSize: 11, fontWeight: '700', color: t.inkText(0.4),
     textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6,
   },
   templateChip: {
-    backgroundColor: 'rgba(251,191,36,0.1)',
-    borderWidth: 1, borderColor: 'rgba(251,191,36,0.3)',
+    backgroundColor: t.accentBrightA(0.1),
+    borderWidth: 1, borderColor: t.accentBrightA(0.3),
     borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6,
   },
   templateChipText: { fontSize: 12, fontWeight: '600', color: t.accentText },

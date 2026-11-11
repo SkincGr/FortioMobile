@@ -109,7 +109,7 @@ export default function ProfileScreen() {
             <Switch
               value={autoTranslate}
               onValueChange={setAutoTranslate}
-              trackColor={{ false: th.ink(0.1), true: '#F59E0B' }}
+              trackColor={{ false: th.ink(0.1), true: th.accent }}
               thumbColor="#fff"
             />
           </View>
@@ -164,14 +164,14 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   },
   avatar: {
     width: 80, height: 80, borderRadius: 40,
-    backgroundColor: 'rgba(245,158,11,0.2)',
-    borderWidth: 2, borderColor: 'rgba(245,158,11,0.4)',
+    backgroundColor: t.accentA(0.2),
+    borderWidth: 2, borderColor: t.accentA(0.4),
     alignItems: 'center', justifyContent: 'center', marginBottom: 10,
   },
   avatarText: { color: t.accentText, fontSize: 32, fontWeight: '900' },
   name:       { color: t.inkSolid, fontSize: 20, fontWeight: '700' },
   email:      { color: t.inkText(0.4), fontSize: 13, marginTop: 2 },
-  roleBadge:  { marginTop: 8, backgroundColor: 'rgba(245,158,11,0.15)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4 },
+  roleBadge:  { marginTop: 8, backgroundColor: t.accentA(0.15), borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4 },
   roleText:   { color: t.accentText, fontSize: 11, fontWeight: '600' },
 
   sectionLabel: {
@@ -191,9 +191,9 @@ const makeStyles = (t: Theme) => StyleSheet.create({
 
   langRow:           { flexDirection: 'row', gap: 6 },
   langBtn:           { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: t.ink(0.12), backgroundColor: t.ink(0.04) },
-  langBtnActive:     { backgroundColor: '#F59E0B', borderColor: '#F59E0B' },
+  langBtnActive:     { backgroundColor: t.accent, borderColor: t.accent },
   langBtnText:       { fontSize: 12, fontWeight: '600', color: t.inkText(0.5) },
-  langBtnTextActive: { color: '#000' },
+  langBtnTextActive: { color: t.onAccent },
 
   menuItem:       { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14 },
   menuItemBorder: { borderBottomWidth: 1, borderBottomColor: t.ink(0.06) },

@@ -593,7 +593,7 @@ export default function NewShipmentScreen() {
                 : <CargoItemsSection t={t} value={form.cardDetails} categories={form.categories} onChange={cardDetails => setMove(() => cardDetails)} />}
               <TouchableOpacity onPress={saveList} disabled={!listDirty || listSaving} activeOpacity={0.85}
                 style={{ backgroundColor: Colors.accent, borderRadius: 16, paddingVertical: 15, alignItems: 'center', opacity: !listDirty || listSaving ? 0.4 : 1 }}>
-                <Text style={{ fontWeight: '800', color: '#000' }}>{listSaving ? t('moveCard.list_saving') : t('moveCard.save_list')}</Text>
+                <Text style={{ fontWeight: '800', color: th.onAccent }}>{listSaving ? t('moveCard.list_saving') : t('moveCard.save_list')}</Text>
               </TouchableOpacity>
               {listMessage && <Text style={{ fontSize: 13, marginTop: 8, color: listMessage.ok ? Colors.success : Colors.danger }}>{listMessage.text}</Text>}
               {listDirty && !listMessage && <Text style={{ fontSize: 13, marginTop: 8, color: th.accentText }}>{t('moveCard.list_unsaved')}</Text>}

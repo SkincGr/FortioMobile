@@ -155,7 +155,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   searchRow: { flexDirection: 'row', gap: 8, padding: 12, borderBottomWidth: 1, borderBottomColor: t.ink(0.12) },
   search:    { flex: 1, borderWidth: 1, borderColor: t.ink(0.12), borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: t.inkSolid, backgroundColor: t.raised },
   goBtn:     { backgroundColor: Colors.accent, borderRadius: 12, paddingHorizontal: 14, justifyContent: 'center', minWidth: 72, alignItems: 'center' },
-  goTxt:     { color: '#000', fontWeight: '700' },
+  goTxt:     { color: t.onAccent, fontWeight: '700' },
   notFound:  { color: Colors.danger, fontSize: 12, paddingHorizontal: 12, paddingTop: 6 },
   loading:   { flex: 1, alignItems: 'center', justifyContent: 'center' },
   myLocation:{ position: 'absolute', right: 12, bottom: 12, backgroundColor: t.surface, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9, borderWidth: 1, borderColor: t.ink(0.12), elevation: 3, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } },
@@ -165,5 +165,5 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   cancelBtn: { flex: 1, borderWidth: 1, borderColor: t.ink(0.12), borderRadius: 14, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
   cancelTxt: { fontWeight: '700', color: t.inkText(0.7) },
   useBtn:    { flex: 2, backgroundColor: Colors.accent, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center' },
-  useTxt:    { fontWeight: '800', color: '#000', textAlign: 'center', fontSize: 13 },
+  useTxt:    { fontWeight: '800', color: t.onAccent, textAlign: 'center', fontSize: 13 },
 })

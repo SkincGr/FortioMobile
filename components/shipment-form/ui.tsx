@@ -187,7 +187,7 @@ export const makeStyles = (t: Theme) => StyleSheet.create({
   wrap:       { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
 
   check:    { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: t.ink(0.12), backgroundColor: t.surface, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 8 },
-  checkOn:  { borderColor: Colors.accent, backgroundColor: 'rgba(245,158,11,0.1)' },
+  checkOn:  { borderColor: Colors.accent, backgroundColor: t.accentA(0.1) },
   box:      { width: 18, height: 18, borderRadius: 4, borderWidth: 2, borderColor: t.ink(0.18), alignItems: 'center', justifyContent: 'center' },
   boxOn:    { borderColor: Colors.accent, backgroundColor: Colors.accent },
   tick:     { color: t.snow, fontSize: 10, fontWeight: '700' },
@@ -196,7 +196,7 @@ export const makeStyles = (t: Theme) => StyleSheet.create({
   chip:      { borderWidth: 1, borderColor: t.ink(0.12), backgroundColor: t.surface, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
   chipOn:    { borderColor: Colors.accent, backgroundColor: Colors.accent },
   chipTxt:   { fontSize: 12, color: t.inkText(0.7), fontWeight: '600' },
-  chipTxtOn: { color: '#000' },
+  chipTxtOn: { color: t.onAccent },
 
   select:     { flexDirection: 'row', alignItems: 'center', gap: 8 },
   backdrop:   { flex: 1, backgroundColor: t.shade(0.45), justifyContent: 'center', padding: 24 },
@@ -210,10 +210,10 @@ export const makeStyles = (t: Theme) => StyleSheet.create({
   segmentBtn:   { flex: 1, paddingVertical: 10, alignItems: 'center', backgroundColor: t.raised },
   segmentOn:    { backgroundColor: Colors.accent },
   segmentTxt:   { fontSize: 14, color: t.inkText(0.7), fontWeight: '600' },
-  segmentTxtOn: { color: '#000' },
+  segmentTxtOn: { color: t.onAccent },
 
-  section:      { borderWidth: 1, borderColor: 'rgba(245,158,11,0.3)', backgroundColor: 'rgba(245,158,11,0.1)', borderRadius: 16, padding: 14, marginBottom: 14 },
+  section:      { borderWidth: 1, borderColor: t.accentA(0.3), backgroundColor: t.accentA(0.1), borderRadius: 16, padding: 14, marginBottom: 14 },
   sectionTitle: { fontSize: 14, fontWeight: '800', color: t.accentText },
   collHead:     { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  badge:        { fontSize: 11, fontWeight: '700', color: t.accentText, backgroundColor: 'rgba(245,158,11,0.15)', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
+  badge:        { fontSize: 11, fontWeight: '700', color: t.accentText, backgroundColor: t.accentA(0.15), borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
 })

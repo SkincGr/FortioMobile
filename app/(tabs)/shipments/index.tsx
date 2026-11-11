@@ -129,9 +129,9 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   headerTitle: { color: t.inkSolid, fontSize: 22, fontWeight: '800' },
   newBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: '#F59E0B', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7,
+    backgroundColor: t.accent, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7,
   },
-  newBtnText: { color: '#000', fontSize: 13, fontWeight: '700' },
+  newBtnText: { color: t.onAccent, fontSize: 13, fontWeight: '700' },
 
   card: {
     backgroundColor: t.ink(0.03),
@@ -144,12 +144,12 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   route:   { fontSize: 12, color: t.inkText(0.4), flex: 1 },
   date:    { fontSize: 11, color: t.inkText(0.3) },
 
-  offerChip:     { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: 'rgba(245,158,11,0.12)', borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3 },
+  offerChip:     { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: t.accentA(0.12), borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3 },
   offerChipText: { fontSize: 11, color: t.accentText, fontWeight: '700' },
   budget:        { fontSize: 12, color: t.soft('green'), fontWeight: '700', marginLeft: 8 },
 
   empty:       { alignItems: 'center', paddingTop: 60 },
   emptyText:   { color: t.inkText(0.3), fontSize: 15, marginTop: 12, marginBottom: 16 },
-  emptyBtn:    { backgroundColor: '#F59E0B', borderRadius: 12, paddingHorizontal: 20, paddingVertical: 11 },
-  emptyBtnText:{ color: '#000', fontWeight: '700', fontSize: 14 },
+  emptyBtn:    { backgroundColor: t.accent, borderRadius: 12, paddingHorizontal: 20, paddingVertical: 11 },
+  emptyBtnText:{ color: t.onAccent, fontWeight: '700', fontSize: 14 },
 })

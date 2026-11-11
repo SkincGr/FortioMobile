@@ -147,7 +147,7 @@ export default function RoutesSearchScreen() {
       {!!shipment && (
         <View style={[s.row, { justifyContent: 'space-between', marginBottom: 12 }]}>
           <Text style={s.muted}>{t('rs.only_new')}</Text>
-          <Switch value={onlyNew} onValueChange={setOnlyNew} trackColor={{ true: '#F59E0B' }} />
+          <Switch value={onlyNew} onValueChange={setOnlyNew} trackColor={{ true: th.accent }} />
         </View>
       )}
 
@@ -185,7 +185,7 @@ export default function RoutesSearchScreen() {
         <View style={{ flex: 1 }}>
           <View style={[s.row, { justifyContent: 'space-between' }]}>
             <Text style={s.label}>{t('rs.radius')}</Text>
-            <Switch value={radiusMode} onValueChange={setRadiusMode} trackColor={{ true: '#F59E0B' }} />
+            <Switch value={radiusMode} onValueChange={setRadiusMode} trackColor={{ true: th.accent }} />
           </View>
           {radiusMode && <TextInput style={s.input} value={radiusKm} onChangeText={setRadiusKm} keyboardType="number-pad" placeholder="km" placeholderTextColor={th.inkText(0.3)} />}
         </View>
@@ -344,7 +344,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   input:       { backgroundColor: t.ink(0.06), borderWidth: 1, borderColor: t.ink(0.12), borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, color: t.inkSolid, fontSize: 14 },
   places:      { backgroundColor: t.surface, borderRadius: 16, padding: 12, marginBottom: 12 },
   chip:        { borderWidth: 1, borderColor: t.ink(0.15), borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 },
-  chipOn:      { backgroundColor: 'rgba(251,191,36,0.15)', borderColor: '#FBBF24' },
+  chipOn:      { backgroundColor: t.accentBrightA(0.15), borderColor: t.accentBright },
   chipTxt:     { color: t.inkText(0.7), fontSize: 12, fontWeight: '700' },
   chipTxtOn:   { color: t.accentText },
   empty:       { alignItems: 'center', paddingVertical: 40, gap: 10 },
@@ -359,8 +359,8 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   cities:      { color: t.inkSolid, fontSize: 14, fontWeight: '700', marginBottom: 2 },
   charge:      { fontSize: 12, color: t.accentText, fontWeight: '700', marginTop: 2 },
   sent:        { color: t.soft('green'), fontSize: 12, fontWeight: '700' },
-  requestBtn:  { backgroundColor: '#FBBF24', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9 },
-  requestTxt:  { color: '#000', fontSize: 13, fontWeight: '700' },
+  requestBtn:  { backgroundColor: t.accentBright, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9 },
+  requestTxt:  { color: t.onAccent, fontSize: 13, fontWeight: '700' },
   backdrop:    { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 24 },
   sheet:       { backgroundColor: t.raised, borderRadius: 16, paddingVertical: 12, borderWidth: 1, borderColor: t.ink(0.1) },
   sheetTitle:  { color: t.inkText(0.5), fontSize: 12, fontWeight: '700', textTransform: 'uppercase', paddingHorizontal: 16, paddingBottom: 8 },

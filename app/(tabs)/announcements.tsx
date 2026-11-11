@@ -108,7 +108,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 10,
   },
   headerTitle: { color: t.inkSolid, fontSize: 22, fontWeight: '800' },
-  countBadge:  { backgroundColor: 'rgba(245,158,11,0.15)', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 2 },
+  countBadge:  { backgroundColor: t.accentA(0.15), borderRadius: 12, paddingHorizontal: 8, paddingVertical: 2 },
   countText:   { color: t.accentText, fontSize: 13, fontWeight: '700' },
 
   empty:     { alignItems: 'center', paddingTop: 80 },
@@ -126,6 +126,6 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   rating:    { fontSize: 12, color: t.accentText, fontWeight: '600' },
   title:     { fontSize: 16, fontWeight: '800', color: t.inkSolid, marginBottom: 6 },
   body:      { fontSize: 14, color: t.inkText(0.6), lineHeight: 20 },
-  cta:       { marginTop: 12, backgroundColor: 'rgba(245,158,11,0.1)', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: 'rgba(245,158,11,0.25)' },
+  cta:       { marginTop: 12, backgroundColor: t.accentA(0.1), borderRadius: 10, padding: 10, borderWidth: 1, borderColor: t.accentA(0.25) },
   ctaText:   { fontSize: 13, color: t.accentText, fontWeight: '600' },
 })

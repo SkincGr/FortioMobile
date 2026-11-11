@@ -33,6 +33,14 @@
       "expo-secure-store",
       "@react-native-community/datetimepicker",
       [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableMinifyInReleaseBuilds": false
+          }
+        }
+      ],
+      [
         "expo-location",
         {
           "locationAlwaysAndWhenInUsePermission": "Το Fortio χρειάζεται την τοποθεσία σου για να συμπληρώσει τις συντεταγμένες."

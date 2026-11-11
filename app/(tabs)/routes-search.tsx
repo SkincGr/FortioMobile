@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import {
   View, Text, TouchableOpacity, TextInput, FlatList, ActivityIndicator, Modal, Pressable,
-  ScrollView, StyleSheet, Platform, KeyboardAvoidingView, Switch,
+  ScrollView, StyleSheet, Platform, KeyboardAvoidingView,
 } from 'react-native'
 import DateTimePicker from '@react-native-community/datetimepicker'
 import { router } from 'expo-router'
@@ -17,7 +17,8 @@ import { Theme, useStyles, useTheme } from '@/lib/theme'
 
 // Αναζήτηση δρομολογίων μεταφορέων, όπως η σελίδα /routes του web (components/RoutesSearchClient.tsx): αφετηρία και
 // προορισμός από το Google, ημερομηνία «από» και αριθμός ημερών (έως 30) υποχρεωτικά — το GET /api/routes τα απαιτεί.
-// Προαιρετικά: αποστολή που συμπληρώνει τα φίλτρα, «Μόνο νέα δρομολόγια», ελάχιστος όγκος, ακτίνα, ταξινόμηση.
+// Προαιρετικά: αποστολή που συμπληρώνει τα φίλτρα, «Μόνο νέα δρομολόγια», ακτίνα (checkbox + −/+ km).
+// Διάταξη: αποστολή (+ «Μόνο νέα»), αναδιπλούμενο πλαίσιο φίλτρων με κουμπί Αναζήτηση, και στα αποτελέσματα combobox τύπου οχήματος και ταξινόμησης.
 // Το web στέλνει το αίτημα από τη σελίδα του δρομολογίου· εδώ στέλνεται απευθείας για την επιλεγμένη αποστολή.
 
 type SearchRoute = RouteMatch & {
@@ -28,9 +29,61 @@ type SearchRoute = RouteMatch & {
 }
 
 const SORTS = [['date', 'rs.sort_date'], ['price', 'rs.sort_price'], ['rating', 'rs.sort_rating']] as const
-const DAYS = [3, 7, 14, 30]
+// Τύπος οχήματος: ίδια ids με το web (RoutesSearchClient)
+const VEHICLES = [['TRUCK,VAN', 'rs.vehicle_land'], ['SHIP', 'rs.vehicle_ship'], ['AIRPLANE', 'rs.vehicle_airplane']] as const
+const RADIUS_STEP = 5
+// Η αναζήτηση είναι για δρομολόγια: οι αποστολές των ειδικών κατηγοριών (Μετακόμιση, Κάδοι, Ενοικίαση Van) δεν έχουν δρομολόγια
+// — ταιριάζουν με κάρτες μεταφορέα — και δεν εμφανίζονται στη λίστα επιλογής αποστολής
+const CARD_CATEGORIES = ['HOUSE_MOVE', 'WASTE_BINS', 'VEHICLE_RENTAL']
+const DAYS_MIN = 1
+const DAYS_MAX = 30
 const LOCALES = { el: 'el-GR', en: 'en-GB', fr: 'fr-FR' } as const
 const day = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
+type TKey = Parameters<ReturnType<typeof useI18n>['t']>[0]
+
+// Checkbox με ετικέτα
+function Check({ checked, onChange, label, disabled }: { checked: boolean; onChange: (v: boolean) => void; label: string; disabled?: boolean }) {
+  const th = useTheme()
+  const s = useStyles(makeStyles)
+  return (
+    <TouchableOpacity style={[s.row, { gap: 8, opacity: disabled ? 0.4 : 1 }]} disabled={disabled} onPress={() => onChange(!checked)} activeOpacity={0.7}
+      accessibilityRole="checkbox" accessibilityState={{ checked, disabled }}>
+      <View style={[s.checkBox, checked && s.checkBoxOn]}>{checked && <Ionicons name="checkmark" size={14} color={th.onAccent} />}</View>
+      <Text style={s.checkTxt}>{label}</Text>
+    </TouchableOpacity>
+  )
+}
+
+// Combobox: πεδίο που ανοίγει λίστα επιλογών
+function Combo({ label, value, options, onChange }: { label: string; value: string; options: readonly (readonly [string, TKey])[]; onChange: (v: string) => void }) {
+  const th = useTheme()
+  const s = useStyles(makeStyles)
+  const { t } = useI18n()
+  const [open, setOpen] = useState(false)
+  const current = options.find(o => o[0] === value)
+  return (
+    <View style={{ flex: 1 }}>
+      <Text style={s.label}>{label}</Text>
+      <TouchableOpacity style={[s.select, { marginBottom: 0 }]} onPress={() => setOpen(true)}>
+        <Text style={s.selectTxt} numberOfLines={1}>{current ? t(current[1]) : ''}</Text>
+        <Ionicons name="chevron-down" size={16} color={th.inkText(0.5)} />
+      </TouchableOpacity>
+      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+        <Pressable style={s.backdrop} onPress={() => setOpen(false)}>
+          <Pressable style={s.sheet}>
+            <Text style={s.sheetTitle}>{label}</Text>
+            {options.map(([v, key]) => (
+              <TouchableOpacity key={v} style={s.option} onPress={() => { onChange(v); setOpen(false) }}>
+                <Text style={[s.optionTxt, v === value && { color: th.accentText }]}>{t(key)}</Text>
+              </TouchableOpacity>
+            ))}
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </View>
+  )
+}
 
 export default function RoutesSearchScreen() {
   const th = useTheme()
@@ -43,16 +96,22 @@ export default function RoutesSearchScreen() {
 
   const [search, setSearch] = useState({ from: '', fromId: '', to: '', toId: '' })
   const [dateFrom, setDateFrom] = useState<Date | null>(null)
-  const [daysAhead, setDaysAhead] = useState(7)
-  const [minVolume, setMinVolume] = useState('')
+  const [daysAhead, setDaysAhead] = useState(7) // το GET /api/routes θέλει εύρος ημερομηνιών: 7 ημέρες, ή ±5 γύρω από την επιθυμητή παράδοση της αποστολής
   const [radiusMode, setRadiusMode] = useState(false)
-  const [radiusKm, setRadiusKm] = useState('20')
+  const [radiusKm, setRadiusKm] = useState(20)
   const [sortBy, setSortBy] = useState<'date' | 'price' | 'rating'>('date')
+  const [vehicle, setVehicle] = useState<string>('TRUCK,VAN')
+  const [filtersOpen, setFiltersOpen] = useState(true)
+  // Τα φίλτρα που εκτελέστηκαν με το κουμπί «Αναζήτηση» (οι αλλαγές στη φόρμα δεν τρέχουν μόνες τους)
+  const [applied, setApplied] = useState<{ fromId: string; toId: string; dateFrom: string; dateTo: string; radiusKm: number | null } | null>(null)
+  const [searchHint, setSearchHint] = useState('')
+  const [searchRun, setSearchRun] = useState(0) // αυξάνεται σε κάθε πάτημα του «Αναζήτηση»: νέο ερώτημα, χωρίς τα προηγούμενα αποτελέσματα
   const [page, setPage] = useState(1)
   const [showDate, setShowDate] = useState(false)
 
   const [shipmentId, setShipmentId] = useState('')
   const [shipmentPicker, setShipmentPicker] = useState(false)
+  const [withShipment, setWithShipment] = useState(false) // checkbox «Επιλογή Αποστολής»: συμπληρώνει τα φίλτρα και επιτρέπει αίτημα προσφοράς
   const [onlyNew, setOnlyNew] = useState(true)
 
   const [requestRoute, setRequestRoute] = useState<SearchRoute | null>(null)
@@ -63,7 +122,7 @@ export default function RoutesSearchScreen() {
 
   // Οι ανοιχτές αποστολές του αποστολέα (για να συμπληρώσουν τα φίλτρα και για το αίτημα)
   const { data: dash } = useQuery({ queryKey: ['dashboard-open-shipments'], queryFn: () => dashboardApi.getSender().then(r => r.data) })
-  const openShipments = useMemo(() => (dash?.shipments ?? []).filter((s: Shipment) => ['PENDING', 'REQUEST', 'OFFERED'].includes(s.status)), [dash])
+  const openShipments = useMemo(() => (dash?.shipments ?? []).filter((s: Shipment) => ['PENDING', 'REQUEST', 'OFFERED'].includes(s.status) && !CARD_CATEGORIES.includes(s.category as string)), [dash])
   const shipment = openShipments.find((s: Shipment) => s.id === shipmentId) as (Shipment & { originPlaceId?: string; destPlaceId?: string }) | undefined
 
   function pickShipment(s: Shipment & { originPlaceId?: string; destPlaceId?: string }) {
@@ -79,21 +138,36 @@ export default function RoutesSearchScreen() {
   }
 
   const isValid = !!search.fromId && !!search.toId && !!dateFrom && daysAhead >= 1 && daysAhead <= 30
-  const dateTo = dateFrom ? new Date(dateFrom.getTime() + daysAhead * 86_400_000) : null
+
+  // Το κουμπί είναι πάντα ενεργό: αν λείπουν στοιχεία, δείχνει τι χρειάζεται αντί να μένει «κλειστό»
+  function runSearch() {
+    setSearchHint('')
+    // Πρώτα σβήνονται τα προηγούμενα αποτελέσματα (και οι αποθηκευμένες απαντήσεις), μετά τρέχει η νέα αναζήτηση
+    setApplied(null)
+    qc.removeQueries({ queryKey: ['routes-search'] })
+    if (!isValid || !dateFrom) { setSearchHint(t('rs.fill_required')); return }
+    setSearchRun(n => n + 1)
+    setApplied({
+      fromId: search.fromId, toId: search.toId, dateFrom: day(dateFrom),
+      dateTo: day(new Date(dateFrom.getTime() + daysAhead * 86_400_000)),
+      radiusKm: radiusMode ? radiusKm : null,
+    })
+    setPage(1)
+    setFiltersOpen(false)
+  }
 
   const params = useMemo(() => {
-    if (!isValid || !dateFrom || !dateTo) return null
+    if (!applied) return null
     const p = new URLSearchParams({
-      fromId: search.fromId, toId: search.toId, dateFrom: day(dateFrom), dateTo: day(dateTo),
-      vehicle: 'TRUCK,VAN', sortBy, page: String(page), pageSize: '20',
+      fromId: applied.fromId, toId: applied.toId, dateFrom: applied.dateFrom, dateTo: applied.dateTo,
+      vehicle, sortBy, page: String(page), pageSize: '20',
     })
-    if (minVolume) p.set('minVolume', minVolume)
-    if (radiusMode) { p.set('radius', '1'); p.set('radiusKm', radiusKm || '20') }
+    if (applied.radiusKm) { p.set('radius', '1'); p.set('radiusKm', String(applied.radiusKm)) }
     return p.toString()
-  }, [isValid, search.fromId, search.toId, dateFrom, dateTo, sortBy, page, minVolume, radiusMode, radiusKm])
+  }, [applied, vehicle, sortBy, page])
 
   const { data, isFetching, error } = useQuery({
-    queryKey: ['routes-search', params],
+    queryKey: ['routes-search', params, searchRun],
     queryFn: () => api.get<{ routes: SearchRoute[]; total: number; page: number; pageSize: number }>(`/api/routes?${params}`).then(r => r.data),
     enabled: !!params,
   })
@@ -104,7 +178,7 @@ export default function RoutesSearchScreen() {
     queryFn: () => matchesApi.get(shipmentId).then(r => r.data),
     enabled: !!shipmentId && onlyNew,
   })
-  const knownIds = useMemo(() => (onlyNew && shipmentId && known ? new Set(known.routes.map(r => r.id)) : null), [onlyNew, shipmentId, known])
+  const knownIds = useMemo(() => (onlyNew && shipmentId && known ? new Set(known.routes.map(r => (r as { parentRouteId?: string | null }).parentRouteId || r.id)) : null), [onlyNew, shipmentId, known])
   const routes = (data?.routes ?? []).filter(r => !knownIds || !knownIds.has(r.parentRouteId || r.id))
   const total = knownIds ? routes.length : data?.total ?? 0
   const totalPages = data ? Math.max(1, Math.ceil(data.total / (data.pageSize || 20))) : 1
@@ -114,12 +188,13 @@ export default function RoutesSearchScreen() {
 
   const { all: templates } = useMessageTemplates('SENDER', 'REQUEST', templateKindForCategory(shipment?.category))
 
-  useEffect(() => { setPage(1) }, [search.fromId, search.toId, dateFrom, daysAhead, sortBy, minVolume, radiusMode, radiusKm])
+  useEffect(() => { setPage(1) }, [vehicle, sortBy])
 
   function openRequest(route: SearchRoute) {
-    if (!shipment) { setShipmentPicker(true); return }
+    if (!shipment) { setWithShipment(true); setShipmentPicker(true); return }
     setRequestRoute(route); setRequestText(''); setRequestError('')
   }
+
 
   async function sendRequest() {
     if (!requestRoute || !shipment) return
@@ -138,78 +213,101 @@ export default function RoutesSearchScreen() {
 
   const header = (
     <View>
-      {/* Αποστολή που συμπληρώνει τα φίλτρα */}
-      <Text style={s.label}>{t('rs.select_shipment')}</Text>
-      <TouchableOpacity style={s.select} onPress={() => setShipmentPicker(true)}>
-        <Text style={[s.selectTxt, !shipment && { color: th.inkText(0.35) }]} numberOfLines={1}>{shipment?.title ?? t('rs.select_shipment_ph')}</Text>
-        <Ionicons name="chevron-down" size={16} color={th.inkText(0.5)} />
-      </TouchableOpacity>
-      {!!shipment && (
-        <View style={[s.row, { justifyContent: 'space-between', marginBottom: 12 }]}>
-          <Text style={s.muted}>{t('rs.only_new')}</Text>
-          <Switch value={onlyNew} onValueChange={setOnlyNew} trackColor={{ true: th.accent }} />
-        </View>
+      {/* #1 Επιλογή αποστολής ( + checkbox «Μόνο νέα δρομολόγια» ) */}
+      <View style={[s.row, { justifyContent: 'space-between', marginBottom: 8 }]}>
+        <Check checked={withShipment} label={t('rs.select_shipment')}
+          onChange={v => { setWithShipment(v); if (v) setShipmentPicker(true); else setShipmentId('') }} />
+        <Check checked={onlyNew && !!shipment} disabled={!shipment} label={t('rs.only_new')} onChange={setOnlyNew} />
+      </View>
+      {withShipment && (
+        <TouchableOpacity style={s.select} onPress={() => setShipmentPicker(true)}>
+          <Text style={[s.selectTxt, !shipment && { color: th.inkText(0.35) }]} numberOfLines={1}>{shipment?.title ?? t('rs.select_shipment_ph')}</Text>
+          <Ionicons name="chevron-down" size={16} color={th.inkText(0.5)} />
+        </TouchableOpacity>
       )}
 
-      <View style={s.places}>
-        <PlacesInput label={`${t('rs.from')} *`} type="city" value={search.from} placeId={search.fromId} placeholder="π.χ. Αθήνα"
-          onSelect={(v, id) => setSearch(x => ({ ...x, from: v, fromId: id }))} />
-        <PlacesInput label={`${t('rs.to')} *`} type="city" value={search.to} placeId={search.toId} placeholder="π.χ. Θεσσαλονίκη"
-          onSelect={(v, id) => setSearch(x => ({ ...x, to: v, toId: id }))} />
-      </View>
+      {/* Αναδιπλούμενο πλαίσιο: Φίλτρα Αναζήτησης → Αφετηρία, Προορισμός, Από, ακτίνα, Αναζήτηση */}
+      <View style={s.frame}>
+        <TouchableOpacity style={s.frameHead} onPress={() => setFiltersOpen(o => !o)} activeOpacity={0.7}>
+          <Ionicons name="options-outline" size={18} color={th.accentText} />
+          <Text style={s.frameTitle}>{t('rs.filters_title')}</Text>
+          <Ionicons name={filtersOpen ? 'chevron-up' : 'chevron-down'} size={18} color={th.inkText(0.5)} />
+        </TouchableOpacity>
+        {filtersOpen && (
+          <View style={s.frameBody}>
+            <PlacesInput label={`${t('rs.from')} *`} type="city" value={search.from} placeId={search.fromId} placeholder="π.χ. Αθήνα"
+              onSelect={(v, id) => setSearch(x => ({ ...x, from: v, fromId: id }))} />
+            <PlacesInput label={`${t('rs.to')} *`} type="city" value={search.to} placeId={search.toId} placeholder="π.χ. Θεσσαλονίκη"
+              onSelect={(v, id) => setSearch(x => ({ ...x, to: v, toId: id }))} />
 
-      <Text style={s.label}>{t('rs.date_from')} *</Text>
-      <TouchableOpacity style={s.select} onPress={() => setShowDate(true)}>
-        <Text style={[s.selectTxt, !dateFrom && { color: th.inkText(0.35) }]}>{dateFrom ? fDate(dateFrom.toISOString()) : t('rs.pick_date')}</Text>
-        <Ionicons name="calendar-outline" size={16} color={th.inkText(0.5)} />
-      </TouchableOpacity>
-      {showDate && (
-        <DateTimePicker value={dateFrom ?? new Date()} mode="date" display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={(_, d) => { setShowDate(Platform.OS === 'ios'); if (d) setDateFrom(d) }} />
-      )}
-      <Text style={s.label}>{t('rs.days')}</Text>
-      <View style={[s.row, { gap: 6, flexWrap: 'wrap', marginBottom: 12 }]}>
-        {DAYS.map(n => (
-          <TouchableOpacity key={n} style={[s.chip, daysAhead === n && s.chipOn]} onPress={() => setDaysAhead(n)}>
-            <Text style={[s.chipTxt, daysAhead === n && s.chipTxtOn]}>{n} {t('rs.days_suffix')}</Text>
-          </TouchableOpacity>
-        ))}
-        {!DAYS.includes(daysAhead) && <View style={[s.chip, s.chipOn]}><Text style={[s.chipTxt, s.chipTxtOn]}>{daysAhead} {t('rs.days_suffix')}</Text></View>}
-      </View>
+            <View style={[s.row, { gap: 10, alignItems: 'flex-end' }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={s.label}>{t('rs.date_from')} *</Text>
+                <TouchableOpacity style={s.select} onPress={() => setShowDate(true)}>
+                  <Text style={[s.selectTxt, !dateFrom && { color: th.inkText(0.35) }]} numberOfLines={1}>{dateFrom ? fDate(dateFrom.toISOString()) : t('rs.pick_date')}</Text>
+                  <Ionicons name="calendar-outline" size={16} color={th.inkText(0.5)} />
+                </TouchableOpacity>
+              </View>
+              <View style={{ marginBottom: 12 }}>
+                <Text style={s.label}>{t('rs.days_pm')}</Text>
+                <View style={[s.row, { gap: 6 }]}>
+                  <TouchableOpacity style={s.stepBtn} hitSlop={6} onPress={() => setDaysAhead(d => Math.max(DAYS_MIN, d - 1))}>
+                    <Ionicons name="remove" size={18} color={th.inkSolid} />
+                  </TouchableOpacity>
+                  <Text style={[s.stepVal, { minWidth: 28 }]}>{daysAhead}</Text>
+                  <TouchableOpacity style={s.stepBtn} hitSlop={6} onPress={() => setDaysAhead(d => Math.min(DAYS_MAX, d + 1))}>
+                    <Ionicons name="add" size={18} color={th.inkText(0.9)} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+            {showDate && (
+              <DateTimePicker value={dateFrom ?? new Date()} mode="date" display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={(_, d) => { setShowDate(Platform.OS === 'ios'); if (d) setDateFrom(d) }} />
+            )}
 
-      <View style={[s.row, { gap: 10 }]}>
-        <View style={{ flex: 1 }}>
-          <Text style={s.label}>{t('rs.min_volume')}</Text>
-          <TextInput style={s.input} value={minVolume} onChangeText={setMinVolume} keyboardType="decimal-pad" placeholder="m³" placeholderTextColor={th.inkText(0.3)} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <View style={[s.row, { justifyContent: 'space-between' }]}>
-            <Text style={s.label}>{t('rs.radius')}</Text>
-            <Switch value={radiusMode} onValueChange={setRadiusMode} trackColor={{ true: th.accent }} />
+            <View style={[s.row, { justifyContent: 'space-between', marginBottom: 14 }]}>
+              <Check checked={radiusMode} label={t('rs.radius')} onChange={setRadiusMode} />
+              <View style={[s.row, { gap: 8, opacity: radiusMode ? 1 : 0.4 }]} pointerEvents={radiusMode ? 'auto' : 'none'}>
+                <TouchableOpacity style={s.stepBtn} hitSlop={6} onPress={() => setRadiusKm(k => Math.max(RADIUS_STEP, k - RADIUS_STEP))}>
+                  <Ionicons name="remove" size={18} color={th.inkSolid} />
+                </TouchableOpacity>
+                <Text style={s.stepVal}>{radiusKm} km</Text>
+                <TouchableOpacity style={s.stepBtn} hitSlop={6} onPress={() => setRadiusKm(k => Math.min(500, k + RADIUS_STEP))}>
+                  <Ionicons name="add" size={18} color={th.inkSolid} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <TouchableOpacity style={s.searchBtn} onPress={runSearch} activeOpacity={0.8}>
+              <Ionicons name="search" size={16} color={th.onAccent} />
+              <Text style={s.searchTxt}>{t('rs.search_btn')}</Text>
+            </TouchableOpacity>
+            {!!searchHint && <Text style={s.error}>{searchHint}</Text>}
           </View>
-          {radiusMode && <TextInput style={s.input} value={radiusKm} onChangeText={setRadiusKm} keyboardType="number-pad" placeholder="km" placeholderTextColor={th.inkText(0.3)} />}
-        </View>
+        )}
       </View>
 
-      <View style={[s.row, { gap: 6, flexWrap: 'wrap', marginVertical: 12 }]}>
-        {SORTS.map(([key, label]) => (
-          <TouchableOpacity key={key} style={[s.chip, sortBy === key && s.chipOn]} onPress={() => setSortBy(key)}>
-            <Text style={[s.chipTxt, sortBy === key && s.chipTxtOn]}>{t(label)}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {!isValid ? (
+      {/* Αποτελέσματα */}
+      {!applied ? (
         <View style={s.empty}><Text style={{ fontSize: 36 }}>🧭</Text><Text style={s.emptyTxt}>{t('rs.fill_required')}</Text></View>
-      ) : isFetching ? (
-        <ActivityIndicator color={th.accentText} style={{ marginVertical: 30 }} />
-      ) : error ? (
-        <Text style={s.error}>{(error as any)?.response?.data?.error ?? t('common.error')}</Text>
       ) : (
-        <Text style={[s.muted, { marginBottom: 10 }]}>
-          <Text style={{ color: th.inkSolid, fontWeight: '800' }}>{total}</Text> {t('rs.results')}
-          {totalPages > 1 && !knownIds ? `  ·  ${page}/${totalPages}` : ''}
-        </Text>
+        <View>
+          <View style={[s.row, { gap: 10, marginBottom: 12 }]}>
+            <Combo label={t('rs.vehicle_type')} value={vehicle} options={VEHICLES} onChange={setVehicle} />
+            <Combo label={t('rs.sort_by')} value={sortBy} options={SORTS} onChange={v => setSortBy(v as 'date' | 'price' | 'rating')} />
+          </View>
+          {isFetching ? (
+            <ActivityIndicator color={th.accentText} style={{ marginVertical: 30 }} />
+          ) : error ? (
+            <Text style={s.error}>{(error as any)?.response?.data?.error ?? t('common.error')}</Text>
+          ) : (
+            <Text style={[s.muted, { marginBottom: 10 }]}>
+              <Text style={{ color: th.inkSolid, fontWeight: '800' }}>{total}</Text> {t('rs.results')}
+              {totalPages > 1 && !knownIds ? `  ·  ${page}/${totalPages}` : ''}
+            </Text>
+          )}
+        </View>
       )}
     </View>
   )
@@ -222,15 +320,15 @@ export default function RoutesSearchScreen() {
       </View>
 
       <FlatList
-        data={isValid && !isFetching && !error ? routes : []}
+        data={applied && !isFetching && !error ? routes : []}
         keyExtractor={r => r.id}
         contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
         keyboardShouldPersistTaps="handled"
         ListHeaderComponent={header}
-        ListEmptyComponent={isValid && !isFetching && !error ? (
+        ListEmptyComponent={applied && !isFetching && !error ? (
           <View style={s.empty}><Text style={{ fontSize: 36 }}>🔍</Text><Text style={s.emptyTxt}>{t('rs.empty')}</Text></View>
         ) : undefined}
-        ListFooterComponent={totalPages > 1 && !knownIds && isValid ? (
+        ListFooterComponent={totalPages > 1 && !knownIds && applied ? (
           <View style={[s.row, { justifyContent: 'center', gap: 12, marginTop: 8 }]}>
             <TouchableOpacity style={[s.chip, page === 1 && { opacity: 0.3 }]} disabled={page === 1} onPress={() => setPage(p => p - 1)}><Text style={s.chipTxt}>←</Text></TouchableOpacity>
             <Text style={s.muted}>{page} / {totalPages}</Text>
@@ -322,7 +420,7 @@ export default function RoutesSearchScreen() {
               </TouchableOpacity>
               <TouchableOpacity style={[s.requestBtn, { flex: 1, alignItems: 'center', paddingVertical: 12 }, (sending || !requestText.trim()) && { opacity: 0.5 }]}
                 disabled={sending || !requestText.trim()} onPress={sendRequest}>
-                {sending ? <ActivityIndicator size="small" color="#000" /> : <Text style={s.requestTxt}>{t('common.send')}</Text>}
+                {sending ? <ActivityIndicator size="small" color={th.onAccent} /> : <Text style={s.requestTxt}>{t('common.send')}</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -342,7 +440,17 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   select:      { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: t.ink(0.06), borderWidth: 1, borderColor: t.ink(0.12), borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 12 },
   selectTxt:   { flex: 1, color: t.inkSolid, fontSize: 14 },
   input:       { backgroundColor: t.ink(0.06), borderWidth: 1, borderColor: t.ink(0.12), borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, color: t.inkSolid, fontSize: 14 },
-  places:      { backgroundColor: t.surface, borderRadius: 16, padding: 12, marginBottom: 12 },
+  frame:       { backgroundColor: t.surface, borderWidth: 1, borderColor: t.ink(0.1), borderRadius: 16, marginBottom: 16, overflow: 'hidden' },
+  frameHead:   { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 14 },
+  frameTitle:  { flex: 1, color: t.inkSolid, fontSize: 14, fontWeight: '800' },
+  frameBody:   { paddingHorizontal: 14, paddingBottom: 14, borderTopWidth: 1, borderTopColor: t.ink(0.08), paddingTop: 12 },
+  checkBox:    { width: 20, height: 20, borderRadius: 6, borderWidth: 1.5, borderColor: t.ink(0.35), alignItems: 'center', justifyContent: 'center' },
+  checkBoxOn:  { backgroundColor: t.accent, borderColor: t.accent },
+  checkTxt:    { color: t.inkText(0.7), fontSize: 13, fontWeight: '600' },
+  stepBtn:     { width: 34, height: 34, borderRadius: 10, backgroundColor: t.ink(0.06), borderWidth: 1, borderColor: t.ink(0.12), alignItems: 'center', justifyContent: 'center' },
+  stepVal:     { minWidth: 64, textAlign: 'center', color: t.inkSolid, fontSize: 14, fontWeight: '800' },
+  searchBtn:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: t.accent, borderRadius: 12, paddingVertical: 13 },
+  searchTxt:   { color: t.onAccent, fontSize: 14, fontWeight: '800' },
   chip:        { borderWidth: 1, borderColor: t.ink(0.15), borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 },
   chipOn:      { backgroundColor: t.accentBrightA(0.15), borderColor: t.accentBright },
   chipTxt:     { color: t.inkText(0.7), fontSize: 12, fontWeight: '700' },
